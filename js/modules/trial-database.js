@@ -32,10 +32,33 @@
         { id: 'rehabilitation', label: 'Rehabilitation' },
         { id: 'secondary-prevention', label: 'Secondary Prevention' },
         { id: 'decompressive', label: 'Decompressive Surgery' },
+        { id: 'prevention', label: 'Prevention' },
+        { id: 'telestroke', label: 'Telestroke' },
+        { id: 'pediatric', label: 'Pediatric' },
+        { id: 'imaging', label: 'Imaging' },
+        { id: 'systems-of-care', label: 'Systems of Care' },
         { id: 'other', label: 'Other' }
     ];
 
+    // Deduplicate trials by name (keep last entry which has richer schema from batch files)
+    function deduplicateTrials() {
+        if (typeof TrialDatabase === 'undefined' || !TrialDatabase.trials) return;
+        var seen = {};
+        var unique = [];
+        // Iterate in reverse so last entry (richer schema) wins, then reverse back
+        for (var i = TrialDatabase.trials.length - 1; i >= 0; i--) {
+            var t = TrialDatabase.trials[i];
+            if (!seen[t.name]) {
+                seen[t.name] = true;
+                unique.push(t);
+            }
+        }
+        unique.reverse();
+        TrialDatabase.trials = unique;
+    }
+
     function render(container) {
+        deduplicateTrials();
         var html = App.createModuleLayout(
             'Clinical Trial Database',
             'Comprehensive database of landmark clinical trials with verified data. Search, filter, compare, and generate citation text for grants and manuscripts.'
