@@ -191,7 +191,7 @@ const Charts = (() => {
             // Points
             pts.forEach(p => {
                 ctx.beginPath();
-                ctx.arc(sx(p.x), sy(p.y), 3, 0, 2 * PI);
+                ctx.arc(sx(p.x), sy(p.y), 3, 0, 2 * Math.PI);
                 ctx.fillStyle = color;
                 ctx.fill();
             });
