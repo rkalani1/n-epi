@@ -19,6 +19,7 @@ A comprehensive, zero-dependency static web app built for vascular neurologists,
 - **Diagnostic Accuracy** — Full 2×2 with Wilson CIs, Fagan nomogram (interactive canvas), ROC curve with AUC, McNemar's test for paired comparisons.
 - **Epidemiology Calculators** — 2×2 analysis, Mantel-Haenszel stratified analysis, additive/multiplicative interaction, Cochran-Armitage trend test, bias checklist.
 - **Effect Size Converter** — Bidirectional conversions: OR ↔ RR ↔ RD ↔ Cohen's d ↔ Hedge's g. Cohen and stroke-specific benchmarks.
+- **Risk Calculators** — Clinical stroke risk scores (CHA₂DS₂-VASc, HAS-BLED, ABCD², Essen Stroke Risk Score, SEDAN, DRAGON) plus epidemiological rate calculators (incidence rates, rate ratios, prevalence, SMR, direct age standardization, attributable risk, DALY/YLL).
 - **Regression Helper** — Model selection wizard, events-per-variable calculator, DAG builder for confounder identification.
 
 ### Evidence & Writing
@@ -26,7 +27,6 @@ A comprehensive, zero-dependency static web app built for vascular neurologists,
 - **Critical Appraisal** — RoB 2.0 (with signaling questions and algorithmic judgments), Newcastle-Ottawa, AMSTAR-2, QUADAS-2, GRADE.
 - **Grant Assistant** — Specific aims page builder, study design section, power justification text, Gantt timeline, human subjects template, budget calculator.
 - **Hypothesis Builder** — PICO/PECO framework, study design decision tree, variable classification, analysis plan generator.
-- **Risk Calculators** — CHA₂DS₂-VASc, HAS-BLED, ABCD², Essen Stroke Risk Score, SEDAN, DRAGON.
 
 ### Technical Features
 - Complete statistical engine built from scratch (no dependencies)

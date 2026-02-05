@@ -1,7 +1,9 @@
 /**
  * NeuroEpi Suite — Risk Calculators Module
- * Tabs: Incidence Rate, Rate Ratio, Prevalence, SMR,
- *       Age Standardization, Attributable Risk, Life Years Lost / DALY
+ * Card 1: Clinical Stroke Risk Scores (CHA2DS2-VASc, HAS-BLED, ABCD2, ESRS, SEDAN, DRAGON)
+ * Card 2: Epidemiological Rate Calculators
+ *   Tabs: Incidence Rate, Rate Ratio, Prevalence, SMR,
+ *         Age Standardization, Attributable Risk, Life Years Lost / DALY
  */
 
 (function() {
@@ -13,13 +15,311 @@
     var ageRows = [];
     var ageRowIdCounter = 0;
 
+    // ===== Clinical Risk Score lookup tables =====
+
+    var chadsVascRisk = [0, 1.3, 2.2, 3.2, 4.0, 6.7, 9.8, 9.6, 6.7, 15.2];
+
+    var hasBledRisk = {
+        0: 1.13,
+        1: 1.02,
+        2: 1.88,
+        3: 3.74,
+        4: 8.70,
+        5: 12.50
+    };
+
+    var abcd2TwoDayRisk = {
+        low: 1.0,
+        moderate: 4.1,
+        high: 8.1
+    };
+
+    var abcd2SevenDayRisk = {
+        low: 1.2,
+        moderate: 5.9,
+        high: 11.7
+    };
+
+    var sedanRisk = [1.4, 3.4, 5.7, 12.3, 16.9, 27.2];
+
+    var dragonOutcome = {
+        0: 96, 1: 96,
+        2: 88,
+        3: 78,
+        4: 50, 5: 50,
+        6: 20, 7: 20,
+        8: 5, 9: 5, 10: 5
+    };
+
     function render(container) {
         var html = App.createModuleLayout(
             'Risk Calculators',
-            'Compute epidemiological rates, ratios, and population-level measures with exact confidence intervals. Includes standardization, attributable risk, and DALY calculations.'
+            'Clinical stroke risk scores and epidemiological rate calculators. Includes validated scoring systems for stroke risk stratification, bleeding risk, outcome prediction, and population-level epidemiological measures with exact confidence intervals.'
         );
 
+        // ===================================================================
+        // CARD 1: Clinical Stroke Risk Scores
+        // ===================================================================
         html += '<div class="card">';
+        html += '<div class="card-title">Clinical Stroke Risk Scores</div>';
+        html += '<div class="card-subtitle">Validated scoring systems for stroke risk stratification, bleeding risk, and outcome prediction.</div>';
+
+        html += '<div class="tabs" id="crs-tabs">'
+            + '<button class="tab active" data-tab="chadsvasc" onclick="RiskCalc.switchCrsTab(\'chadsvasc\')">CHA\u2082DS\u2082-VASc</button>'
+            + '<button class="tab" data-tab="hasbled" onclick="RiskCalc.switchCrsTab(\'hasbled\')">HAS-BLED</button>'
+            + '<button class="tab" data-tab="abcd2" onclick="RiskCalc.switchCrsTab(\'abcd2\')">ABCD\u00B2</button>'
+            + '<button class="tab" data-tab="esrs" onclick="RiskCalc.switchCrsTab(\'esrs\')">ESRS</button>'
+            + '<button class="tab" data-tab="sedan" onclick="RiskCalc.switchCrsTab(\'sedan\')">SEDAN</button>'
+            + '<button class="tab" data-tab="dragon" onclick="RiskCalc.switchCrsTab(\'dragon\')">DRAGON</button>'
+            + '</div>';
+
+        // ----- CRS TAB 1: CHA2DS2-VASc -----
+        html += '<div class="tab-content active" id="tab-crs-chadsvasc">';
+        html += '<div class="card-subtitle">Stroke risk in atrial fibrillation. Score range: 0\u20139 points.</div>';
+
+        html += '<div style="margin-bottom:12px">'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-chads-chf">'
+            + '<span>C \u2014 Congestive heart failure / LV dysfunction (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-chads-htn">'
+            + '<span>H \u2014 Hypertension (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-chads-dm">'
+            + '<span>D \u2014 Diabetes mellitus (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-chads-stroke">'
+            + '<span>S\u2082 \u2014 Stroke / TIA / thromboembolism history (+2)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-chads-vasc">'
+            + '<span>V \u2014 Vascular disease (prior MI, PAD, aortic plaque) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-chads-female">'
+            + '<span>Sc \u2014 Sex category: female (+1)</span></label>'
+            + '</div>';
+
+        html += '<div class="form-group">'
+            + '<label class="form-label">Age Category ' + App.tooltip('Age 65\u201374 scores 1 point; Age \u226575 scores 2 points. These are mutually exclusive.') + '</label>'
+            + '<select class="form-select" id="crs-chads-age" style="max-width:280px">'
+            + '<option value="0">Under 65 (0 points)</option>'
+            + '<option value="1">65\u201374 years (+1 point)</option>'
+            + '<option value="2">\u226575 years (+2 points)</option>'
+            + '</select></div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-primary" onclick="RiskCalc.calcCHADSVASc()">Calculate Score</button>'
+            + '</div>';
+
+        html += '<div id="crs-chadsvasc-results"></div>';
+        html += '</div>';
+
+        // ----- CRS TAB 2: HAS-BLED -----
+        html += '<div class="tab-content" id="tab-crs-hasbled">';
+        html += '<div class="card-subtitle">Bleeding risk assessment for patients on anticoagulation. Score range: 0\u20139 points.</div>';
+
+        html += '<div style="margin-bottom:12px">'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-htn">'
+            + '<span>H \u2014 Hypertension (uncontrolled, systolic &gt;160 mmHg) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-renal">'
+            + '<span>A \u2014 Abnormal renal function (dialysis, transplant, Cr &gt;2.26 mg/dL) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-liver">'
+            + '<span>A \u2014 Abnormal liver function (cirrhosis, bilirubin &gt;2\u00d7 ULN, AST/ALT/ALP &gt;3\u00d7 ULN) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-stroke">'
+            + '<span>S \u2014 Stroke history (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-bleed">'
+            + '<span>B \u2014 Bleeding history or predisposition (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-inr">'
+            + '<span>L \u2014 Labile INR (TTR &lt;60%) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-elderly">'
+            + '<span>E \u2014 Elderly (&gt;65 years) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-drugs">'
+            + '<span>D \u2014 Drugs predisposing to bleeding (antiplatelets, NSAIDs) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-hasbled-alcohol">'
+            + '<span>D \u2014 Alcohol excess (\u22658 drinks/week) (+1)</span></label>'
+            + '</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-primary" onclick="RiskCalc.calcHASBLED()">Calculate Score</button>'
+            + '</div>';
+
+        html += '<div id="crs-hasbled-results"></div>';
+        html += '</div>';
+
+        // ----- CRS TAB 3: ABCD2 -----
+        html += '<div class="tab-content" id="tab-crs-abcd2">';
+        html += '<div class="card-subtitle">Stroke risk after TIA. Score range: 0\u20137 points.</div>';
+
+        html += '<div style="margin-bottom:12px">'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-abcd2-age">'
+            + '<span>A \u2014 Age \u226560 years (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-abcd2-bp">'
+            + '<span>B \u2014 Blood pressure \u2265140/90 mmHg at presentation (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-abcd2-diabetes">'
+            + '<span>D\u2082 \u2014 Diabetes mellitus (+1)</span></label>'
+            + '</div>';
+
+        html += '<div class="form-group">'
+            + '<label class="form-label">C \u2014 Clinical Features ' + App.tooltip('Unilateral weakness scores 2; speech disturbance without weakness scores 1; other symptoms score 0.') + '</label>'
+            + '<select class="form-select" id="crs-abcd2-clinical" style="max-width:360px">'
+            + '<option value="0">Other symptoms (0 points)</option>'
+            + '<option value="1">Speech disturbance without weakness (+1)</option>'
+            + '<option value="2">Unilateral weakness (+2)</option>'
+            + '</select></div>';
+
+        html += '<div class="form-group">'
+            + '<label class="form-label">D \u2014 Duration of Symptoms ' + App.tooltip('Duration of TIA symptoms. \u226560 min = 2 pts, 10\u201359 min = 1 pt, <10 min = 0 pts.') + '</label>'
+            + '<select class="form-select" id="crs-abcd2-duration" style="max-width:280px">'
+            + '<option value="0">&lt;10 minutes (0 points)</option>'
+            + '<option value="1">10\u201359 minutes (+1 point)</option>'
+            + '<option value="2">\u226560 minutes (+2 points)</option>'
+            + '</select></div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-primary" onclick="RiskCalc.calcABCD2()">Calculate Score</button>'
+            + '</div>';
+
+        html += '<div id="crs-abcd2-results"></div>';
+        html += '</div>';
+
+        // ----- CRS TAB 4: ESRS (Essen Stroke Risk Score) -----
+        html += '<div class="tab-content" id="tab-crs-esrs">';
+        html += '<div class="card-subtitle">Risk of recurrent stroke or cardiovascular event. Score range: 0\u20139 points.</div>';
+
+        html += '<div style="margin-bottom:12px">'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-esrs-htn">'
+            + '<span>Hypertension (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-esrs-dm">'
+            + '<span>Diabetes mellitus (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-esrs-mi">'
+            + '<span>Previous myocardial infarction (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-esrs-cvd">'
+            + '<span>Other cardiovascular disease (excl MI, AF) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-esrs-pad">'
+            + '<span>Peripheral arterial disease (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-esrs-smoker">'
+            + '<span>Current smoker (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-esrs-prior">'
+            + '<span>Prior TIA or ischemic stroke (in addition to qualifying event) (+1)</span></label>'
+            + '</div>';
+
+        html += '<div class="form-group">'
+            + '<label class="form-label">Age Category ' + App.tooltip('Age 65\u201375 scores 1 point; Age >75 scores 2 points. These are mutually exclusive.') + '</label>'
+            + '<select class="form-select" id="crs-esrs-age" style="max-width:280px">'
+            + '<option value="0">Under 65 (0 points)</option>'
+            + '<option value="1">65\u201375 years (+1 point)</option>'
+            + '<option value="2">&gt;75 years (+2 points)</option>'
+            + '</select></div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-primary" onclick="RiskCalc.calcESRS()">Calculate Score</button>'
+            + '</div>';
+
+        html += '<div id="crs-esrs-results"></div>';
+        html += '</div>';
+
+        // ----- CRS TAB 5: SEDAN -----
+        html += '<div class="tab-content" id="tab-crs-sedan">';
+        html += '<div class="card-subtitle">Symptomatic intracerebral hemorrhage (sICH) risk after IV thrombolysis. Score range: 0\u20135 points.</div>';
+
+        html += '<div style="margin-bottom:12px">'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-sedan-sugar">'
+            + '<span>S \u2014 Blood sugar &gt;145 mg/dL (&gt;8.1 mmol/L) on admission (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-sedan-infarct">'
+            + '<span>E \u2014 Early infarct signs on CT (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-sedan-dense">'
+            + '<span>D \u2014 Hyperdense cerebral artery sign on CT (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-sedan-age">'
+            + '<span>A \u2014 Age &gt;75 years (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-sedan-nihss">'
+            + '<span>N \u2014 NIHSS \u226510 (+1)</span></label>'
+            + '</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-primary" onclick="RiskCalc.calcSEDAN()">Calculate Score</button>'
+            + '</div>';
+
+        html += '<div id="crs-sedan-results"></div>';
+        html += '</div>';
+
+        // ----- CRS TAB 6: DRAGON -----
+        html += '<div class="tab-content" id="tab-crs-dragon">';
+        html += '<div class="card-subtitle">Functional outcome prediction after IV thrombolysis. Score range: 0\u201310 points.</div>';
+
+        html += '<div style="margin-bottom:12px">'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-dragon-dense">'
+            + '<span>D \u2014 Dense cerebral artery sign on CT (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-dragon-infarct">'
+            + '<span>D \u2014 Early infarct on CT (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-dragon-mrs">'
+            + '<span>R \u2014 Pre-stroke mRS &gt;1 (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-dragon-glucose">'
+            + '<span>G \u2014 Glucose on admission &gt;145 mg/dL (&gt;8.1 mmol/L) (+1)</span></label>'
+            + '<label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">'
+            + '<input type="checkbox" id="crs-dragon-onset">'
+            + '<span>O \u2014 Onset-to-treatment time &gt;90 minutes (+1)</span></label>'
+            + '</div>';
+
+        html += '<div class="form-group">'
+            + '<label class="form-label">A \u2014 Age Category ' + App.tooltip('Age <45 = 0 pts, 45\u201365 = 1 pt, >65 = 2 pts.') + '</label>'
+            + '<select class="form-select" id="crs-dragon-age" style="max-width:280px">'
+            + '<option value="0">&lt;45 years (0 points)</option>'
+            + '<option value="1">45\u201365 years (+1 point)</option>'
+            + '<option value="2">&gt;65 years (+2 points)</option>'
+            + '</select></div>';
+
+        html += '<div class="form-group">'
+            + '<label class="form-label">N \u2014 Baseline NIHSS ' + App.tooltip('NIHSS 0\u20134 = 0 pts, 5\u20139 = 1 pt, 10\u201315 = 2 pts, >15 = 3 pts.') + '</label>'
+            + '<select class="form-select" id="crs-dragon-nihss" style="max-width:280px">'
+            + '<option value="0">0\u20134 (0 points)</option>'
+            + '<option value="1">5\u20139 (+1 point)</option>'
+            + '<option value="2">10\u201315 (+2 points)</option>'
+            + '<option value="3">&gt;15 (+3 points)</option>'
+            + '</select></div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-primary" onclick="RiskCalc.calcDRAGON()">Calculate Score</button>'
+            + '</div>';
+
+        html += '<div id="crs-dragon-results"></div>';
+        html += '</div>';
+
+        html += '</div>'; // end card 1 (Clinical Risk Scores)
+
+        // ===================================================================
+        // CARD 2: Epidemiological Rate Calculators (existing)
+        // ===================================================================
+        html += '<div class="card">';
+        html += '<div class="card-title">Epidemiological Rate Calculators</div>';
+        html += '<div class="card-subtitle">Compute epidemiological rates, ratios, and population-level measures with exact confidence intervals.</div>';
+
         html += '<div class="tabs" id="rc-tabs">'
             + '<button class="tab active" data-tab="incidence" onclick="RiskCalc.switchTab(\'incidence\')">Incidence Rate</button>'
             + '<button class="tab" data-tab="rateratio" onclick="RiskCalc.switchTab(\'rateratio\')">Rate Ratio</button>'
@@ -240,7 +540,7 @@
         html += '<div id="rc-daly-results"></div>';
         html += '</div>';
 
-        html += '</div>'; // end card
+        html += '</div>'; // end card 2 (Epi calculators)
 
         App.setTrustedHTML(container, html);
         App.autoSaveInputs(container, MODULE_ID);
@@ -251,13 +551,395 @@
         addDefaultAgeRows();
     }
 
+    // ===== Tab switching for Epi calculators (Card 2) =====
     function switchTab(tabId) {
         document.querySelectorAll('#rc-tabs .tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tabId); });
-        document.querySelectorAll('.tab-content').forEach(function(tc) {
-            var tcId = tc.id.replace('tab-', '');
-            tc.classList.toggle('active', tcId === tabId);
+        var epiTabIds = ['incidence', 'rateratio', 'prevalence', 'smr', 'agestd', 'ar', 'daly'];
+        epiTabIds.forEach(function(id) {
+            var el = document.getElementById('tab-' + id);
+            if (el) el.classList.toggle('active', id === tabId);
         });
     }
+
+    // ===== Tab switching for Clinical Risk Scores (Card 1) =====
+    function switchCrsTab(tabId) {
+        document.querySelectorAll('#crs-tabs .tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tabId); });
+        var crsTabIds = ['chadsvasc', 'hasbled', 'abcd2', 'esrs', 'sedan', 'dragon'];
+        crsTabIds.forEach(function(id) {
+            var el = document.getElementById('tab-crs-' + id);
+            if (el) el.classList.toggle('active', id === tabId);
+        });
+    }
+
+    // ===================================================================
+    // CLINICAL RISK SCORE CALCULATORS
+    // ===================================================================
+
+    // ----- CHA2DS2-VASc -----
+    function calcCHADSVASc() {
+        var score = 0;
+        if (document.getElementById('crs-chads-chf').checked) score += 1;
+        if (document.getElementById('crs-chads-htn').checked) score += 1;
+        if (document.getElementById('crs-chads-dm').checked) score += 1;
+        if (document.getElementById('crs-chads-stroke').checked) score += 2;
+        if (document.getElementById('crs-chads-vasc').checked) score += 1;
+        if (document.getElementById('crs-chads-female').checked) score += 1;
+        score += parseInt(document.getElementById('crs-chads-age').value) || 0;
+
+        var isFemale = document.getElementById('crs-chads-female').checked;
+        var annualRisk = chadsVascRisk[Math.min(score, 9)];
+
+        // Determine recommendation
+        var recommendation = '';
+        var recColor = '';
+        if (score === 0) {
+            recommendation = 'Low risk \u2014 no anticoagulation needed.';
+            recColor = 'var(--success)';
+        } else if (score === 1 && isFemale) {
+            // Female with score 1 where the only point is sex: low risk
+            var nonSexScore = score - 1;
+            if (nonSexScore === 0) {
+                recommendation = 'Low risk (sole point from female sex) \u2014 no anticoagulation needed.';
+                recColor = 'var(--success)';
+            } else {
+                recommendation = 'Consider anticoagulation (OAC or aspirin). Discuss risk-benefit with patient.';
+                recColor = 'var(--warning)';
+            }
+        } else if (score === 1) {
+            recommendation = 'Consider anticoagulation (OAC or aspirin). Discuss risk-benefit with patient.';
+            recColor = 'var(--warning)';
+        } else {
+            recommendation = 'Anticoagulation recommended (OAC preferred over antiplatelet therapy).';
+            recColor = 'var(--danger)';
+        }
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + score + ' / 9</div>';
+        html += '<div class="result-label">CHA\u2082DS\u2082-VASc Score</div>';
+        html += '<div class="result-detail">Estimated annual stroke risk: ' + annualRisk + '%</div>';
+
+        html += '<div class="result-detail mt-1" style="color:' + recColor + ';font-weight:600">'
+            + recommendation + '</div>';
+
+        // Risk table
+        html += '<div class="card-title mt-2">Annual Stroke Risk by Score</div>';
+        html += '<table class="data-table"><thead><tr><th>Score</th><th>Annual Stroke Risk</th></tr></thead><tbody>';
+        for (var i = 0; i <= 9; i++) {
+            var rowStyle = i === score ? ' style="background:var(--accent-muted);font-weight:600"' : '';
+            html += '<tr' + rowStyle + '><td>' + i + '</td><td class="num">' + chadsVascRisk[i] + '%</td></tr>';
+        }
+        html += '</tbody></table>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'CHA2DS2-VASc Score: ' + score + '/9. Annual stroke risk: ' + annualRisk + '%. ' + recommendation.replace(/'/g, "\\'") + '\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('crs-chadsvasc-results'), html);
+        Export.addToHistory(MODULE_ID, { calculator: 'CHA2DS2-VASc', score: score }, 'CHA2DS2-VASc: ' + score + '/9 (' + annualRisk + '% annual risk)');
+    }
+
+    // ----- HAS-BLED -----
+    function calcHASBLED() {
+        var score = 0;
+        if (document.getElementById('crs-hasbled-htn').checked) score += 1;
+        if (document.getElementById('crs-hasbled-renal').checked) score += 1;
+        if (document.getElementById('crs-hasbled-liver').checked) score += 1;
+        if (document.getElementById('crs-hasbled-stroke').checked) score += 1;
+        if (document.getElementById('crs-hasbled-bleed').checked) score += 1;
+        if (document.getElementById('crs-hasbled-inr').checked) score += 1;
+        if (document.getElementById('crs-hasbled-elderly').checked) score += 1;
+        if (document.getElementById('crs-hasbled-drugs').checked) score += 1;
+        if (document.getElementById('crs-hasbled-alcohol').checked) score += 1;
+
+        var bleedRate = score >= 5 ? hasBledRisk[5] : (hasBledRisk[score] !== undefined ? hasBledRisk[score] : hasBledRisk[5]);
+
+        var riskCategory = '';
+        var riskColor = '';
+        if (score <= 2) {
+            riskCategory = 'Relatively low bleeding risk.';
+            riskColor = 'var(--success)';
+        } else {
+            riskCategory = 'High bleeding risk \u2014 not a contraindication to OAC, but warrants careful monitoring and risk factor modification.';
+            riskColor = 'var(--danger)';
+        }
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + score + ' / 9</div>';
+        html += '<div class="result-label">HAS-BLED Score</div>';
+        html += '<div class="result-detail">Estimated bleeding rate: ' + bleedRate.toFixed(2) + ' bleeds per 100 patient-years</div>';
+
+        html += '<div class="result-detail mt-1" style="color:' + riskColor + ';font-weight:600">'
+            + riskCategory + '</div>';
+
+        // Risk table
+        html += '<div class="card-title mt-2">Bleeding Risk by Score</div>';
+        html += '<table class="data-table"><thead><tr><th>Score</th><th>Bleeds per 100 patient-years</th></tr></thead><tbody>';
+        var hasBledKeys = [0, 1, 2, 3, 4, 5];
+        hasBledKeys.forEach(function(k) {
+            var label = k === 5 ? '\u22655' : String(k);
+            var rowStyle = (k === score || (score >= 5 && k === 5)) ? ' style="background:var(--accent-muted);font-weight:600"' : '';
+            html += '<tr' + rowStyle + '><td>' + label + '</td><td class="num">' + hasBledRisk[k].toFixed(2) + '</td></tr>';
+        });
+        html += '</tbody></table>';
+
+        html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:8px">A high HAS-BLED score is not a reason to withhold anticoagulation. It identifies patients who need closer follow-up and modification of reversible risk factors (e.g., uncontrolled HTN, labile INR, concomitant drugs, alcohol).</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'HAS-BLED Score: ' + score + '/9. Bleeding rate: ' + bleedRate.toFixed(2) + ' per 100 patient-years. ' + (score >= 3 ? 'High bleeding risk.' : 'Low bleeding risk.') + '\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('crs-hasbled-results'), html);
+        Export.addToHistory(MODULE_ID, { calculator: 'HAS-BLED', score: score }, 'HAS-BLED: ' + score + '/9 (' + bleedRate.toFixed(2) + ' bleeds/100 pt-yr)');
+    }
+
+    // ----- ABCD2 -----
+    function calcABCD2() {
+        var score = 0;
+        if (document.getElementById('crs-abcd2-age').checked) score += 1;
+        if (document.getElementById('crs-abcd2-bp').checked) score += 1;
+        if (document.getElementById('crs-abcd2-diabetes').checked) score += 1;
+        score += parseInt(document.getElementById('crs-abcd2-clinical').value) || 0;
+        score += parseInt(document.getElementById('crs-abcd2-duration').value) || 0;
+
+        var riskCategory = '';
+        var riskColor = '';
+        var twoDayRisk = 0;
+        var sevenDayRisk = 0;
+
+        if (score <= 3) {
+            riskCategory = 'Low risk';
+            riskColor = 'var(--success)';
+            twoDayRisk = abcd2TwoDayRisk.low;
+            sevenDayRisk = abcd2SevenDayRisk.low;
+        } else if (score <= 5) {
+            riskCategory = 'Moderate risk';
+            riskColor = 'var(--warning)';
+            twoDayRisk = abcd2TwoDayRisk.moderate;
+            sevenDayRisk = abcd2SevenDayRisk.moderate;
+        } else {
+            riskCategory = 'High risk';
+            riskColor = 'var(--danger)';
+            twoDayRisk = abcd2TwoDayRisk.high;
+            sevenDayRisk = abcd2SevenDayRisk.high;
+        }
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + score + ' / 7</div>';
+        html += '<div class="result-label">ABCD\u00B2 Score</div>';
+        html += '<div class="result-detail mt-1" style="color:' + riskColor + ';font-weight:600">'
+            + riskCategory + '</div>';
+
+        html += '<div class="result-grid mt-2">'
+            + '<div class="result-item"><div class="result-item-value" style="color:var(--warning)">' + twoDayRisk + '%</div><div class="result-item-label">2-Day Stroke Risk</div></div>'
+            + '<div class="result-item"><div class="result-item-value" style="color:var(--danger)">' + sevenDayRisk + '%</div><div class="result-item-label">7-Day Stroke Risk</div></div>'
+            + '</div>';
+
+        // Risk table
+        html += '<div class="card-title mt-2">Stroke Risk by Score Category</div>';
+        html += '<table class="data-table"><thead><tr><th>Score</th><th>Risk Level</th><th>2-Day Stroke Risk</th><th>7-Day Stroke Risk</th></tr></thead><tbody>';
+        var abcdRows = [
+            { range: '0\u20133', level: 'Low', d2: abcd2TwoDayRisk.low, d7: abcd2SevenDayRisk.low, match: score <= 3 },
+            { range: '4\u20135', level: 'Moderate', d2: abcd2TwoDayRisk.moderate, d7: abcd2SevenDayRisk.moderate, match: score >= 4 && score <= 5 },
+            { range: '6\u20137', level: 'High', d2: abcd2TwoDayRisk.high, d7: abcd2SevenDayRisk.high, match: score >= 6 }
+        ];
+        abcdRows.forEach(function(r) {
+            var rowStyle = r.match ? ' style="background:var(--accent-muted);font-weight:600"' : '';
+            html += '<tr' + rowStyle + '><td>' + r.range + '</td><td>' + r.level + '</td><td class="num">' + r.d2 + '%</td><td class="num">' + r.d7 + '%</td></tr>';
+        });
+        html += '</tbody></table>';
+
+        html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:8px">The ABCD\u00B2 score helps triage TIA patients for urgency of evaluation. Patients with scores \u22654 should be considered for urgent workup and possible hospitalization.</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'ABCD2 Score: ' + score + '/7. ' + riskCategory + '. 2-day stroke risk: ' + twoDayRisk + '%. 7-day stroke risk: ' + sevenDayRisk + '%.\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('crs-abcd2-results'), html);
+        Export.addToHistory(MODULE_ID, { calculator: 'ABCD2', score: score }, 'ABCD2: ' + score + '/7 (' + riskCategory + ')');
+    }
+
+    // ----- ESRS (Essen Stroke Risk Score) -----
+    function calcESRS() {
+        var score = 0;
+        if (document.getElementById('crs-esrs-htn').checked) score += 1;
+        if (document.getElementById('crs-esrs-dm').checked) score += 1;
+        if (document.getElementById('crs-esrs-mi').checked) score += 1;
+        if (document.getElementById('crs-esrs-cvd').checked) score += 1;
+        if (document.getElementById('crs-esrs-pad').checked) score += 1;
+        if (document.getElementById('crs-esrs-smoker').checked) score += 1;
+        if (document.getElementById('crs-esrs-prior').checked) score += 1;
+        score += parseInt(document.getElementById('crs-esrs-age').value) || 0;
+
+        var riskCategory = '';
+        var riskColor = '';
+        if (score <= 2) {
+            riskCategory = 'Low risk (<4% annual recurrence rate)';
+            riskColor = 'var(--success)';
+        } else {
+            riskCategory = 'High risk (\u22654% annual recurrence rate)';
+            riskColor = 'var(--danger)';
+        }
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + score + ' / 9</div>';
+        html += '<div class="result-label">Essen Stroke Risk Score (ESRS)</div>';
+        html += '<div class="result-detail mt-1" style="color:' + riskColor + ';font-weight:600">'
+            + riskCategory + '</div>';
+
+        // Interpretation
+        html += '<div class="result-grid mt-2">'
+            + '<div class="result-item"><div class="result-item-value">' + score + '</div><div class="result-item-label">Total Score</div></div>'
+            + '<div class="result-item"><div class="result-item-value" style="color:' + riskColor + '">' + (score <= 2 ? 'Low' : 'High') + '</div><div class="result-item-label">Risk Category</div></div>'
+            + '</div>';
+
+        html += '<div class="card-title mt-2">Risk Stratification</div>';
+        html += '<table class="data-table"><thead><tr><th>Score</th><th>Risk Level</th><th>Annual Recurrence Rate</th></tr></thead><tbody>';
+        var esrsRows = [
+            { range: '0\u20132', level: 'Low', rate: '<4%', match: score <= 2 },
+            { range: '\u22653', level: 'High', rate: '\u22654%', match: score >= 3 }
+        ];
+        esrsRows.forEach(function(r) {
+            var rowStyle = r.match ? ' style="background:var(--accent-muted);font-weight:600"' : '';
+            html += '<tr' + rowStyle + '><td>' + r.range + '</td><td>' + r.level + '</td><td class="num">' + r.rate + '</td></tr>';
+        });
+        html += '</tbody></table>';
+
+        html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:8px">The ESRS identifies patients with ischemic stroke or TIA who are at high risk for recurrent cardiovascular events. Patients with ESRS \u22653 may benefit from more aggressive secondary prevention strategies.</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'ESRS: ' + score + '/9. ' + riskCategory + '.\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('crs-esrs-results'), html);
+        Export.addToHistory(MODULE_ID, { calculator: 'ESRS', score: score }, 'ESRS: ' + score + '/9 (' + (score <= 2 ? 'Low' : 'High') + ' risk)');
+    }
+
+    // ----- SEDAN -----
+    function calcSEDAN() {
+        var score = 0;
+        if (document.getElementById('crs-sedan-sugar').checked) score += 1;
+        if (document.getElementById('crs-sedan-infarct').checked) score += 1;
+        if (document.getElementById('crs-sedan-dense').checked) score += 1;
+        if (document.getElementById('crs-sedan-age').checked) score += 1;
+        if (document.getElementById('crs-sedan-nihss').checked) score += 1;
+
+        var sichRisk = sedanRisk[Math.min(score, 5)];
+
+        var riskColor = '';
+        if (score <= 1) {
+            riskColor = 'var(--success)';
+        } else if (score <= 3) {
+            riskColor = 'var(--warning)';
+        } else {
+            riskColor = 'var(--danger)';
+        }
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + score + ' / 5</div>';
+        html += '<div class="result-label">SEDAN Score</div>';
+        html += '<div class="result-detail">Estimated sICH risk: <span style="color:' + riskColor + ';font-weight:600">' + sichRisk + '%</span></div>';
+
+        // Risk table
+        html += '<div class="card-title mt-2">sICH Risk by SEDAN Score</div>';
+        html += '<table class="data-table"><thead><tr><th>Score</th><th>sICH Risk</th></tr></thead><tbody>';
+        for (var i = 0; i <= 5; i++) {
+            var rowStyle = i === score ? ' style="background:var(--accent-muted);font-weight:600"' : '';
+            html += '<tr' + rowStyle + '><td>' + i + '</td><td class="num">' + sedanRisk[i] + '%</td></tr>';
+        }
+        html += '</tbody></table>';
+
+        html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:8px">The SEDAN score predicts the risk of symptomatic intracerebral hemorrhage (sICH) after intravenous thrombolysis for acute ischemic stroke. Higher scores indicate greater hemorrhagic transformation risk.</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'SEDAN Score: ' + score + '/5. sICH risk: ' + sichRisk + '%.\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('crs-sedan-results'), html);
+        Export.addToHistory(MODULE_ID, { calculator: 'SEDAN', score: score }, 'SEDAN: ' + score + '/5 (sICH risk: ' + sichRisk + '%)');
+    }
+
+    // ----- DRAGON -----
+    function calcDRAGON() {
+        var score = 0;
+        if (document.getElementById('crs-dragon-dense').checked) score += 1;
+        if (document.getElementById('crs-dragon-infarct').checked) score += 1;
+        if (document.getElementById('crs-dragon-mrs').checked) score += 1;
+        if (document.getElementById('crs-dragon-glucose').checked) score += 1;
+        if (document.getElementById('crs-dragon-onset').checked) score += 1;
+        score += parseInt(document.getElementById('crs-dragon-age').value) || 0;
+        score += parseInt(document.getElementById('crs-dragon-nihss').value) || 0;
+
+        var goodOutcome = dragonOutcome[Math.min(score, 10)];
+
+        var outcomeColor = '';
+        var outcomeLabel = '';
+        if (score <= 1) {
+            outcomeColor = 'var(--success)';
+            outcomeLabel = 'Excellent prognosis';
+        } else if (score <= 3) {
+            outcomeColor = 'var(--success)';
+            outcomeLabel = 'Good prognosis';
+        } else if (score <= 5) {
+            outcomeColor = 'var(--warning)';
+            outcomeLabel = 'Intermediate prognosis';
+        } else if (score <= 7) {
+            outcomeColor = 'var(--danger)';
+            outcomeLabel = 'Poor prognosis';
+        } else {
+            outcomeColor = 'var(--danger)';
+            outcomeLabel = 'Miserable outcome predicted';
+        }
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + score + ' / 10</div>';
+        html += '<div class="result-label">DRAGON Score</div>';
+        html += '<div class="result-detail">Probability of good outcome (mRS 0\u20132 at 3 months): <span style="color:' + outcomeColor + ';font-weight:600">' + goodOutcome + '%</span></div>';
+        html += '<div class="result-detail mt-1" style="color:' + outcomeColor + ';font-weight:600">'
+            + outcomeLabel + '</div>';
+
+        // Outcome table
+        html += '<div class="card-title mt-2">Good Outcome (mRS 0\u20132) by DRAGON Score</div>';
+        html += '<table class="data-table"><thead><tr><th>Score</th><th>Good Outcome (mRS 0\u20132)</th><th>Prognosis</th></tr></thead><tbody>';
+        var dragonRows = [
+            { range: '0\u20131', pct: '96%', label: 'Excellent', scores: [0, 1] },
+            { range: '2', pct: '88%', label: 'Good', scores: [2] },
+            { range: '3', pct: '78%', label: 'Good', scores: [3] },
+            { range: '4\u20135', pct: '~50%', label: 'Intermediate', scores: [4, 5] },
+            { range: '6\u20137', pct: '~20%', label: 'Poor', scores: [6, 7] },
+            { range: '8\u201310', pct: '<5%', label: 'Miserable', scores: [8, 9, 10] }
+        ];
+        dragonRows.forEach(function(r) {
+            var isMatch = r.scores.indexOf(score) !== -1;
+            var rowStyle = isMatch ? ' style="background:var(--accent-muted);font-weight:600"' : '';
+            html += '<tr' + rowStyle + '><td>' + r.range + '</td><td class="num">' + r.pct + '</td><td>' + r.label + '</td></tr>';
+        });
+        html += '</tbody></table>';
+
+        html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:8px">The DRAGON score predicts functional outcome after IV thrombolysis for acute ischemic stroke. It can help with prognostication and shared decision-making, but should not be used alone to withhold treatment.</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'DRAGON Score: ' + score + '/10. Good outcome probability: ' + goodOutcome + '%. ' + outcomeLabel + '.\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('crs-dragon-results'), html);
+        Export.addToHistory(MODULE_ID, { calculator: 'DRAGON', score: score }, 'DRAGON: ' + score + '/10 (' + goodOutcome + '% good outcome)');
+    }
+
+    // ===================================================================
+    // EPIDEMIOLOGICAL CALCULATORS (existing, unchanged)
+    // ===================================================================
 
     // ===== TAB A: Incidence Rate =====
     function calcIncidence() {
@@ -762,7 +1444,7 @@
             + '</ul></div>';
 
         html += '<div class="btn-group mt-2">'
-            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'DALY: ' + daly.toFixed(1) + ' (YLL=' + yll.toFixed(1) + ', YLD=' + yld.toFixed(1) + '). Deaths=' + deaths + ', Cases=' + cases + ', DW=' + dw.toFixed(3) + '.\')">Copy Result</button>'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'DALY: ' + daly.toFixed(1) + ' (YLL=' + yll.toFixed(1) + ', YLD=' + yld.toFixed(1) + '). Deaths=' + deaths + ' (avg age ' + ageAtDeath.toFixed(1) + '), Cases=' + cases + ', DW=' + dw.toFixed(3) + '.\')">Copy Result</button>'
             + '</div>';
 
         html += '</div>';
@@ -777,6 +1459,13 @@
     // Expose functions globally for onclick handlers
     window.RiskCalc = {
         switchTab: switchTab,
+        switchCrsTab: switchCrsTab,
+        calcCHADSVASc: calcCHADSVASc,
+        calcHASBLED: calcHASBLED,
+        calcABCD2: calcABCD2,
+        calcESRS: calcESRS,
+        calcSEDAN: calcSEDAN,
+        calcDRAGON: calcDRAGON,
         calcIncidence: calcIncidence,
         calcRateRatio: calcRateRatio,
         calcPrevalence: calcPrevalence,
