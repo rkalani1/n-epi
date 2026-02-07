@@ -21,6 +21,7 @@ const App = (() => {
             items: [
                 { id: 'sample-size', label: 'Sample Size', icon: '#', description: 'Calculate required sample sizes for clinical studies' },
                 { id: 'power-analysis', label: 'Power Analysis', icon: 'P', description: 'Statistical power calculations and curves' },
+                { id: 'nihss-calculator', label: 'NIHSS', icon: 'N', description: 'Quantify stroke severity using the NIHSS' },
                 { id: 'hypothesis-builder', label: 'Hypothesis Builder', icon: 'H', description: 'Formulate and structure research hypotheses' },
                 { id: 'study-design-guide', label: 'Design Guide', icon: '\u2630', description: 'Interactive guide for choosing study designs' }
             ]
@@ -79,7 +80,8 @@ const App = (() => {
             items: [
                 { id: 'r-code-library', label: 'R Code Library', icon: '\u211B', description: 'Curated R code recipes for clinical research' },
                 { id: 'teaching-tools', label: 'Teaching Tools', icon: '\u2706', description: 'Quizzes, journal club worksheets, glossary' },
-                { id: 'quick-reference', label: 'Quick Reference', icon: '\u2263', description: 'Printable reference cards for key concepts' }
+                { id: 'quick-reference', label: 'Quick Reference', icon: '\u2263', description: 'Printable reference cards for key concepts' },
+                { id: 'biobank-cleaning', label: 'Biobank Cleaning', icon: '\u2699', description: 'Standardize biobank data and check biological consistency' }
             ]
         }
     ];
@@ -95,8 +97,8 @@ const App = (() => {
     // Flat list of all modules for search
     function getAllModules() {
         var result = [];
-        NAV.forEach(function(group) {
-            group.items.forEach(function(item) {
+        NAV.forEach(function (group) {
+            group.items.forEach(function (item) {
                 result.push({
                     id: item.id,
                     label: item.label,
@@ -142,7 +144,7 @@ const App = (() => {
         renderSidebar();
         // Re-highlight current module
         if (currentModule) {
-            document.querySelectorAll('.sidebar-link').forEach(function(el) {
+            document.querySelectorAll('.sidebar-link').forEach(function (el) {
                 el.classList.toggle('active', el.dataset.module === currentModule);
             });
         }
@@ -161,7 +163,7 @@ const App = (() => {
         try {
             var visits = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
             // Remove existing entry
-            visits = visits.filter(function(v) { return v.id !== moduleId; });
+            visits = visits.filter(function (v) { return v.id !== moduleId; });
             visits.unshift({ id: moduleId, timestamp: Date.now() });
             if (visits.length > 10) visits.length = 10;
             localStorage.setItem('neuroepi_recent_modules', JSON.stringify(visits));
@@ -213,7 +215,7 @@ const App = (() => {
             var appHistory = appData ? JSON.parse(appData) : [];
             // Merge: normalize Export entries to dashboard format
             var merged = [];
-            exportHistory.forEach(function(e) {
+            exportHistory.forEach(function (e) {
                 merged.push({
                     module: e.moduleId || e.module || 'Unknown',
                     calc: e.moduleId || e.module || '',
@@ -221,11 +223,11 @@ const App = (() => {
                     timestamp: e.timestamp || Date.now()
                 });
             });
-            appHistory.forEach(function(e) {
+            appHistory.forEach(function (e) {
                 merged.push(e);
             });
             // Sort by timestamp (newest first) and deduplicate
-            merged.sort(function(a, b) { return b.timestamp - a.timestamp; });
+            merged.sort(function (a, b) { return b.timestamp - a.timestamp; });
             if (merged.length > CALC_HISTORY_MAX) merged.length = CALC_HISTORY_MAX;
             return merged;
         } catch (e) {
@@ -311,7 +313,7 @@ const App = (() => {
         if (favs.length > 0) {
             html += '<div class="sidebar-group sidebar-favorites-group">'
                 + '<div class="sidebar-group-title"><span style="margin-right:4px;">&#9733;</span> FAVORITES</div>';
-            favs.forEach(function(favId) {
+            favs.forEach(function (favId) {
                 var mod = null;
                 for (var i = 0; i < allMods.length; i++) {
                     if (allMods[i].id === favId) { mod = allMods[i]; break; }
@@ -327,10 +329,10 @@ const App = (() => {
             html += '</div>';
         }
 
-        NAV.forEach(function(group) {
+        NAV.forEach(function (group) {
             html += '<div class="sidebar-group">'
                 + '<div class="sidebar-group-title">' + group.title + '</div>';
-            group.items.forEach(function(item) {
+            group.items.forEach(function (item) {
                 var starClass = isFavorite(item.id) ? ' active' : '';
                 html += '<div class="sidebar-link" data-module="' + item.id + '" onclick="App.navigate(\'' + item.id + '\')">'
                     + '<span class="sidebar-link-icon">' + item.icon + '</span>'
@@ -358,7 +360,7 @@ const App = (() => {
     function renderMobileNav() {
         var nav = document.getElementById('mobile-nav');
         var html = '<div class="mobile-nav-items">';
-        MOBILE_NAV.forEach(function(item) {
+        MOBILE_NAV.forEach(function (item) {
             html += '<button class="mobile-nav-item" data-module="' + item.id + '" onclick="App.navigate(\'' + item.id + '\')">'
                 + '<span class="mobile-nav-item-icon">' + item.icon + '</span>'
                 + '<span>' + item.label + '</span></button>';
@@ -376,7 +378,7 @@ const App = (() => {
         var overlay = document.createElement('div');
         overlay.id = 'command-palette-overlay';
         overlay.className = 'cmd-palette-overlay';
-        overlay.onclick = function(e) {
+        overlay.onclick = function (e) {
             if (e.target === overlay) closeCommandPalette();
         };
 
@@ -396,10 +398,10 @@ const App = (() => {
         document.body.appendChild(overlay);
 
         var input = document.getElementById('cmd-palette-input');
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             renderCommandPaletteResults(input.value);
         });
-        input.addEventListener('keydown', function(e) {
+        input.addEventListener('keydown', function (e) {
             handleCommandPaletteKeydown(e);
         });
     }
@@ -412,7 +414,7 @@ const App = (() => {
         var input = document.getElementById('cmd-palette-input');
         input.value = '';
         renderCommandPaletteResults('');
-        setTimeout(function() { input.focus(); }, 50);
+        setTimeout(function () { input.focus(); }, 50);
     }
 
     function closeCommandPalette() {
@@ -429,7 +431,7 @@ const App = (() => {
         var q = query.toLowerCase().trim();
         var filtered = allMods;
         if (q) {
-            filtered = allMods.filter(function(m) {
+            filtered = allMods.filter(function (m) {
                 return m.label.toLowerCase().indexOf(q) > -1
                     || m.category.toLowerCase().indexOf(q) > -1
                     || m.description.toLowerCase().indexOf(q) > -1
@@ -442,7 +444,7 @@ const App = (() => {
         if (filtered.length === 0) {
             html = '<div class="cmd-palette-empty">No modules found</div>';
         } else {
-            filtered.forEach(function(mod, idx) {
+            filtered.forEach(function (mod, idx) {
                 var favIcon = favs.indexOf(mod.id) > -1 ? ' &#9733;' : '';
                 html += '<div class="cmd-palette-item' + (idx === 0 ? ' selected' : '') + '" data-module="' + mod.id + '" data-index="' + idx + '">'
                     + '<div class="cmd-palette-item-left">'
@@ -459,14 +461,14 @@ const App = (() => {
         setTrustedHTML(resultsEl, html);
 
         // Add click listeners
-        resultsEl.querySelectorAll('.cmd-palette-item').forEach(function(el) {
-            el.addEventListener('click', function() {
+        resultsEl.querySelectorAll('.cmd-palette-item').forEach(function (el) {
+            el.addEventListener('click', function () {
                 var mid = el.dataset.module;
                 closeCommandPalette();
                 navigate(mid);
             });
-            el.addEventListener('mouseenter', function() {
-                resultsEl.querySelectorAll('.cmd-palette-item').forEach(function(item) {
+            el.addEventListener('mouseenter', function () {
+                resultsEl.querySelectorAll('.cmd-palette-item').forEach(function (item) {
                     item.classList.remove('selected');
                 });
                 el.classList.add('selected');
@@ -480,20 +482,20 @@ const App = (() => {
         var items = resultsEl.querySelectorAll('.cmd-palette-item');
         if (items.length === 0) return;
         var selectedIdx = -1;
-        items.forEach(function(item, i) {
+        items.forEach(function (item, i) {
             if (item.classList.contains('selected')) selectedIdx = i;
         });
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             var next = (selectedIdx + 1) % items.length;
-            items.forEach(function(item) { item.classList.remove('selected'); });
+            items.forEach(function (item) { item.classList.remove('selected'); });
             items[next].classList.add('selected');
             items[next].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             var prev = selectedIdx <= 0 ? items.length - 1 : selectedIdx - 1;
-            items.forEach(function(item) { item.classList.remove('selected'); });
+            items.forEach(function (item) { item.classList.remove('selected'); });
             items[prev].classList.add('selected');
             items[prev].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'Enter') {
@@ -511,7 +513,7 @@ const App = (() => {
     // ============================================================
 
     function initKeyboardShortcuts() {
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             // Ignore shortcuts when typing in inputs (except Escape and Cmd+K)
             var tag = e.target.tagName;
             var isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
@@ -580,7 +582,7 @@ const App = (() => {
         var overlay = document.createElement('div');
         overlay.id = 'shortcuts-modal-overlay';
         overlay.className = 'shortcuts-modal-overlay visible';
-        overlay.onclick = function(e) {
+        overlay.onclick = function (e) {
             if (e.target === overlay) closeShortcutsModal();
         };
 
@@ -636,12 +638,12 @@ const App = (() => {
         var mainContent = document.querySelector('.main-content');
         if (!mainContent) return;
 
-        mainContent.addEventListener('touchstart', function(e) {
+        mainContent.addEventListener('touchstart', function (e) {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
         }, { passive: true });
 
-        mainContent.addEventListener('touchend', function(e) {
+        mainContent.addEventListener('touchend', function (e) {
             touchEndX = e.changedTouches[0].screenX;
             touchEndY = e.changedTouches[0].screenY;
             handleSwipe();
@@ -742,7 +744,7 @@ const App = (() => {
     function shareModule(moduleId) {
         var url = window.location.origin + window.location.pathname + '#' + moduleId;
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(url).then(function() {
+            navigator.clipboard.writeText(url).then(function () {
                 Export.showToast('Link copied to clipboard');
             });
         } else {
@@ -810,7 +812,7 @@ const App = (() => {
             html += '<div class="dashboard-section">'
                 + '<h2 class="dashboard-section-title">&#9733; Your Favorites</h2>'
                 + '<div class="dashboard-module-grid">';
-            favs.forEach(function(favId) {
+            favs.forEach(function (favId) {
                 var mod = null;
                 for (var i = 0; i < allMods.length; i++) {
                     if (allMods[i].id === favId) { mod = allMods[i]; break; }
@@ -832,7 +834,7 @@ const App = (() => {
                 + '<h2 class="dashboard-section-title">&#128340; Recently Visited</h2>'
                 + '<div class="dashboard-module-grid">';
             var shown = 0;
-            recentVisits.forEach(function(visit) {
+            recentVisits.forEach(function (visit) {
                 if (shown >= 6) return;
                 var mod = null;
                 for (var i = 0; i < allMods.length; i++) {
@@ -890,7 +892,7 @@ const App = (() => {
         html += '<div class="dashboard-section">'
             + '<h2 class="dashboard-section-title">&#9889; Popular Modules</h2>'
             + '<div class="dashboard-module-grid">';
-        popularIds.forEach(function(pid) {
+        popularIds.forEach(function (pid) {
             var mod = null;
             for (var i = 0; i < allMods.length; i++) {
                 if (allMods[i].id === pid) { mod = allMods[i]; break; }
@@ -909,7 +911,7 @@ const App = (() => {
         html += '<div class="dashboard-section">'
             + '<h2 class="dashboard-section-title">&#128218; All Categories</h2>'
             + '<div class="dashboard-categories">';
-        NAV.forEach(function(group, gIdx) {
+        NAV.forEach(function (group, gIdx) {
             html += '<div class="dashboard-category-card" onclick="App.navigate(\'' + group.items[0].id + '\')">'
                 + '<div class="dashboard-category-num">' + (gIdx + 1) + '</div>'
                 + '<div class="dashboard-category-title">' + group.title + '</div>'
@@ -990,11 +992,11 @@ const App = (() => {
         // Track visit for dashboard
         trackModuleVisit(moduleId);
 
-        document.querySelectorAll('.sidebar-link').forEach(function(el) {
+        document.querySelectorAll('.sidebar-link').forEach(function (el) {
             el.classList.toggle('active', el.dataset.module === moduleId);
         });
 
-        document.querySelectorAll('.mobile-nav-item').forEach(function(el) {
+        document.querySelectorAll('.mobile-nav-item').forEach(function (el) {
             el.classList.toggle('active', el.dataset.module === moduleId);
         });
 
@@ -1010,7 +1012,7 @@ const App = (() => {
             content.textContent = '';
             content.classList.add('animate-in');
             renderDashboard(content);
-            setTimeout(function() { content.classList.remove('animate-in'); }, 200);
+            setTimeout(function () { content.classList.remove('animate-in'); }, 200);
             return;
         }
 
@@ -1050,12 +1052,12 @@ const App = (() => {
             setTrustedHTML(footerDiv, getModuleFooterHTML(moduleId));
             content.appendChild(footerDiv);
 
-            setTimeout(function() { content.classList.remove('animate-in'); }, 200);
+            setTimeout(function () { content.classList.remove('animate-in'); }, 200);
         } else {
             var header = document.createElement('div');
             header.className = 'module-header';
             var h1 = document.createElement('h1');
-            h1.textContent = moduleId.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+            h1.textContent = moduleId.replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
             var p = document.createElement('p');
             p.textContent = 'Loading module...';
             header.appendChild(h1);
@@ -1072,8 +1074,8 @@ const App = (() => {
 
         var savedInputs = Export.loadState('inputs_' + moduleId);
         if (savedInputs) {
-            setTimeout(function() {
-                Object.entries(savedInputs).forEach(function(entry) {
+            setTimeout(function () {
+                Object.entries(savedInputs).forEach(function (entry) {
                     var input = content.querySelector('[name="' + entry[0] + '"]');
                     if (input) input.value = entry[1];
                 });
@@ -1106,10 +1108,10 @@ const App = (() => {
     }
 
     function autoSaveInputs(container, moduleId) {
-        container.addEventListener('input', function(e) {
+        container.addEventListener('input', function (e) {
             if (e.target.name) {
                 var inputs = {};
-                container.querySelectorAll('[name]').forEach(function(el) {
+                container.querySelectorAll('[name]').forEach(function (el) {
                     inputs[el.name] = el.value;
                 });
                 Export.saveState('inputs_' + moduleId, inputs);
@@ -1156,13 +1158,13 @@ const App = (() => {
     };
 })();
 
-document.addEventListener('DOMContentLoaded', function() { App.init(); });
+document.addEventListener('DOMContentLoaded', function () { App.init(); });
 
 // Global error handler — log uncaught errors gracefully
-window.onerror = function(msg, src, line, col, err) {
+window.onerror = function (msg, src, line, col, err) {
     console.error('Neuro-Epi Error:', msg, 'at', src, line + ':' + col);
     return false; // let default handler run too
 };
-window.addEventListener('unhandledrejection', function(e) {
+window.addEventListener('unhandledrejection', function (e) {
     console.error('Neuro-Epi Unhandled Promise:', e.reason);
 });
