@@ -1,10 +1,10 @@
-# Neuro-Epi
+# n-epi
 
 **Comprehensive epidemiology, biostatistics, and clinical research platform.**
 
 A zero-dependency static web app built for clinical researchers, epidemiologists, biostatisticians, and clinical trialists. Designed for daily use in study design, data analysis, grant writing, manuscript preparation, and critical appraisal.
 
-**[Live Demo →](https://rkalani1.github.io/neuroepi-suite/)**
+**[Live Demo →](https://rkalani1.github.io/n-epi/)**
 
 ## Features
 

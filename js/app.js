@@ -1,5 +1,5 @@
 /**
- * Neuro-Epi — App Shell
+ * n-epi — App Shell
  * SPA router, navigation, theme toggle, state management
  * Features: Command Palette, Favorites, Breadcrumbs, Keyboard Shortcuts,
  *           Enhanced Mobile Nav, Module Footer, Welcome Dashboard
