@@ -15,6 +15,9 @@
     'use strict';
 
     var MODULE_ID = 'epidemiology-calcs';
+    var ageRows = [];
+    var ageRowIdCounter = 0;
+
 
     // ================================================================
     // RENDER
@@ -35,8 +38,15 @@
             + '<button class="tab" data-tab="casecontrol" onclick="EpiCalcModule.switchTab(\'casecontrol\')">Case-Control</button>'
             + '<button class="tab" data-tab="screening" onclick="EpiCalcModule.switchTab(\'screening\')">Screening Metrics</button>'
             + '<button class="tab" data-tab="paf" onclick="EpiCalcModule.switchTab(\'paf\')">PAF (Multi-level)</button>'
+            + '<button class="tab" data-tab="incidence" onclick="EpiCalcModule.switchTab(\'incidence\')">Incidence Rate</button>'
+            + '<button class="tab" data-tab="rateratio" onclick="EpiCalcModule.switchTab(\'rateratio\')">Rate Ratio</button>'
+            + '<button class="tab" data-tab="prevalence" onclick="EpiCalcModule.switchTab(\'prevalence\')">Prevalence</button>'
+            + '<button class="tab" data-tab="smr" onclick="EpiCalcModule.switchTab(\'smr\')">SMR</button>'
+            + '<button class="tab" data-tab="agestd" onclick="EpiCalcModule.switchTab(\'agestd\')">Age Standardization</button>'
+            + '<button class="tab" data-tab="daly" onclick="EpiCalcModule.switchTab(\'daly\')">DALY / YLL</button>'
             + '<button class="tab" data-tab="bias" onclick="EpiCalcModule.switchTab(\'bias\')">Bias Checklist</button>'
             + '</div>';
+
 
         // ============================================================
         // TAB A: 2x2 Table Analyzer
@@ -198,6 +208,113 @@
         html += '</div>';
 
         // ============================================================
+        // TAB: Incidence Rate
+        // ============================================================
+        html += '<div class="tab-content" id="epi-tab-incidence">';
+        html += '<div class="card-subtitle">Calculate incidence rates from number of events and person-time at risk.</div>';
+        html += '<div class="result-grid">';
+        html += '<div class="form-group"><label class="form-label">Events (Numerators)</label><input type="number" class="form-input" id="epi_ir_events" value="50"></div>';
+        html += '<div class="form-group"><label class="form-label">Person-Time (Denominator)</label><input type="number" class="form-input" id="epi_ir_pt" value="10000"></div>';
+        html += '<div class="form-group"><label class="form-label">Multiplier (e.g., per 1,000)</label><input type="number" class="form-input" id="epi_ir_multiplier" value="1000"></div>';
+        html += '<div class="form-group"><label class="form-label">Alpha (Significance Level)</label><input type="number" class="form-input" id="epi_ir_alpha" value="0.05" step="0.01"></div>';
+        html += '</div>';
+        html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcIncidence()">Calculate Rate</button>';
+        html += '<div id="epi-incidence-results" class="mt-2"></div>';
+        html += '</div>';
+
+        // ============================================================
+        // TAB: Rate Ratio
+        // ============================================================
+        html += '<div class="tab-content" id="epi-tab-rateratio">';
+        html += '<div class="card-subtitle">Compare incidence rates between two groups using person-time data.</div>';
+        html += '<div class="result-grid">';
+        html += '<div><span class="badge badge-accent mb-1">Exposed Group</span><div class="form-group"><label class="form-label">Events</label><input type="number" class="form-input" id="epi_rr_events1" value="30"></div>'
+            + '<div class="form-group"><label class="form-label">Person-Time</label><input type="number" class="form-input" id="epi_rr_pt1" value="5000"></div></div>';
+        html += '<div><span class="badge badge-secondary mb-1">Unexposed Group</span><div class="form-group"><label class="form-label">Events</label><input type="number" class="form-input" id="epi_rr_events2" value="20"></div>'
+            + '<div class="form-group"><label class="form-label">Person-Time</label><input type="number" class="form-input" id="epi_rr_pt2" value="8000"></div></div>';
+        html += '</div>';
+        html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcRateRatio()">Calculate IRR</button>';
+        html += '<div id="epi-rateratio-results" class="mt-2"></div>';
+        html += '</div>';
+
+        // ============================================================
+        // TAB: Prevalence
+        // ============================================================
+        html += '<div class="tab-content" id="epi-tab-prevalence">';
+        html += '<div class="card-subtitle">Estimate prevalence with exact (Clopper-Pearson) confidence intervals.</div>';
+        html += '<div class="result-grid">';
+        html += '<div class="form-group"><label class="form-label">Cases (x)</label><input type="number" class="form-input" id="epi_prev_x" value="25"></div>';
+        html += '<div class="form-group"><label class="form-label">Total Population (n)</label><input type="number" class="form-input" id="epi_prev_n" value="500"></div>';
+        html += '<div class="form-group"><label class="form-label">Alpha</label><input type="number" class="form-input" id="epi_prev_alpha" value="0.05" step="0.01"></div>';
+        html += '</div>';
+        html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcPrevalence()">Calculate Prevalence</button>';
+        html += '<div id="epi-prevalence-results" class="mt-2"></div>';
+        html += '</div>';
+
+        // ============================================================
+        // TAB: SMR
+        // ============================================================
+        html += '<div class="tab-content" id="epi-tab-smr">';
+        html += '<div class="card-subtitle">Compare observed events in a study population to expected events from a reference population.</div>';
+        html += '<div class="result-grid">';
+        html += '<div class="form-group"><label class="form-label">Observed Events</label><input type="number" class="form-input" id="epi_smr_obs" value="120"></div>';
+        html += '<div class="form-group"><label class="form-label">Expected Events</label><input type="number" class="form-input" id="epi_smr_exp" value="85.5"></div>';
+        html += '<div class="form-group"><label class="form-label">Alpha</label><input type="number" class="form-input" id="epi_smr_alpha" value="0.05" step="0.01"></div>';
+        html += '</div>';
+        html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcSMR()">Calculate SMR</button>';
+        html += '<div id="epi-smr-results" class="mt-2"></div>';
+        html += '</div>';
+
+        // ============================================================
+        // TAB: Age Standardization
+        // ============================================================
+        html += '<div class="tab-content" id="epi-tab-agestd">';
+        html += '<div class="card-subtitle">Compute age-standardized rates using the direct method and predefined standard populations.</div>';
+        html += '<div class="form-group"><label class="form-label">Standard Population Reference</label>'
+            + '<select class="form-select" id="epi_std_pop" onchange="EpiCalcModule.loadStdPop()">'
+            + '<option value="">-- Choose Standard Pop --</option>'
+            + '<option value="WHO World Standard">WHO World Standard</option>'
+            + '<option value="European Standard 2013">European Standard 2013</option>'
+            + '<option value="US Standard 2000">US Standard 2000</option>'
+            + '<option value="Segi World Standard">Segi World Standard</option>'
+            + '</select></div>';
+        html += '<div id="epi_age_rows_container" class="mt-2"></div>';
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-secondary btn-sm" onclick="EpiCalcModule.addAgeRow()">+ Add Age Group</button> '
+            + '<button class="btn btn-secondary btn-sm" onclick="EpiCalcModule.addDefaultAgeRows()">Load Sample Data</button> '
+            + '<button class="btn btn-danger btn-sm" onclick="EpiCalcModule.clearAgeRows()">Clear All</button> '
+            + '</div>';
+        html += '<div class="form-group mt-2"><label class="form-label">Multiplier (e.g., per 100,000)</label><input type="number" class="form-input" id="epi_agestd_multiplier" value="100000" style="max-width:200px"></div>';
+        html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcAgeStd()">Calculate Standardized Rate</button>';
+        html += '<div id="epi-agestd-results" class="mt-2"></div>';
+        html += '</div>';
+
+        // ============================================================
+        // TAB: DALY / YLL
+        // ============================================================
+        html += '<div class="tab-content" id="epi-tab-daly">';
+        html += '<div class="card-subtitle">Calculate Disability-Adjusted Life Years (DALY) as the sum of Years of Life Lost (YLL) and Years Lived with Disability (YLD).</div>';
+        html += '<div class="result-grid">';
+        html += '<div><strong>YLL (Mortality)</strong>'
+            + '<div class="form-group"><label class="form-label">Number of Deaths</label><input type="number" class="form-input" id="epi_yll_deaths" value="10"></div>'
+            + '<div class="form-group"><label class="form-label">Avg Age at Death</label><input type="number" class="form-input" id="epi_yll_age" value="65"></div>'
+            + '<div class="form-group"><label class="form-label">Remaining Life Expectancy</label><input type="number" class="form-input" id="epi_yll_le" value="18.5"></div></div>';
+        html += '<div><strong>YLD (Morbidity)</strong>'
+            + '<div class="form-group"><label class="form-label">Number of Cases</label><input type="number" class="form-input" id="epi_yld_cases" value="100"></div>'
+            + '<div class="form-group"><label class="form-label">Avg Duration (years)</label><input type="number" class="form-input" id="epi_yld_duration" value="5"></div>'
+            + '<div class="form-group"><label class="form-label">Disability Weight (DW)</label>'
+            + '<input type="number" class="form-input" id="epi_yld_dw" value="0.333" step="0.001"></div>'
+            + '<div class="btn-group mt-1">'
+            + '<button class="btn btn-xs btn-outline" onclick="EpiCalcModule.setDW(0.011)">Mild</button>'
+            + '<button class="btn btn-xs btn-outline" onclick="EpiCalcModule.setDW(0.070)">Mod</button>'
+            + '<button class="btn btn-xs btn-outline" onclick="EpiCalcModule.setDW(0.552)">Sev</button>'
+            + '</div></div>';
+        html += '</div>';
+        html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcDALY()">Calculate DALY</button>';
+        html += '<div id="epi-daly-results" class="mt-2"></div>';
+        html += '</div>';
+
+        // ============================================================
         // TAB E: Bias Checklist
         // ============================================================
         html += '<div class="tab-content" id="epi-tab-bias">';
@@ -268,7 +385,7 @@
         document.querySelectorAll('#epi-tabs .tab').forEach(function (t) {
             t.classList.toggle('active', t.dataset.tab === tabId);
         });
-        var tabIds = ['twobytwo', 'stratified', 'interaction', 'doseresponse', 'casecontrol', 'screening', 'paf', 'bias'];
+        var tabIds = ['twobytwo', 'stratified', 'interaction', 'doseresponse', 'casecontrol', 'screening', 'paf', 'bias', 'incidence', 'rateratio', 'prevalence', 'smr', 'agestd', 'daly'];
         tabIds.forEach(function (id) {
             var el = document.getElementById('epi-tab-' + id);
             if (el) el.classList.toggle('active', id === tabId);
@@ -1314,7 +1431,7 @@
     }
 
     // ================================================================
-    // TAB E: BIAS CHECKLIST
+    // TAB: BIAS CHECKLIST
     // ================================================================
 
     function buildBiasChecklist() {
@@ -1335,6 +1452,437 @@
         });
         html += '</div>';
         return html;
+    }
+
+    // ================================================================
+    // INCIDENCE RATE
+    // ================================================================
+
+    function calcIncidence() {
+        var events = parseInt(document.getElementById('epi_ir_events').value, 10);
+        var pt = parseFloat(document.getElementById('epi_ir_pt').value);
+        var multiplier = parseInt(document.getElementById('epi_ir_multiplier').value, 10);
+        var alpha = parseFloat(document.getElementById('epi_ir_alpha').value);
+
+        if (isNaN(events) || isNaN(pt) || pt <= 0) {
+            Export.showToast('Please enter valid numbers', 'error');
+            return;
+        }
+
+        var result = Statistics.incidenceRate(events, pt, alpha);
+        var rate = result.rate * multiplier;
+        var ciLower = result.ci.lower * multiplier;
+        var ciUpper = result.ci.upper * multiplier;
+
+        var perLabel = 'per ' + multiplier.toLocaleString();
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + rate.toFixed(2) + ' ' + perLabel + '</div>';
+        html += '<div class="result-label">Incidence Rate</div>';
+        html += '<div class="result-detail">' + ((1 - alpha) * 100).toFixed(0) + '% CI: (' + ciLower.toFixed(2) + ', ' + ciUpper.toFixed(2) + ') ' + perLabel + '</div>';
+
+        html += '<div class="result-grid mt-2">'
+            + '<div class="result-item"><div class="result-item-value">' + events + '</div><div class="result-item-label">Events</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + pt.toLocaleString() + '</div><div class="result-item-label">Person-Time</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + result.rate.toExponential(3) + '</div><div class="result-item-label">Raw Rate</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + ciLower.toFixed(2) + '</div><div class="result-item-label">Lower CI</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + ciUpper.toFixed(2) + '</div><div class="result-item-label">Upper CI</div></div>'
+            + '<div class="result-item"><div class="result-item-value">Poisson Exact</div><div class="result-item-label">CI Method</div></div>'
+            + '</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'Incidence rate: ' + rate.toFixed(2) + ' ' + perLabel + ' (' + ((1 - alpha) * 100).toFixed(0) + '% CI: ' + ciLower.toFixed(2) + ' to ' + ciUpper.toFixed(2) + ')\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('epi-incidence-results'), html);
+        Export.addToHistory(MODULE_ID, { events: events, pt: pt }, 'IR: ' + rate.toFixed(2) + ' ' + perLabel);
+    }
+
+    // ================================================================
+    // RATE RATIO
+    // ================================================================
+
+    function calcRateRatio() {
+        var events1 = parseInt(document.getElementById('epi_rr_events1').value, 10);
+        var pt1 = parseFloat(document.getElementById('epi_rr_pt1').value);
+        var events2 = parseInt(document.getElementById('epi_rr_events2').value, 10);
+        var pt2 = parseFloat(document.getElementById('epi_rr_pt2').value);
+
+        if (isNaN(events1) || isNaN(pt1) || isNaN(events2) || isNaN(pt2) || pt1 <= 0 || pt2 <= 0 || events2 === 0) {
+            Export.showToast('Please enter valid numbers. Unexposed events must be > 0.', 'error');
+            return;
+        }
+
+        var result = Statistics.rateRatio(events1, pt1, events2, pt2);
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + result.ratio.toFixed(3) + '</div>';
+        html += '<div class="result-label">Incidence Rate Ratio (IRR)</div>';
+        html += '<div class="result-detail">95% CI: (' + result.ci.lower.toFixed(3) + ', ' + result.ci.upper.toFixed(3) + ')</div>';
+
+        var significant = result.ci.lower > 1 || result.ci.upper < 1;
+        html += '<div class="result-detail mt-1" style="color:' + (significant ? 'var(--accent)' : 'var(--text-tertiary)') + '">'
+            + (result.ratio > 1
+                ? 'The exposed group has a ' + ((result.ratio - 1) * 100).toFixed(1) + '% higher rate than the unexposed group.'
+                : 'The exposed group has a ' + ((1 - result.ratio) * 100).toFixed(1) + '% lower rate than the unexposed group.')
+            + (significant ? '' : ' (Not statistically significant at the 5% level.)')
+            + '</div>';
+
+        html += '<div class="result-grid mt-2">'
+            + '<div class="result-item"><div class="result-item-value">' + (events1 / pt1 * 100000).toFixed(1) + '</div><div class="result-item-label">Rate (Exposed) per 100K</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + (events2 / pt2 * 100000).toFixed(1) + '</div><div class="result-item-label">Rate (Unexposed) per 100K</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + result.ratio.toFixed(3) + '</div><div class="result-item-label">IRR</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + Math.log(result.ratio).toFixed(4) + '</div><div class="result-item-label">ln(IRR)</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + Math.sqrt(1 / events1 + 1 / events2).toFixed(4) + '</div><div class="result-item-label">SE of ln(IRR)</div></div>'
+            + '</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'IRR: ' + result.ratio.toFixed(3) + ' (95% CI: ' + result.ci.lower.toFixed(3) + ' to ' + result.ci.upper.toFixed(3) + ')\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('epi-rateratio-results'), html);
+        Export.addToHistory(MODULE_ID, { events1: events1, pt1: pt1, events2: events2, pt2: pt2 }, 'IRR: ' + result.ratio.toFixed(3));
+    }
+
+    // ================================================================
+    // PREVALENCE
+    // ================================================================
+
+    function calcPrevalence() {
+        var x = parseInt(document.getElementById('epi_prev_x').value, 10);
+        var n = parseInt(document.getElementById('epi_prev_n').value, 10);
+        var alpha = parseFloat(document.getElementById('epi_prev_alpha').value);
+
+        if (isNaN(x) || isNaN(n) || n <= 0 || x < 0 || x > n) {
+            Export.showToast('Cases must be between 0 and total population', 'error');
+            return;
+        }
+
+        var p = x / n;
+        var cpCI = Statistics.clopperPearsonCI(x, n, alpha);
+        var waldResult = Statistics.waldCI(p, n, Statistics.normalQuantile(1 - alpha / 2));
+        var wilsonResult = Statistics.wilsonCI(p, n, Statistics.normalQuantile(1 - alpha / 2));
+
+        var confLevel = ((1 - alpha) * 100).toFixed(0);
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + (p * 100).toFixed(2) + '%</div>';
+        html += '<div class="result-label">Prevalence</div>';
+        html += '<div class="result-detail">' + confLevel + '% Clopper-Pearson Exact CI: (' + (cpCI.lower * 100).toFixed(2) + '%, ' + (cpCI.upper * 100).toFixed(2) + '%)</div>';
+
+        html += '<div class="result-grid mt-2">'
+            + '<div class="result-item"><div class="result-item-value">' + x + ' / ' + n + '</div><div class="result-item-label">Cases / Total</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + (p * 100).toFixed(2) + '%</div><div class="result-item-label">Point Estimate</div></div>'
+            + '</div>';
+
+        // Compare CI methods
+        html += '<div class="card-title mt-2">Confidence Interval Methods</div>';
+        html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Method</th><th>Lower</th><th>Upper</th><th>Width</th></tr></thead><tbody>';
+        html += '<tr style="background:var(--accent-muted)"><td>Clopper-Pearson (Exact)</td><td class="num">' + (cpCI.lower * 100).toFixed(3) + '%</td><td class="num">' + (cpCI.upper * 100).toFixed(3) + '%</td><td class="num">' + ((cpCI.upper - cpCI.lower) * 100).toFixed(3) + '%</td></tr>';
+        html += '<tr><td>Wald</td><td class="num">' + (waldResult.lower * 100).toFixed(3) + '%</td><td class="num">' + (waldResult.upper * 100).toFixed(3) + '%</td><td class="num">' + ((waldResult.upper - waldResult.lower) * 100).toFixed(3) + '%</td></tr>';
+        html += '<tr><td>Wilson Score</td><td class="num">' + (wilsonResult.lower * 100).toFixed(3) + '%</td><td class="num">' + (wilsonResult.upper * 100).toFixed(3) + '%</td><td class="num">' + ((wilsonResult.upper - wilsonResult.lower) * 100).toFixed(3) + '%</td></tr>';
+        html += '</tbody></table></div>';
+
+        html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:4px">Clopper-Pearson exact CI is recommended, especially for small samples and extreme proportions. Wilson score is preferred by some for moderate samples.</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'Prevalence: ' + (p * 100).toFixed(2) + '% (' + confLevel + '% CI: ' + (cpCI.lower * 100).toFixed(2) + '% to ' + (cpCI.upper * 100).toFixed(2) + '%; Clopper-Pearson exact)\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('epi-prevalence-results'), html);
+        Export.addToHistory(MODULE_ID, { x: x, n: n }, 'Prevalence: ' + (p * 100).toFixed(2) + '%');
+    }
+
+    // ================================================================
+    // SMR
+    // ================================================================
+
+    function calcSMR() {
+        var observed = parseInt(document.getElementById('epi_smr_obs').value, 10);
+        var expected = parseFloat(document.getElementById('epi_smr_exp').value);
+        var alpha = parseFloat(document.getElementById('epi_smr_alpha').value);
+
+        if (isNaN(observed) || isNaN(expected) || expected <= 0 || observed < 0) {
+            Export.showToast('Please enter valid numbers', 'error');
+            return;
+        }
+
+        var result = Statistics.smr(observed, expected, alpha);
+        var confLevel = ((1 - alpha) * 100).toFixed(0);
+
+        var color = result.smr > 1.0 ? 'var(--danger)' : result.smr < 1.0 ? 'var(--success)' : 'var(--text)';
+        var significant = result.ci.lower > 1 || result.ci.upper < 1;
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value" style="color:' + color + '">' + result.smr.toFixed(3) + '</div>';
+        html += '<div class="result-label">Standardized Mortality Ratio</div>';
+        html += '<div class="result-detail">' + confLevel + '% CI: (' + result.ci.lower.toFixed(3) + ', ' + result.ci.upper.toFixed(3) + ')</div>';
+
+        html += '<div class="result-detail mt-1">'
+            + (result.smr > 1
+                ? 'There were ' + ((result.smr - 1) * 100).toFixed(1) + '% more events than expected based on the reference population.'
+                : result.smr < 1
+                    ? 'There were ' + ((1 - result.smr) * 100).toFixed(1) + '% fewer events than expected based on the reference population.'
+                    : 'Observed equals expected.')
+            + (significant ? ' This is statistically significant.' : ' This is not statistically significant at the ' + (alpha * 100).toFixed(0) + '% level.')
+            + '</div>';
+
+        html += '<div class="result-grid mt-2">'
+            + '<div class="result-item"><div class="result-item-value">' + observed + '</div><div class="result-item-label">Observed</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + expected.toFixed(1) + '</div><div class="result-item-label">Expected</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + result.smr.toFixed(3) + '</div><div class="result-item-label">SMR</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + (observed - expected).toFixed(1) + '</div><div class="result-item-label">Excess Events</div></div>'
+            + '</div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'SMR: ' + result.smr.toFixed(3) + ' (' + confLevel + '% CI: ' + result.ci.lower.toFixed(3) + ' to ' + result.ci.upper.toFixed(3) + '); Observed=' + observed + ', Expected=' + expected.toFixed(1) + '\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('epi-smr-results'), html);
+        Export.addToHistory(MODULE_ID, { observed: observed, expected: expected }, 'SMR: ' + result.smr.toFixed(3));
+    }
+
+    // ================================================================
+    // AGE STANDARDIZATION
+    // ================================================================
+
+    function addDefaultAgeRows() {
+        var defaultGroups = [
+            { ageGroup: '0-44', events: 5, population: 50000, weight: 59490 },
+            { ageGroup: '45-54', events: 20, population: 15000, weight: 13458 },
+            { ageGroup: '55-64', events: 45, population: 12000, weight: 8723 },
+            { ageGroup: '65-74', events: 80, population: 8000, weight: 6601 },
+            { ageGroup: '75-84', events: 110, population: 5000, weight: 4445 },
+            { ageGroup: '85+', events: 60, population: 2000, weight: 1688 }
+        ];
+        defaultGroups.forEach(function (g) {
+            ageRowIdCounter++;
+            ageRows.push({ id: ageRowIdCounter, ageGroup: g.ageGroup, events: g.events, population: g.population, weight: g.weight });
+        });
+        renderAgeRows();
+    }
+
+    function addAgeRow() {
+        ageRowIdCounter++;
+        ageRows.push({ id: ageRowIdCounter, ageGroup: '', events: 0, population: 0, weight: 0 });
+        renderAgeRows();
+    }
+
+    function removeAgeRow(id) {
+        ageRows = ageRows.filter(function (r) { return r.id !== id; });
+        renderAgeRows();
+    }
+
+    function clearAgeRows() {
+        ageRows = [];
+        ageRowIdCounter = 0;
+        renderAgeRows();
+    }
+
+    function renderAgeRows() {
+        var el = document.getElementById('epi_age_rows_container');
+        if (!el) return;
+
+        if (ageRows.length === 0) {
+            App.setTrustedHTML(el, '<div style="color:var(--text-tertiary);font-size:0.85rem;padding:8px">No age groups. Add rows or load a preset.</div>');
+            return;
+        }
+
+        var html = '<div class="table-scroll-wrap"><table class="data-table"><thead><tr>'
+            + '<th>Age Group</th><th>Events</th><th>Study Population</th><th>Standard Pop Weight</th><th>Crude Rate</th><th></th>'
+            + '</tr></thead><tbody>';
+
+        ageRows.forEach(function (row) {
+            var crudeRate = row.population > 0 ? (row.events / row.population * 100000).toFixed(1) : '--';
+            html += '<tr>'
+                + '<td><input type="text" class="form-input form-input--small" value="' + row.ageGroup + '" onchange="EpiCalcModule.updateAgeRow(' + row.id + ', \'ageGroup\', this.value)" style="width:80px"></td>'
+                + '<td><input type="number" class="form-input form-input--small" value="' + row.events + '" onchange="EpiCalcModule.updateAgeRow(' + row.id + ', \'events\', this.value)" style="width:80px"></td>'
+                + '<td><input type="number" class="form-input form-input--small" value="' + row.population + '" onchange="EpiCalcModule.updateAgeRow(' + row.id + ', \'population\', this.value)" style="width:100px"></td>'
+                + '<td><input type="number" class="form-input form-input--small" value="' + row.weight + '" onchange="EpiCalcModule.updateAgeRow(' + row.id + ', \'weight\', this.value)" style="width:100px"></td>'
+                + '<td class="num">' + crudeRate + '</td>'
+                + '<td><button class="btn btn-xs btn-secondary" onclick="EpiCalcModule.removeAgeRow(' + row.id + ')">X</button></td>'
+                + '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        App.setTrustedHTML(el, html);
+    }
+
+    function updateAgeRow(id, field, value) {
+        var row = ageRows.find(function (r) { return r.id === id; });
+        if (!row) return;
+        if (field === 'ageGroup') {
+            row.ageGroup = value;
+        } else {
+            row[field] = parseFloat(value) || 0;
+        }
+        renderAgeRows();
+    }
+
+    function loadStdPop() {
+        var key = document.getElementById('epi_std_pop').value;
+        if (!key) return;
+
+        var stdPop = References.standardPopulations[key];
+        if (!stdPop) return;
+
+        // Replace age rows with preset
+        ageRows = [];
+        ageRowIdCounter = 0;
+        stdPop.forEach(function (ag) {
+            ageRowIdCounter++;
+            ageRows.push({ id: ageRowIdCounter, ageGroup: ag.ageGroup, events: 0, population: 0, weight: ag.weight });
+        });
+        renderAgeRows();
+        Export.showToast('Loaded ' + key + ' standard population weights');
+    }
+
+    function calcAgeStd() {
+        if (ageRows.length === 0) {
+            Export.showToast('Add age groups first', 'error');
+            return;
+        }
+
+        var multiplier = parseInt(document.getElementById('epi_agestd_multiplier').value, 10);
+
+        // Check for valid data
+        var validRows = ageRows.filter(function (r) { return r.population > 0 && r.weight > 0; });
+        if (validRows.length === 0) {
+            Export.showToast('Please enter population and weight for at least one age group', 'error');
+            return;
+        }
+
+        // Prepare data for Statistics.directStandardization
+        var ageRates = validRows.map(function (r) {
+            return { events: r.events, population: r.population, standardPop: r.weight };
+        });
+
+        var result = Statistics.directStandardization(ageRates);
+
+        var adjustedRate = result.rate * multiplier;
+        var adjustedSE = result.se * multiplier;
+        var adjustedCILower = result.ci.lower * multiplier;
+        var adjustedCIUpper = result.ci.upper * multiplier;
+
+        // Crude rate
+        var totalEvents = validRows.reduce(function (s, r) { return s + r.events; }, 0);
+        var totalPop = validRows.reduce(function (s, r) { return s + r.population; }, 0);
+        var crudeRate = (totalEvents / totalPop) * multiplier;
+
+        var perLabel = 'per ' + multiplier.toLocaleString();
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + adjustedRate.toFixed(2) + ' ' + perLabel + '</div>';
+        html += '<div class="result-label">Age-Standardized Rate (Direct Method)</div>';
+        html += '<div class="result-detail">95% CI: (' + adjustedCILower.toFixed(2) + ', ' + adjustedCIUpper.toFixed(2) + ') ' + perLabel + '</div>';
+
+        html += '<div class="result-grid mt-2">'
+            + '<div class="result-item"><div class="result-item-value">' + crudeRate.toFixed(2) + '</div><div class="result-item-label">Crude Rate ' + perLabel + '</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + adjustedRate.toFixed(2) + '</div><div class="result-item-label">Standardized Rate</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + totalEvents + '</div><div class="result-item-label">Total Events</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + totalPop.toLocaleString() + '</div><div class="result-item-label">Total Population</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + validRows.length + '</div><div class="result-item-label">Age Strata</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + adjustedSE.toFixed(3) + '</div><div class="result-item-label">SE ' + perLabel + '</div></div>'
+            + '</div>';
+
+        // Detail table
+        html += '<div class="card-title mt-2">Age-Specific Rates</div>';
+        html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Age Group</th><th>Events</th><th>Population</th><th>Crude Rate</th><th>Weight</th><th>Weighted Rate</th></tr></thead><tbody>';
+        var totalWeight = validRows.reduce(function (s, r) { return s + r.weight; }, 0);
+        validRows.forEach(function (r) {
+            var cr = r.events / r.population * multiplier;
+            var wr = (r.events / r.population) * r.weight;
+            html += '<tr>'
+                + '<td>' + r.ageGroup + '</td>'
+                + '<td class="num">' + r.events + '</td>'
+                + '<td class="num">' + r.population.toLocaleString() + '</td>'
+                + '<td class="num">' + cr.toFixed(1) + '</td>'
+                + '<td class="num">' + r.weight + '</td>'
+                + '<td class="num">' + (wr / totalWeight * multiplier).toFixed(2) + '</td>'
+                + '</tr>';
+        });
+        html += '</tbody></table></div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'Age-standardized rate: ' + adjustedRate.toFixed(2) + ' ' + perLabel + ' (95% CI: ' + adjustedCILower.toFixed(2) + ' to ' + adjustedCIUpper.toFixed(2) + ').\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('epi-agestd-results'), html);
+        Export.addToHistory(MODULE_ID, { ageGroups: validRows.length, totalEvents: totalEvents }, 'Age-std rate: ' + adjustedRate.toFixed(2) + ' ' + perLabel);
+    }
+
+    // ================================================================
+    // DALY / YLL
+    // ================================================================
+
+    function setDW(value) {
+        var el = document.getElementById('epi_yld_dw');
+        if (el) el.value = value;
+    }
+
+    function calcDALY() {
+        var deaths = parseInt(document.getElementById('epi_yll_deaths').value, 10);
+        var ageAtDeath = parseFloat(document.getElementById('epi_yll_age').value);
+        var lifeExpectancy = parseFloat(document.getElementById('epi_yll_le').value);
+
+        var cases = parseInt(document.getElementById('epi_yld_cases').value, 10);
+        var duration = parseFloat(document.getElementById('epi_yld_duration').value);
+        var dw = parseFloat(document.getElementById('epi_yld_dw').value);
+
+        if (isNaN(deaths) || isNaN(lifeExpectancy) || isNaN(cases) || isNaN(duration) || isNaN(dw)) {
+            Export.showToast('Please enter valid numbers', 'error');
+            return;
+        }
+
+        // YLL = Number of deaths x Remaining life expectancy at age of death
+        var yll = deaths * lifeExpectancy;
+
+        // YLD = Number of cases x Duration x Disability weight
+        var yld = cases * duration * dw;
+
+        // DALY = YLL + YLD
+        var daly = yll + yld;
+
+        // Proportion
+        var yllPct = daly > 0 ? (yll / daly * 100) : 0;
+        var yldPct = daly > 0 ? (yld / daly * 100) : 0;
+
+        var html = '<div class="result-panel animate-in">';
+        html += '<div class="result-value">' + daly.toFixed(1) + ' DALYs</div>';
+        html += '<div class="result-label">Disability-Adjusted Life Years</div>';
+
+        html += '<div class="result-grid mt-2">'
+            + '<div class="result-item"><div class="result-item-value" style="color:var(--danger)">' + yll.toFixed(1) + '</div><div class="result-item-label">YLL (Years of Life Lost)</div></div>'
+            + '<div class="result-item"><div class="result-item-value" style="color:var(--warning)">' + yld.toFixed(1) + '</div><div class="result-item-label">YLD (Years Lived with Disability)</div></div>'
+            + '<div class="result-item"><div class="result-item-value" style="color:var(--accent)">' + daly.toFixed(1) + '</div><div class="result-item-label">DALY Total</div></div>'
+            + '</div>';
+
+        // Detail table
+        html += '<div class="card-title mt-2">Calculation Details</div>';
+        html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Component</th><th>Formula</th><th>Value</th><th>% of DALY</th></tr></thead><tbody>';
+        html += '<tr><td>YLL</td><td class="num">' + deaths + ' deaths x ' + lifeExpectancy.toFixed(1) + ' years</td><td class="num" style="color:var(--danger)">' + yll.toFixed(1) + '</td><td class="num">' + yllPct.toFixed(1) + '%</td></tr>';
+        html += '<tr><td>YLD</td><td class="num">' + cases + ' cases x ' + duration.toFixed(1) + ' years x ' + dw.toFixed(3) + '</td><td class="num" style="color:var(--warning)">' + yld.toFixed(1) + '</td><td class="num">' + yldPct.toFixed(1) + '%</td></tr>';
+        html += '<tr style="font-weight:bold"><td>DALY</td><td class="num">YLL + YLD</td><td class="num" style="color:var(--accent)">' + daly.toFixed(1) + '</td><td class="num">100%</td></tr>';
+        html += '</tbody></table></div>';
+
+        html += '<div class="btn-group mt-2">'
+            + '<button class="btn btn-xs btn-secondary" onclick="Export.copyText(\'DALY: ' + daly.toFixed(1) + ' (YLL=' + yll.toFixed(1) + ', YLD=' + yld.toFixed(1) + ').\')">Copy Result</button>'
+            + '</div>';
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('epi-daly-results'), html);
+        Export.addToHistory(MODULE_ID, { deaths: deaths, cases: cases, dw: dw }, 'DALY: ' + daly.toFixed(1));
     }
 
     // ================================================================
@@ -1369,6 +1917,21 @@
         calcPAF: calcPAF,
         copyPAF: copyPAF,
         genMethodsPAF: genMethodsPAF,
-        genRScriptMH: genRScriptMH
+        genRScriptMH: genRScriptMH,
+
+        // New rate calculators
+        calcIncidence: calcIncidence,
+        calcRateRatio: calcRateRatio,
+        calcPrevalence: calcPrevalence,
+        calcSMR: calcSMR,
+        addAgeRow: addAgeRow,
+        addDefaultAgeRows: addDefaultAgeRows,
+        removeAgeRow: removeAgeRow,
+        clearAgeRows: clearAgeRows,
+        updateAgeRow: updateAgeRow,
+        loadStdPop: loadStdPop,
+        calcAgeStd: calcAgeStd,
+        setDW: setDW,
+        calcDALY: calcDALY
     };
 })();

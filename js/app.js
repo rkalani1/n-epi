@@ -21,7 +21,6 @@ const App = (() => {
             items: [
                 { id: 'sample-size', label: 'Sample Size', icon: '#', description: 'Calculate required sample sizes for clinical studies' },
                 { id: 'power-analysis', label: 'Power Analysis', icon: 'P', description: 'Statistical power calculations and curves' },
-                { id: 'nihss-calculator', label: 'NIHSS', icon: 'N', description: 'Quantify stroke severity using the NIHSS' },
                 { id: 'hypothesis-builder', label: 'Hypothesis Builder', icon: 'H', description: 'Formulate and structure research hypotheses' },
                 { id: 'study-design-guide', label: 'Design Guide', icon: '\u2630', description: 'Interactive guide for choosing study designs' }
             ]
@@ -30,7 +29,6 @@ const App = (() => {
             title: 'EPIDEMIOLOGY',
             items: [
                 { id: 'epidemiology-calcs', label: 'Epi Calculators', icon: '2', description: 'Incidence, prevalence, and epi measures' },
-                { id: 'risk-calculators', label: 'Risk Calculators', icon: '%', description: 'Relative risk, odds ratio, and risk difference' },
                 { id: 'epi-concepts', label: 'Epi Concepts', icon: '\u03B5', description: 'Core epidemiology concepts and definitions' },
                 { id: 'causal-inference', label: 'Causal Inference', icon: '\u2192', description: 'DAGs, confounding, and causal frameworks' }
             ]
