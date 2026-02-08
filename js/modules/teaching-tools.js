@@ -1,174 +1,14 @@
 /**
  * Neuro-Epi — Teaching & Mentoring Tools
  * Interactive educational tools for teaching epidemiology, biostatistics, and clinical research methods.
- * Features: Knowledge Quiz, Biostatistics Quiz Generator, Concept Flashcards, Study Design Decision Tree,
- *           Journal Club Worksheet, Concept Maps, Glossary, Training Milestones
+ * Features: Biostatistics Quiz Generator, Concept Flashcards, Study Design Decision Tree,
+ *           Journal Club Worksheet, Concept Maps, Glossary
  */
-(function() {
+(function () {
     'use strict';
     var MODULE_ID = 'teaching-tools';
 
-    var currentTool = 'quiz';
-
-    /* ------------------------------------------------------------------ */
-    /*  Quiz bank                                                          */
-    /* ------------------------------------------------------------------ */
-    var quizzes = [
-        {
-            category: 'Study Design',
-            questions: [
-                {
-                    q: 'A researcher enrolls patients with stroke and without stroke, then looks back at their aspirin use. What study design is this?',
-                    options: ['Randomized controlled trial', 'Cohort study', 'Case-control study', 'Cross-sectional study'],
-                    answer: 2,
-                    explanation: 'This is a case-control study: participants are selected based on outcome status (stroke/no stroke) and exposure history (aspirin) is assessed retrospectively.'
-                },
-                {
-                    q: 'Which measure of association is most appropriate for a case-control study?',
-                    options: ['Risk ratio', 'Odds ratio', 'Risk difference', 'Incidence rate'],
-                    answer: 1,
-                    explanation: 'The odds ratio is the appropriate measure for case-control studies because you cannot calculate incidence (and thus risk ratios) when sampling is based on outcome.'
-                },
-                {
-                    q: 'A clinical trial randomizes patients to alteplase vs placebo. The outcome assessors do not know the treatment assignment. This is an example of:',
-                    options: ['Single blinding', 'Double blinding', 'Triple blinding', 'Open-label design'],
-                    answer: 0,
-                    explanation: 'When only the outcome assessors are blinded (but patients and clinicians know the assignment), this is single blinding of assessors. Double blinding would require patients and clinicians to also be blinded.'
-                },
-                {
-                    q: 'What is the main advantage of a stepped-wedge cluster RCT over a parallel cluster RCT?',
-                    options: ['Lower sample size', 'All clusters eventually receive the intervention', 'No need for randomization', 'No contamination possible'],
-                    answer: 1,
-                    explanation: 'In a stepped-wedge design, all clusters cross over from control to intervention at randomly determined time points, so every cluster eventually receives the intervention. This is useful when withholding an expected beneficial intervention is not ethical.'
-                },
-                {
-                    q: 'Which bias occurs when patients in a trial are more likely to report side effects because they know they are receiving the experimental drug?',
-                    options: ['Selection bias', 'Recall bias', 'Reporting bias', 'Performance bias'],
-                    answer: 3,
-                    explanation: 'Performance bias occurs when knowledge of treatment assignment affects behavior of participants or providers. Knowing the assignment leads to differential reporting of outcomes.'
-                }
-            ]
-        },
-        {
-            category: 'Biostatistics',
-            questions: [
-                {
-                    q: 'A p-value of 0.03 means:',
-                    options: [
-                        'There is a 3% probability the null hypothesis is true',
-                        'There is a 3% probability of seeing data this extreme (or more) if the null hypothesis is true',
-                        'The treatment has a 97% chance of being effective',
-                        'The result is clinically significant'
-                    ],
-                    answer: 1,
-                    explanation: 'The p-value is the probability of observing results as extreme as (or more extreme than) those observed, assuming the null hypothesis is true. It is NOT the probability that H0 is true.'
-                },
-                {
-                    q: 'A 95% confidence interval for an odds ratio is (0.85, 1.45). What can you conclude?',
-                    options: [
-                        'The result is statistically significant at alpha = 0.05',
-                        'The result is NOT statistically significant at alpha = 0.05',
-                        'There is a 95% probability the true OR is in this range',
-                        'The treatment is harmful'
-                    ],
-                    answer: 1,
-                    explanation: 'Because the CI includes 1.0 (the null value for OR), the result is not statistically significant at the 0.05 level. A CI that crosses the null value corresponds to p > 0.05.'
-                },
-                {
-                    q: 'In a meta-analysis, I-squared = 75%. This indicates:',
-                    options: [
-                        'Low heterogeneity',
-                        'Moderate heterogeneity',
-                        'Substantial heterogeneity',
-                        'The results are not valid'
-                    ],
-                    answer: 2,
-                    explanation: 'I-squared represents the percentage of total variation across studies due to heterogeneity rather than chance. Values of 25%, 50%, and 75% are conventionally considered low, moderate, and substantial heterogeneity (Higgins et al., 2003).'
-                },
-                {
-                    q: 'What is the Number Needed to Treat (NNT) if the absolute risk reduction is 5%?',
-                    options: ['5', '10', '20', '50'],
-                    answer: 2,
-                    explanation: 'NNT = 1 / ARR = 1 / 0.05 = 20. This means you need to treat 20 patients to prevent one additional bad outcome.'
-                },
-                {
-                    q: 'A regression model with 10 predictors requires a minimum of ___ events using the events-per-variable rule of 10.',
-                    options: ['10', '50', '100', '200'],
-                    answer: 2,
-                    explanation: 'The events-per-variable (EPV) rule suggests a minimum of 10 events per predictor variable. With 10 predictors, you need at least 10 x 10 = 100 events.'
-                }
-            ]
-        },
-        {
-            category: 'Epidemiology',
-            questions: [
-                {
-                    q: 'In a cohort study, 50 out of 1000 exposed individuals develop disease, compared to 20 out of 1000 unexposed. What is the relative risk?',
-                    options: ['0.4', '2.5', '30', '0.03'],
-                    answer: 1,
-                    explanation: 'RR = Risk in exposed / Risk in unexposed = (50/1000) / (20/1000) = 0.05 / 0.02 = 2.5. Exposed individuals have 2.5 times the risk of disease.'
-                },
-                {
-                    q: 'Confounding can be controlled at the design stage by all of the following EXCEPT:',
-                    options: ['Randomization', 'Restriction', 'Stratified analysis', 'Matching'],
-                    answer: 2,
-                    explanation: 'Stratified analysis (e.g., Mantel-Haenszel) is an analysis-stage method for controlling confounding, not a design-stage method. Randomization, restriction, and matching are all design-stage approaches.'
-                },
-                {
-                    q: 'The incidence rate of stroke in a population is 2 per 1,000 person-years. If 5,000 people are followed for 2 years, approximately how many strokes would you expect?',
-                    options: ['10', '20', '100', '200'],
-                    answer: 1,
-                    explanation: 'Expected events = Rate x Person-time = 0.002 x (5000 x 2) = 0.002 x 10,000 = 20 strokes.'
-                },
-                {
-                    q: 'Which of Bradford Hill\'s criteria is considered the strongest evidence for causation?',
-                    options: ['Consistency', 'Temporality', 'Biological gradient', 'Plausibility'],
-                    answer: 1,
-                    explanation: 'Temporality (the cause must precede the effect) is the only one of Bradford Hill\'s criteria that is considered necessary for causation. All others provide supporting evidence but are not required.'
-                },
-                {
-                    q: 'What does a population attributable fraction (PAF) of 30% for smoking and stroke mean?',
-                    options: [
-                        '30% of smokers will have a stroke',
-                        '30% of strokes in the population could be prevented by eliminating smoking',
-                        '30% of the population smokes',
-                        'Smoking increases stroke risk by 30%'
-                    ],
-                    answer: 1,
-                    explanation: 'PAF represents the proportion of disease in the population that is attributable to the exposure. A PAF of 30% means that 30% of strokes could theoretically be prevented if no one smoked.'
-                }
-            ]
-        },
-        {
-            category: 'Critical Appraisal',
-            questions: [
-                {
-                    q: 'In the CONSORT checklist for RCTs, which item is most critical for internal validity?',
-                    options: ['Sample size calculation', 'Sequence generation', 'Funding source', 'Trial registration'],
-                    answer: 1,
-                    explanation: 'Adequate random sequence generation is the most critical element for internal validity as it is the primary mechanism for preventing selection bias and ensuring comparability of groups at baseline.'
-                },
-                {
-                    q: 'Which tool is recommended by Cochrane for assessing risk of bias in randomized trials?',
-                    options: ['Newcastle-Ottawa Scale', 'RoB 2.0', 'QUADAS-2', 'AMSTAR-2'],
-                    answer: 1,
-                    explanation: 'RoB 2.0 (Risk of Bias tool version 2) is the Cochrane-recommended tool for assessing risk of bias in randomized trials. Newcastle-Ottawa is for observational studies, QUADAS-2 for diagnostic studies, and AMSTAR-2 for systematic reviews.'
-                },
-                {
-                    q: 'A trial reports "per-protocol analysis showed significant benefit." Which analysis would be more conservative?',
-                    options: ['Per-protocol analysis', 'Intention-to-treat analysis', 'Subgroup analysis', 'Sensitivity analysis'],
-                    answer: 1,
-                    explanation: 'Intention-to-treat (ITT) analysis includes all randomized participants regardless of compliance and is generally more conservative, preserving the benefit of randomization. Per-protocol analysis can introduce bias by excluding non-compliant patients.'
-                },
-                {
-                    q: 'In GRADE assessment, which factor can increase certainty of evidence?',
-                    options: ['Risk of bias', 'Large effect size', 'Imprecision', 'Publication bias'],
-                    answer: 1,
-                    explanation: 'Large effect size is one of three factors that can upgrade certainty in GRADE (along with dose-response gradient and effect of plausible confounding). Risk of bias, imprecision, and publication bias are reasons to downgrade.'
-                }
-            ]
-        }
-    ];
+    var currentTool = 'biostats-quiz';
 
     /* ------------------------------------------------------------------ */
     /*  Biostatistics Quiz Generator — 35 questions                       */
@@ -704,16 +544,14 @@
         // Tool tabs
         html += '<div class="card" style="margin-bottom:1rem"><div style="display:flex;flex-wrap:wrap;gap:0.5rem;padding:0.5rem">';
         var tools = [
-            { id: 'quiz', label: 'Knowledge Quiz' },
             { id: 'biostats-quiz', label: 'Biostats Quiz Generator' },
             { id: 'flashcards', label: 'Concept Flashcards' },
             { id: 'decision-tree', label: 'Study Design Tree' },
             { id: 'journal-club', label: 'Journal Club Worksheet' },
             { id: 'concepts', label: 'Concept Maps' },
-            { id: 'glossary', label: 'Glossary' },
-            { id: 'milestones', label: 'Training Milestones' }
+            { id: 'glossary', label: 'Glossary' }
         ];
-        tools.forEach(function(t) {
+        tools.forEach(function (t) {
             html += '<button class="btn ' + (t.id === currentTool ? 'btn-primary' : 'btn-secondary') + '" '
                 + 'onclick="window.TeachingTools.switchTool(\'' + t.id + '\')" '
                 + 'id="tt-tab-' + t.id + '">'
@@ -731,14 +569,12 @@
             + '<div class="learn-body hidden" style="margin-top:1rem">'
             + '<h4>Using These Tools for Teaching</h4>'
             + '<ul>'
-            + '<li><strong>Quiz Mode</strong>: Use in journal clubs or didactic sessions. Questions cover key concepts with detailed explanations.</li>'
             + '<li><strong>Biostats Quiz Generator</strong>: Randomly generates a 10-question quiz from a bank of 35+ questions covering study design, bias, statistical tests, and interpretation.</li>'
             + '<li><strong>Concept Flashcards</strong>: 45 flashcards covering key epidemiology and biostatistics concepts. Flip to see definitions and examples.</li>'
             + '<li><strong>Study Design Decision Tree</strong>: Answer questions about your research scenario to identify the most appropriate study design.</li>'
             + '<li><strong>Journal Club Worksheet</strong>: Structured template for presenting papers. Print or copy for your group.</li>'
             + '<li><strong>Concept Maps</strong>: Visual summaries of key relationships. Great for orientation lectures.</li>'
             + '<li><strong>Glossary</strong>: Quick-reference definitions for commonly confused terms.</li>'
-            + '<li><strong>Training Milestones</strong>: Track trainee progress through research competencies (ACGME-aligned).</li>'
             + '</ul>'
             + '<h4>Pedagogical Tips</h4>'
             + '<ul>'
@@ -756,8 +592,8 @@
     function switchTool(toolId) {
         currentTool = toolId;
         // Update tabs
-        var allTabs = ['quiz', 'biostats-quiz', 'flashcards', 'decision-tree', 'journal-club', 'concepts', 'glossary', 'milestones'];
-        allTabs.forEach(function(id) {
+        var allTabs = ['biostats-quiz', 'flashcards', 'decision-tree', 'journal-club', 'concepts', 'glossary'];
+        allTabs.forEach(function (id) {
             var btn = document.getElementById('tt-tab-' + id);
             if (btn) btn.className = id === toolId ? 'btn btn-primary' : 'btn btn-secondary';
         });
@@ -765,107 +601,15 @@
         var el = document.getElementById('tt-content');
         if (!el) return;
 
-        if (toolId === 'quiz') renderQuiz(el);
-        else if (toolId === 'biostats-quiz') renderBiostatQuiz(el);
+        if (toolId === 'biostats-quiz') renderBiostatQuiz(el);
         else if (toolId === 'flashcards') renderFlashcards(el);
         else if (toolId === 'decision-tree') renderDecisionTree(el);
         else if (toolId === 'journal-club') renderJournalClub(el);
         else if (toolId === 'concepts') renderConceptMaps(el);
         else if (toolId === 'glossary') renderGlossary(el);
-        else if (toolId === 'milestones') renderMilestones(el);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Quiz Tool (original)                                               */
-    /* ------------------------------------------------------------------ */
 
-    var quizState = { catIdx: 0, qIdx: 0, answered: false, score: 0, total: 0 };
-
-    function renderQuiz(el) {
-        var html = '<div class="card">';
-
-        // Category selector
-        html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">';
-        quizzes.forEach(function(cat, i) {
-            html += '<button class="btn ' + (i === quizState.catIdx ? 'btn-primary' : 'btn-secondary') + '" '
-                + 'onclick="window.TeachingTools.setQuizCat(' + i + ')">'
-                + cat.category + '</button>';
-        });
-        html += '</div>';
-
-        var cat = quizzes[quizState.catIdx];
-        var question = cat.questions[quizState.qIdx];
-
-        html += '<div style="color:var(--text-secondary);margin-bottom:0.5rem">Question ' + (quizState.qIdx + 1) + ' of ' + cat.questions.length + '</div>';
-        html += '<h3 style="margin-bottom:1rem">' + question.q + '</h3>';
-
-        question.options.forEach(function(opt, i) {
-            var cls = 'btn btn-secondary';
-            var disabled = '';
-            if (quizState.answered) {
-                disabled = ' disabled';
-                if (i === question.answer) cls = 'btn btn-success';
-                else if (i === quizState.selected && i !== question.answer) cls = 'btn btn-danger';
-            }
-            html += '<button class="' + cls + '" style="display:block;width:100%;text-align:left;margin-bottom:0.5rem;padding:0.75rem 1rem" '
-                + 'onclick="window.TeachingTools.answerQuiz(' + i + ')"' + disabled + '>'
-                + '<strong>' + String.fromCharCode(65 + i) + '.</strong> ' + opt + '</button>';
-        });
-
-        if (quizState.answered) {
-            html += '<div class="card" style="margin-top:1rem;background:var(--surface-2);border-left:3px solid var(--accent);padding:1rem">'
-                + '<strong>Explanation:</strong> ' + question.explanation + '</div>';
-            html += '<div style="margin-top:1rem;display:flex;gap:0.5rem">';
-            if (quizState.qIdx < cat.questions.length - 1) {
-                html += '<button class="btn btn-primary" onclick="window.TeachingTools.nextQuestion()">Next Question</button>';
-            } else {
-                html += '<button class="btn btn-primary" onclick="window.TeachingTools.resetQuiz()">Restart Quiz</button>';
-            }
-            html += '<span style="align-self:center;color:var(--text-secondary)">Score: ' + quizState.score + '/' + quizState.total + '</span>';
-            html += '</div>';
-        }
-
-        html += '</div>';
-        App.setTrustedHTML(el, html);
-    }
-
-    function setQuizCat(idx) {
-        quizState.catIdx = idx;
-        quizState.qIdx = 0;
-        quizState.answered = false;
-        quizState.score = 0;
-        quizState.total = 0;
-        var el = document.getElementById('tt-content');
-        if (el) renderQuiz(el);
-    }
-
-    function answerQuiz(idx) {
-        if (quizState.answered) return;
-        quizState.answered = true;
-        quizState.selected = idx;
-        quizState.total++;
-        if (idx === quizzes[quizState.catIdx].questions[quizState.qIdx].answer) {
-            quizState.score++;
-        }
-        var el = document.getElementById('tt-content');
-        if (el) renderQuiz(el);
-    }
-
-    function nextQuestion() {
-        quizState.qIdx++;
-        quizState.answered = false;
-        var el = document.getElementById('tt-content');
-        if (el) renderQuiz(el);
-    }
-
-    function resetQuiz() {
-        quizState.qIdx = 0;
-        quizState.answered = false;
-        quizState.score = 0;
-        quizState.total = 0;
-        var el = document.getElementById('tt-content');
-        if (el) renderQuiz(el);
-    }
 
     /* ------------------------------------------------------------------ */
     /*  Biostatistics Quiz Generator                                       */
@@ -941,7 +685,7 @@
             if (biostatQuizState.showReview) {
                 html += '<div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.5rem">';
                 html += '<h4 style="margin-bottom:1rem">Answer Review</h4>';
-                biostatQuizState.questions.forEach(function(q, i) {
+                biostatQuizState.questions.forEach(function (q, i) {
                     var userAnswer = biostatQuizState.answers[i];
                     var isCorrect = userAnswer === q.answer;
                     var icon = isCorrect ? '<span style="color:#22c55e;font-weight:700">CORRECT</span>' : '<span style="color:#ef4444;font-weight:700">INCORRECT</span>';
@@ -949,7 +693,7 @@
                         + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">'
                         + '<strong>Q' + (i + 1) + '.</strong> ' + icon + '</div>'
                         + '<div style="margin-bottom:0.75rem">' + q.q + '</div>';
-                    q.options.forEach(function(opt, oi) {
+                    q.options.forEach(function (opt, oi) {
                         var optStyle = '';
                         if (oi === q.answer) optStyle = 'color:#22c55e;font-weight:600';
                         else if (oi === userAnswer && oi !== q.answer) optStyle = 'color:#ef4444;text-decoration:line-through';
@@ -981,7 +725,7 @@
 
             html += '<h3 style="margin-bottom:1.25rem;line-height:1.5">' + q.q + '</h3>';
 
-            q.options.forEach(function(opt, i) {
+            q.options.forEach(function (opt, i) {
                 var cls = 'btn btn-secondary';
                 var disabled = '';
                 if (biostatQuizState.answered) {
@@ -1168,7 +912,7 @@
     }
 
     // Keyboard navigation for flashcards
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (currentTool !== 'flashcards') return;
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         if (e.key === 'ArrowRight') { nextFlashcard(); e.preventDefault(); }
@@ -1249,7 +993,7 @@
                 + '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem">Step ' + (treeState.path.length + 1) + '</div>'
                 + '<h3 style="margin-bottom:1.25rem;line-height:1.5">' + node.question + '</h3>';
 
-            node.options.forEach(function(opt, i) {
+            node.options.forEach(function (opt, i) {
                 html += '<button class="btn btn-secondary" '
                     + 'style="display:block;width:100%;text-align:left;margin-bottom:0.5rem;padding:0.75rem 1rem" '
                     + 'onclick="window.TeachingTools.chooseTreeOption(' + i + ')">'
@@ -1299,11 +1043,11 @@
             + '<button class="btn btn-secondary" onclick="window.TeachingTools.clearWorksheet()">Clear All</button>'
             + '</div></div>';
 
-        journalClubTemplate.sections.forEach(function(section, si) {
+        journalClubTemplate.sections.forEach(function (section, si) {
             html += '<div style="margin-bottom:1.5rem">'
                 + '<h4 style="color:var(--accent);margin-bottom:0.75rem;border-bottom:1px solid var(--border);padding-bottom:0.5rem">'
                 + (si + 1) + '. ' + section.title + '</h4>';
-            section.fields.forEach(function(field, fi) {
+            section.fields.forEach(function (field, fi) {
                 var inputId = 'jc-' + si + '-' + fi;
                 html += '<div style="margin-bottom:0.5rem">'
                     + '<label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:0.25rem">' + field + '</label>'
@@ -1319,10 +1063,10 @@
 
     function copyWorksheet() {
         var text = '=== JOURNAL CLUB WORKSHEET ===\n\n';
-        journalClubTemplate.sections.forEach(function(section, si) {
+        journalClubTemplate.sections.forEach(function (section, si) {
             text += section.title.toUpperCase() + '\n';
             text += '-'.repeat(section.title.length) + '\n';
-            section.fields.forEach(function(field, fi) {
+            section.fields.forEach(function (field, fi) {
                 var input = document.getElementById('jc-' + si + '-' + fi);
                 var val = input ? input.value.trim() : '';
                 text += field + ': ' + (val || '[not entered]') + '\n';
@@ -1333,8 +1077,8 @@
     }
 
     function clearWorksheet() {
-        journalClubTemplate.sections.forEach(function(section, si) {
-            section.fields.forEach(function(_, fi) {
+        journalClubTemplate.sections.forEach(function (section, si) {
+            section.fields.forEach(function (_, fi) {
                 var input = document.getElementById('jc-' + si + '-' + fi);
                 if (input) input.value = '';
             });
@@ -1347,7 +1091,7 @@
 
     function renderConceptMaps(el) {
         var html = '';
-        conceptMaps.forEach(function(map, mi) {
+        conceptMaps.forEach(function (map, mi) {
             html += '<div class="card" style="margin-bottom:1rem">'
                 + '<h3>' + map.title + '</h3>'
                 + '<canvas id="tt-concept-' + mi + '" style="width:100%;max-width:800px"></canvas>'
@@ -1356,8 +1100,8 @@
         App.setTrustedHTML(el, html);
 
         // Draw concept maps on canvases
-        setTimeout(function() {
-            conceptMaps.forEach(function(map, mi) {
+        setTimeout(function () {
+            conceptMaps.forEach(function (map, mi) {
                 drawConceptMap(document.getElementById('tt-concept-' + mi), map);
             });
         }, 50);
@@ -1387,7 +1131,7 @@
         // Draw edges
         ctx.strokeStyle = lineColor;
         ctx.lineWidth = 1.5;
-        map.edges.forEach(function(edge) {
+        map.edges.forEach(function (edge) {
             var from = map.nodes[edge[0]];
             var to = map.nodes[edge[1]];
             var fx = from.x * w / 100, fy = from.y * h / 100;
@@ -1402,7 +1146,7 @@
         ctx.font = '11px system-ui';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        map.nodes.forEach(function(node) {
+        map.nodes.forEach(function (node) {
             var nx = node.x * w / 100, ny = node.y * h / 100;
             var tw = ctx.measureText(node.label).width + 16;
             var th = 24;
@@ -1466,7 +1210,7 @@
             + '</div>'
             + '<div id="tt-glossary-list">';
 
-        glossaryTerms.forEach(function(item) {
+        glossaryTerms.forEach(function (item) {
             html += glossaryItem(item);
         });
 
@@ -1482,136 +1226,17 @@
 
     function filterGlossary(term) {
         var lower = term.toLowerCase();
-        var filtered = glossaryTerms.filter(function(item) {
+        var filtered = glossaryTerms.filter(function (item) {
             return item.term.toLowerCase().indexOf(lower) !== -1 || item.def.toLowerCase().indexOf(lower) !== -1;
         });
         var html = '';
-        filtered.forEach(function(item) { html += glossaryItem(item); });
+        filtered.forEach(function (item) { html += glossaryItem(item); });
         if (filtered.length === 0) html = '<div style="padding:1rem;color:var(--text-secondary)">No matching terms found.</div>';
         var list = document.getElementById('tt-glossary-list');
         if (list) App.setTrustedHTML(list, html);
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Training Milestones                                                 */
-    /* ------------------------------------------------------------------ */
 
-    var milestoneCategories = [
-        {
-            name: 'Study Design & Methods',
-            items: [
-                'Formulate a research question using PICO framework',
-                'Select an appropriate study design',
-                'Identify and address potential sources of bias',
-                'Calculate sample size for a proposed study',
-                'Write a statistical analysis plan',
-                'Design a data collection form / CRF'
-            ]
-        },
-        {
-            name: 'Biostatistics',
-            items: [
-                'Interpret p-values and confidence intervals correctly',
-                'Choose appropriate statistical tests',
-                'Perform and interpret logistic regression',
-                'Perform and interpret survival analysis',
-                'Understand multiple testing corrections',
-                'Interpret diagnostic accuracy metrics'
-            ]
-        },
-        {
-            name: 'Critical Appraisal',
-            items: [
-                'Appraise an RCT using CONSORT / RoB 2.0',
-                'Appraise an observational study using STROBE / NOS',
-                'Appraise a systematic review using AMSTAR-2',
-                'Apply GRADE to rate certainty of evidence',
-                'Lead a journal club presentation',
-                'Write a structured critical appraisal'
-            ]
-        },
-        {
-            name: 'Scientific Writing',
-            items: [
-                'Write a specific aims page',
-                'Draft a methods section for a manuscript',
-                'Create a results section with tables and figures',
-                'Submit an abstract to a national conference',
-                'Write a complete manuscript draft',
-                'Respond to peer reviewer comments'
-            ]
-        }
-    ];
-
-    function renderMilestones(el) {
-        var saved = {};
-        try { saved = JSON.parse(localStorage.getItem('neuroepi_milestones') || '{}'); } catch(e) {}
-
-        var html = '<div class="card">'
-            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">'
-            + '<h3 style="margin:0">Research Training Milestones</h3>'
-            + '<button class="btn btn-secondary" onclick="window.TeachingTools.exportMilestones()">Export Progress</button>'
-            + '</div>';
-
-        var totalChecked = 0, totalItems = 0;
-        milestoneCategories.forEach(function(cat) { totalItems += cat.items.length; });
-        Object.keys(saved).forEach(function(k) { if (saved[k]) totalChecked++; });
-
-        html += '<div style="margin-bottom:1.5rem">'
-            + '<div style="display:flex;justify-content:space-between;margin-bottom:0.5rem">'
-            + '<span>Overall Progress</span>'
-            + '<span>' + totalChecked + ' / ' + totalItems + ' (' + Math.round(totalChecked / totalItems * 100) + '%)</span></div>'
-            + '<div style="background:var(--surface-2);border-radius:8px;height:10px;overflow:hidden">'
-            + '<div style="background:var(--accent);height:100%;width:' + (totalChecked / totalItems * 100) + '%;border-radius:8px;transition:width 0.3s"></div>'
-            + '</div></div>';
-
-        milestoneCategories.forEach(function(cat, ci) {
-            var catChecked = 0;
-            cat.items.forEach(function(_, ii) { if (saved['m-' + ci + '-' + ii]) catChecked++; });
-
-            html += '<div style="margin-bottom:1.5rem">'
-                + '<h4 style="color:var(--accent);margin-bottom:0.75rem">' + cat.name
-                + ' <span style="font-size:0.8em;color:var(--text-secondary)">(' + catChecked + '/' + cat.items.length + ')</span></h4>';
-
-            cat.items.forEach(function(item, ii) {
-                var key = 'm-' + ci + '-' + ii;
-                var checked = saved[key] ? ' checked' : '';
-                html += '<label style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;cursor:pointer">'
-                    + '<input type="checkbox" onchange="window.TeachingTools.toggleMilestone(\'' + key + '\')"' + checked + '>'
-                    + '<span style="' + (saved[key] ? 'text-decoration:line-through;color:var(--text-secondary)' : '') + '">' + item + '</span>'
-                    + '</label>';
-            });
-            html += '</div>';
-        });
-
-        html += '</div>';
-        App.setTrustedHTML(el, html);
-    }
-
-    function toggleMilestone(key) {
-        var saved = {};
-        try { saved = JSON.parse(localStorage.getItem('neuroepi_milestones') || '{}'); } catch(e) {}
-        saved[key] = !saved[key];
-        localStorage.setItem('neuroepi_milestones', JSON.stringify(saved));
-        var el = document.getElementById('tt-content');
-        if (el) renderMilestones(el);
-    }
-
-    function exportMilestones() {
-        var saved = {};
-        try { saved = JSON.parse(localStorage.getItem('neuroepi_milestones') || '{}'); } catch(e) {}
-
-        var text = '=== RESEARCH TRAINING MILESTONES ===\nDate: ' + new Date().toLocaleDateString() + '\n\n';
-        milestoneCategories.forEach(function(cat, ci) {
-            text += cat.name.toUpperCase() + '\n';
-            cat.items.forEach(function(item, ii) {
-                var key = 'm-' + ci + '-' + ii;
-                text += (saved[key] ? '[X] ' : '[ ] ') + item + '\n';
-            });
-            text += '\n';
-        });
-        Export.copyToClipboard(text);
-    }
 
     /* ------------------------------------------------------------------ */
     /*  Public API                                                          */
@@ -1619,10 +1244,6 @@
 
     window.TeachingTools = {
         switchTool: switchTool,
-        setQuizCat: setQuizCat,
-        answerQuiz: answerQuiz,
-        nextQuestion: nextQuestion,
-        resetQuiz: resetQuiz,
         // Biostat quiz generator
         startBiostatQuiz: startBiostatQuiz,
         answerBiostatQuiz: answerBiostatQuiz,
@@ -1642,10 +1263,7 @@
         copyWorksheet: copyWorksheet,
         clearWorksheet: clearWorksheet,
         // Glossary
-        filterGlossary: filterGlossary,
-        // Milestones
-        toggleMilestone: toggleMilestone,
-        exportMilestones: exportMilestones
+        filterGlossary: filterGlossary
     };
 
     App.registerModule(MODULE_ID, { render: render });

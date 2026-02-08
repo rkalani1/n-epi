@@ -41,7 +41,7 @@ A zero-dependency static web app built for clinical researchers, epidemiologists
 - **ML for Clinical Research** — Method selector, algorithm reference, validation guide, TRIPOD+AI checklist, common pitfalls in clinical ML.
 
 ### Writing & Productivity
-- **Grant Assistant** — Specific aims page builder, study design section, power justification text, Gantt timeline, human subjects template, budget calculator.
+
 - **Methods Generator** — Auto-generate statistical methods paragraphs for manuscripts, common templates for RCTs, observational studies, meta-analyses.
 - **Project Planner** — Research timeline builder, milestone tracker, budget calculator, regulatory checklists.
 

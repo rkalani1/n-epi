@@ -70,7 +70,6 @@ const App = (() => {
         {
             title: 'WRITING & PRODUCTIVITY',
             items: [
-                { id: 'grant-assistant', label: 'Grant Assistant', icon: 'G', description: 'NIH grant writing templates and guidance' },
                 { id: 'methods-generator', label: 'Methods Generator', icon: '\u270E', description: 'Auto-generate methods section text' },
                 { id: 'project-planner', label: 'Project Planner', icon: '\u2610', description: 'Research project timeline and milestones' }
             ]
@@ -888,7 +887,7 @@ const App = (() => {
         }
 
         // Popular modules / Quick links
-        var popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator', 'grant-assistant'];
+        var popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
         html += '<div class="dashboard-section">'
             + '<h2 class="dashboard-section-title">&#9889; Popular Modules</h2>'
             + '<div class="dashboard-module-grid">';
