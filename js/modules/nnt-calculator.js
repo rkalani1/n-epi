@@ -180,8 +180,14 @@
             eer = rr * cer;
         }
         eer = Math.max(0.0001, Math.min(0.9999, eer));
-        var n = totalN && totalN > 0 ? Math.round(totalN / 2) : 500;
-        return ratesTo2x2(cer, eer, n, n);
+        var providedN = totalN && totalN > 0;
+        var n = providedN ? Math.round(totalN / 2) : 500;
+        var t = ratesTo2x2(cer, eer, n, n);
+        // Mark the table as synthetic when the user did not provide totalN, so
+        // downstream test statistics are NOT presented as if they came from the
+        // original trial.
+        t._syntheticCounts = !providedN;
+        return t;
     }
 
     // ================================================================
@@ -216,7 +222,11 @@
         var totalN = parseInt(document.getElementById('nnt_pub_n').value, 10);
         if (isNaN(est) || isNaN(cer)) { Export.showToast('Estimate and baseline risk are required', 'error'); return; }
         var t = publishedTo2x2(measure, est, cer, totalN);
-        showResults(t.a, t.b, t.c, t.d, { pubMeasure: measure, pubEst: est, pubLo: lo, pubHi: hi, pubCER: cer });
+        showResults(t.a, t.b, t.c, t.d, {
+            pubMeasure: measure, pubEst: est, pubLo: lo, pubHi: hi, pubCER: cer,
+            syntheticCounts: t._syntheticCounts === true,
+            providedTotalN: !isNaN(totalN) && totalN > 0 ? totalN : null
+        });
     }
 
     // ================================================================
@@ -309,17 +319,27 @@
         html += '<div class="result-item"><div class="result-item-value">' + nntDisplay + '</div>'
             + '<div class="result-item-label">' + nntLabel + '<br>' + nntCIStr + '</div></div>';
 
-        // Chi-squared
-        html += '<div class="result-item"><div class="result-item-value">' + res.chi2.chi2.toFixed(2) + '</div>'
-            + '<div class="result-item-label">\u03C7\u00B2 (p = ' + Statistics.formatPValue(res.chi2.pValue) + ')</div></div>';
+        var isSynthetic = pubInfo && pubInfo.syntheticCounts === true;
 
-        // Fisher exact
-        html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(res.fisher.pValue) + '</div>'
-            + '<div class="result-item-label">Fisher exact p</div></div>';
+        // Chi-squared / Fisher exact (suppressed when counts were fabricated)
+        if (!isSynthetic) {
+            html += '<div class="result-item"><div class="result-item-value">' + res.chi2.chi2.toFixed(2) + '</div>'
+                + '<div class="result-item-label">\u03C7\u00B2 (p = ' + Statistics.formatPValue(res.chi2.pValue) + ')</div></div>';
+            html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(res.fisher.pValue) + '</div>'
+                + '<div class="result-item-label">Fisher exact p</div></div>';
+        } else {
+            html += '<div class="result-item" style="grid-column:span 2;background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.4);">'
+                + '<div class="result-item-label" style="font-weight:600;color:var(--warning,#f59e0b);">Test statistics suppressed</div>'
+                + '<div class="result-item-label" style="font-size:0.75rem;color:var(--text-tertiary);">'
+                + 'Total N was not provided. \u03C7\u00B2, Fisher\u2019s exact, and the fragility index require the actual sample size; entering it above will compute them.'
+                + '</div></div>';
+        }
 
-        // Fragility index
-        html += '<div class="result-item"><div class="result-item-value">' + frag.index + '</div>'
-            + '<div class="result-item-label">Fragility Index ' + App.tooltip('Number of events to reclassify to make p > 0.05') + '</div></div>';
+        // Fragility index — also requires actual counts
+        if (!isSynthetic) {
+            html += '<div class="result-item"><div class="result-item-value">' + frag.index + '</div>'
+                + '<div class="result-item-label">Fragility Index ' + App.tooltip('Number of events to reclassify to make p > 0.05') + '</div></div>';
+        }
 
         html += '</div>'; // end result-grid
 

@@ -27,10 +27,45 @@ const Export = (() => {
         });
     }
 
+    // RFC 4180 quoting: wrap in double quotes if cell contains "," or \n or "
+    // and double any embedded quotes.
+    function _csvQuote(v) {
+        const s = (v === null || v === undefined) ? '' : String(v);
+        if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+        return s;
+    }
+    function _tsvSafe(v) {
+        const s = (v === null || v === undefined) ? '' : String(v);
+        return s.replace(/[\t\r\n]/g, ' ');
+    }
+
     function copyTSV(headers, rows) {
-        const lines = [headers.join('\t')];
-        rows.forEach(row => lines.push(row.join('\t')));
+        const lines = [headers.map(_tsvSafe).join('\t')];
+        rows.forEach(row => lines.push(row.map(_tsvSafe).join('\t')));
         copyText(lines.join('\n'));
+    }
+
+    function copyCSV(headers, rows) {
+        const lines = [headers.map(_csvQuote).join(',')];
+        rows.forEach(row => lines.push(row.map(_csvQuote).join(',')));
+        copyText(lines.join('\n'));
+    }
+
+    function downloadCSV(filename, headers, rows) {
+        const lines = [headers.map(_csvQuote).join(',')];
+        rows.forEach(row => lines.push(row.map(_csvQuote).join(',')));
+        // Prepend UTF-8 BOM so Excel opens accented characters correctly.
+        const blob = new Blob(['﻿', lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        a.href = url;
+        a.download = filename || ('n-epi-export-' + stamp + '.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('CSV downloaded');
     }
 
     // ============================================================
@@ -318,6 +353,8 @@ const Export = (() => {
     return {
         copyText,
         copyTSV,
+        copyCSV,
+        downloadCSV,
         showToast,
         exportCanvasPNG,
         formatMethodsText,

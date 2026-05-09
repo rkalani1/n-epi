@@ -13,8 +13,8 @@ authors:
 version: "2.0.0"
 date-released: "2026-02-05"
 license: MIT
-url: "https://github.com/rkalani1/neuroepi-suite"
-repository-code: "https://github.com/rkalani1/neuroepi-suite"
+url: "https://github.com/rkalani1/n-epi"
+repository-code: "https://github.com/rkalani1/n-epi"
 keywords:
   - epidemiology
   - biostatistics

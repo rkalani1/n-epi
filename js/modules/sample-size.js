@@ -440,6 +440,12 @@
             + '<div class="form-group"><label class="form-label">Correction Method</label>'
             + '<select class="form-select" name="ss_ma_corr" id="ss_ma_corr"><option value="bonferroni">Bonferroni</option><option value="dunnett">Dunnett (approx)</option></select></div>'
             + '</div>';
+        html += '<div class="form-row form-row--2">'
+            + '<div class="form-group"><label class="form-label">Family-wise α</label>'
+            + '<select class="form-select" name="ss_ma_alpha" id="ss_ma_alpha"><option value="0.05" selected>0.05</option><option value="0.025">0.025</option><option value="0.01">0.01</option><option value="0.10">0.10</option></select></div>'
+            + '<div class="form-group"><label class="form-label">Power</label>'
+            + '<select class="form-select" name="ss_ma_power" id="ss_ma_power"><option value="0.80" selected>80%</option><option value="0.85">85%</option><option value="0.90">90%</option><option value="0.95">95%</option></select></div>'
+            + '</div>';
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="SampleSizeModule.calculateMultiArm()">Calculate</button></div>';
         html += '<div id="ss-multiarm-results"></div>';
         html += '</div>';
@@ -1370,17 +1376,23 @@
         var n = parseInt(document.getElementById('ss_ma_n').value);
         var arms = parseInt(document.getElementById('ss_ma_arms').value);
         var corr = document.getElementById('ss_ma_corr').value;
+        var alphaEl = document.getElementById('ss_ma_alpha');
+        var powerEl = document.getElementById('ss_ma_power');
+        var alpha = alphaEl ? parseFloat(alphaEl.value) : 0.05;
+        var power = powerEl ? parseFloat(powerEl.value) : 0.80;
 
-        var result = Statistics.sampleSizeMultiArm(n, arms, corr);
+        var result = Statistics.sampleSizeMultiArm(n, arms, corr, alpha, power);
 
         var html = '<div class="result-panel animate-in">';
         html += '<div class="result-value">' + result.totalN + ' total</div>';
-        html += '<div class="result-label">' + result.nPerArm + ' per arm (' + arms + ' arms), ' + corr + ' correction, adjusted \u03B1 = ' + result.adjustedAlpha.toFixed(4) + '</div>';
+        html += '<div class="result-label">' + result.nPerArm + ' per arm (' + arms + ' arms), ' + corr + ' correction, family-wise \u03B1 = ' + alpha + ', adjusted per-comparison \u03B1 = ' + result.adjustedAlpha.toFixed(4) + '</div>';
 
-        var methodsText = 'For a ' + arms + '-arm trial with ' + corr + ' correction for multiplicity, '
-            + 'the adjusted significance level is ' + result.adjustedAlpha.toFixed(4)
+        var methodsText = 'For a ' + arms + '-arm trial with ' + corr + ' correction for multiplicity '
+            + 'at family-wise \u03B1 = ' + alpha + ' and power ' + (power * 100).toFixed(0) + '%, '
+            + 'the per-comparison \u03B1 is ' + result.adjustedAlpha.toFixed(4)
             + '. Starting from a two-arm requirement of ' + n + ' per group, '
-            + 'the adjusted sample size is ' + result.nPerArm + ' per arm (' + result.totalN + ' total).';
+            + 'the inflation factor ((z_{\u03B1\'/2}+z_\u03B2)/(z_{\u03B1/2}+z_\u03B2))\u00B2 = ' + result.inflation.toFixed(3)
+            + ' yields ' + result.nPerArm + ' per arm (' + result.totalN + ' total).';
 
         html += buildMethodsBlock(methodsText, 'ss-methods-ma');
         html += '</div>';

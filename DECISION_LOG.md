@@ -19,14 +19,14 @@
 * **Placement:** Integrated into the "Study Design" navigation group for easy access during protocol planning.
 
 ### Step 4: Execution (Agent Gamma)
-* **Implementation:** Created `js/modules/nihss-calculator.js`.
+* **Implementation (planned):** A standalone `js/modules/nihss-calculator.js` was scoped but **not** shipped in the current build. The functionality remains a candidate for a future release; clinical scale information for NIHSS is currently surfaced inside `js/data/references.js` (`scales.nihss`) and the Quick Reference module.
 * **Technical Debt Check:** Ensured vanilla JS compliance to maintain zero-dependency architecture.
 * **UI:** Clinical, high-contrast theme compatible with existing dark/light mode.
 
 ### Step 5: Causal & Statistical Watchdog (Agent Delta)
 * **Review:** Confirmed that NIHSS total is a sum of ordinal scores.
 * **Limitation Note Added:** Explicitly stated in the "Learn" section that NIHSS is an ordinal scale—doubling the score does not linearize the severity.
-* **Result:** Build APPROVED.
+* **Result:** Scope DEFERRED &mdash; revisit when stroke-specific module suite is expanded.
 
 ---
 *Next Task: Identifying gaps in Biobank data cleaning pipelines.*

@@ -762,7 +762,9 @@ const Statistics = (() => {
         return { events: totalEvents, totalN, hr, lnHR };
     }
 
-    // Survival — Freedman
+    // Survival — Freedman (1982). Total events with allocation ratio λ = n2/n1.
+    // d = (z_α/2 + z_β)² · (1 + λ·HR)² / [λ · (1 − HR)²]
+    // For λ = 1 reduces to (z_α/2 + z_β)² · (1 + HR)² / (1 − HR)².
     function sampleSizeFreedman(hr, alpha, power, ratio) {
         alpha = alpha || 0.05;
         power = power || 0.80;
@@ -770,9 +772,10 @@ const Statistics = (() => {
 
         const za = normalQuantile(1 - alpha / 2);
         const zb = normalQuantile(power);
-        const p = ratio / (1 + ratio);
+        const lambda = ratio;
 
-        const events = Math.pow(za + zb, 2) / (p * (1 - p) * Math.pow(hr - 1, 2) / Math.pow(hr + 1, 2));
+        const events = Math.pow(za + zb, 2) * Math.pow(1 + lambda * hr, 2) /
+            (lambda * Math.pow(hr - 1, 2));
         return { events: Math.ceil(events) };
     }
 
@@ -809,21 +812,34 @@ const Statistics = (() => {
         return { deff, nAdjusted, nClusters, totalN: nClusters * clusterSize };
     }
 
-    // Stepped-wedge (Hussey-Hughes)
+    // Stepped-wedge cluster RCT — Hussey & Hughes (2007) design effect
+    // relative to a parallel cluster RCT of the same total observations.
+    //  T  = number of measurement times = steps + 1 (baseline + after each crossover)
+    //  m  = number of subjects per cluster per period
+    //  ρ  = intra-cluster correlation
+    //  DE_SW(parallel) = 3·(1−ρ) · [1 + ρ·(T·m − 1)]
+    //                    ─────────────────────────────────────────
+    //                    2·m·(T − 1/T) · ρ + 3·(1 − ρ) · (T − 1)·m
+    // The function returns this design effect as `correctionFactor` so that
+    // total observations needed = nParallel × correctionFactor (where nParallel
+    // is the equivalent parallel-cluster total). For typical inputs this is
+    // smaller than 1 (stepped-wedge is more efficient than parallel cluster).
     function sampleSizeSteppedWedge(nParallel, steps, clustersPerStep, icc) {
-        const k = steps;
-        const m = clustersPerStep;
+        const k = steps;                  // # crossover steps
+        const T = steps + 1;              // # measurement times incl. baseline
+        const m = clustersPerStep;        // observations per cluster per period
         const totalClusters = k * m;
 
-        // Design effect for stepped-wedge
-        const deff_sw = (1 + icc * (k * m - 1)) / (1 + icc * (m / 2 - 1));
-        // Simplified: use ratio relative to parallel cluster RCT
-        const correctionFactor = 3 * (1 - icc) / (2 * k * (k - 1 / k) * icc + 3 * (1 - icc));
+        const numer = 3 * (1 - icc) * (1 + icc * (T * m - 1));
+        const denom = 2 * m * (T - 1 / T) * icc + 3 * (1 - icc) * (T - 1) * m;
+        const correctionFactor = denom > 0 ? numer / denom : NaN;
+
         const nSW = Math.ceil(nParallel * correctionFactor);
 
         return {
             totalClusters,
             steps: k,
+            measurementTimes: T,
             clustersPerStep: m,
             correctionFactor,
             nPerCluster: Math.ceil(nSW / totalClusters),
@@ -860,27 +876,36 @@ const Statistics = (() => {
         };
     }
 
-    // Multi-arm with Bonferroni correction
-    function sampleSizeMultiArm(nPerGroup_2arm, nArms, correction) {
+    // Multi-arm with Bonferroni / Dunnett correction.
+    // Inflation uses the full ((z_α'/2 + z_β)/(z_α/2 + z_β))² ratio so that the
+    // β term is preserved (z-only ratio under-inflates at typical 80–90% power).
+    function sampleSizeMultiArm(nPerGroup_2arm, nArms, correction, alpha, power) {
         correction = correction || 'bonferroni';
+        alpha = alpha || 0.05;
+        power = power || 0.80;
+
+        const nComparisons = Math.max(1, nArms - 1);
         let adjustedAlpha;
         if (correction === 'bonferroni') {
-            adjustedAlpha = 0.05 / (nArms - 1);
+            adjustedAlpha = alpha / nComparisons;
         } else if (correction === 'dunnett') {
-            // Approximate Dunnett — slightly less conservative than Bonferroni
-            adjustedAlpha = 1 - Math.pow(1 - 0.05, 1 / (nArms - 1));
+            // Approximate Dunnett — slightly less conservative than Bonferroni (Šidák form)
+            adjustedAlpha = 1 - Math.pow(1 - alpha, 1 / nComparisons);
         } else {
-            adjustedAlpha = 0.05;
+            adjustedAlpha = alpha;
         }
 
-        const za = normalQuantile(1 - adjustedAlpha / 2);
-        const ratio = za / normalQuantile(0.975);
-        const adjustedN = Math.ceil(nPerGroup_2arm * ratio * ratio);
+        const zaNew = normalQuantile(1 - adjustedAlpha / 2);
+        const zaOld = normalQuantile(1 - alpha / 2);
+        const zb = normalQuantile(power);
+        const inflation = Math.pow((zaNew + zb) / (zaOld + zb), 2);
+        const adjustedN = Math.ceil(nPerGroup_2arm * inflation);
 
         return {
             nPerArm: adjustedN,
             totalN: adjustedN * nArms,
             adjustedAlpha,
+            inflation,
             correction
         };
     }
@@ -902,9 +927,16 @@ const Statistics = (() => {
                 boundaries.push({ look: k, fraction: t, z, nominalAlpha: spent });
             }
         } else if (type === 'pocock') {
-            // Pocock: constant boundary — find z such that overall alpha is maintained
-            // Approximation: z_pocock ≈ z_alpha * sqrt(nLooks corrections)
-            let zp = normalQuantile(1 - alpha / (2 * nLooks)); // Initial Bonferroni approx
+            // True Pocock boundaries (Pocock 1977) require multivariate-normal
+            // calculations; we use validated published constants and fall back
+            // to a Bonferroni upper bound when the table doesn't cover nLooks.
+            // Two-sided alpha = 0.05 critical values from Pocock 1977 / Jennison-Turnbull:
+            const POCOCK_05 = { 1: 1.960, 2: 2.178, 3: 2.289, 4: 2.361, 5: 2.413, 6: 2.453, 7: 2.485, 8: 2.512, 9: 2.535, 10: 2.555 };
+            const POCOCK_01 = { 1: 2.576, 2: 2.772, 3: 2.873, 4: 2.939, 5: 2.986, 6: 3.023, 7: 3.053, 8: 3.078, 9: 3.099, 10: 3.117 };
+            let zp;
+            if (Math.abs(alpha - 0.05) < 1e-9 && POCOCK_05[nLooks]) zp = POCOCK_05[nLooks];
+            else if (Math.abs(alpha - 0.01) < 1e-9 && POCOCK_01[nLooks]) zp = POCOCK_01[nLooks];
+            else zp = normalQuantile(1 - alpha / (2 * nLooks)); // Bonferroni-conservative fallback
             for (let k = 1; k <= nLooks; k++) {
                 const t = k / nLooks;
                 boundaries.push({ look: k, fraction: t, z: zp, nominalAlpha: 2 * (1 - normalCDF(zp)) });
@@ -1088,6 +1120,26 @@ const Statistics = (() => {
     function metaAnalysisRandomEffects(effects, variances, options = {}) {
         const { hksj = false } = options;
         const k = effects.length;
+
+        // k=1: nothing to pool; return the single study's effect with its own CI.
+        if (k === 1) {
+            const se1 = Math.sqrt(variances[0]);
+            const z1 = normalQuantile(0.975);
+            return {
+                pooled: effects[0],
+                se: se1,
+                ci: { lower: effects[0] - z1 * se1, upper: effects[0] + z1 * se1 },
+                z: effects[0] / se1,
+                pValue: 2 * (1 - normalCDF(Math.abs(effects[0] / se1))),
+                Q: 0, df: 0, pHet: NaN,
+                I2: 0, H2: NaN, tau2: 0,
+                predInterval: { lower: NaN, upper: NaN },
+                weights: [100],
+                fixed: { pooled: effects[0], se: se1, ci: { lower: effects[0] - z1 * se1, upper: effects[0] + z1 * se1 }, z: effects[0] / se1, pValue: 2 * (1 - normalCDF(Math.abs(effects[0] / se1))), weights: [1 / variances[0]] },
+                singleStudy: true
+            };
+        }
+
         const wi = variances.map(v => 1 / v);
         const sumW = wi.reduce((a, b) => a + b, 0);
         const sumW2 = wi.reduce((a, w) => a + w * w, 0);
@@ -1099,8 +1151,8 @@ const Statistics = (() => {
         const df = k - 1;
         const pHet = 1 - chiSquaredCDF(Q, df);
 
-        // I-squared
-        const I2 = Math.max(0, (Q - df) / Q);
+        // I-squared (Q=0 implies no observed heterogeneity)
+        const I2 = Q > 0 ? Math.max(0, (Q - df) / Q) : 0;
 
         // H-squared
         const H2 = Q / df;
@@ -1417,52 +1469,101 @@ const Statistics = (() => {
         return results;
     }
 
-    // Log-rank (Mantel-Cox) test
+    // Log-rank (Mantel-Cox) test. Returns chi² with (k-1) df for k groups.
+    // For k=2 also returns HR and 95% CI from the O−E method (Mantel-Cox).
     function logRankTest(times, events, groups) {
         const uniqueGroups = [...new Set(groups)];
-        if (uniqueGroups.length !== 2) return null;
+        const k = uniqueGroups.length;
+        if (k < 2) return null;
 
         const allTimes = [...new Set(times.filter((t, i) => events[i] === 1))].sort((a, b) => a - b);
 
-        let O1 = 0, E1 = 0, V = 0;
+        // Pre-index group indices once
+        const groupIdx = uniqueGroups.map(g =>
+            times.map((_, i) => i).filter(i => groups[i] === g)
+        );
+
+        // O − E and variance/covariance for each group
+        const O = new Array(k).fill(0);
+        const E = new Array(k).fill(0);
+        // Variance-covariance matrix (k-1) x (k-1) so we can compute chi² for k>2
+        const dim = k - 1;
+        const V = Array.from({ length: dim }, () => new Array(dim).fill(0));
 
         allTimes.forEach(t => {
-            const nRisk = [];
-            const nEvents = [];
-            uniqueGroups.forEach(g => {
-                const gIdx = times.map((_, i) => i).filter(i => groups[i] === g);
-                const atRisk = gIdx.filter(i => times[i] >= t).length;
-                const died = gIdx.filter(i => times[i] === t && events[i] === 1).length;
-                nRisk.push(atRisk);
-                nEvents.push(died);
-            });
+            const nRisk = groupIdx.map(idx => idx.filter(i => times[i] >= t).length);
+            const nEvents = groupIdx.map(idx => idx.filter(i => times[i] === t && events[i] === 1).length);
 
-            const totalRisk = nRisk[0] + nRisk[1];
-            const totalEvents = nEvents[0] + nEvents[1];
+            const totalRisk = nRisk.reduce((a, b) => a + b, 0);
+            const totalEvents = nEvents.reduce((a, b) => a + b, 0);
 
-            if (totalRisk > 0) {
-                const e1 = nRisk[0] * totalEvents / totalRisk;
-                O1 += nEvents[0];
-                E1 += e1;
-                if (totalRisk > 1) {
-                    V += nRisk[0] * nRisk[1] * totalEvents * (totalRisk - totalEvents) / (totalRisk * totalRisk * (totalRisk - 1));
+            if (totalRisk <= 0 || totalEvents <= 0) return;
+
+            // Expected events in each group at this time
+            for (let j = 0; j < k; j++) {
+                O[j] += nEvents[j];
+                E[j] += (nRisk[j] / totalRisk) * totalEvents;
+            }
+
+            if (totalRisk <= 1) return;
+            const factor = totalEvents * (totalRisk - totalEvents) / (totalRisk - 1);
+            for (let r = 0; r < dim; r++) {
+                for (let c = 0; c < dim; c++) {
+                    const pr = nRisk[r] / totalRisk;
+                    const pc = nRisk[c] / totalRisk;
+                    const kron = r === c ? 1 : 0;
+                    V[r][c] += factor * pr * (kron - pc);
                 }
             }
         });
 
-        const chi2 = Math.pow(O1 - E1, 2) / V;
-        const pValue = 1 - chiSquaredCDF(chi2, 1);
+        // (O−E) for first k-1 groups; chi² = (O−E)' V^{-1} (O−E)
+        const d = O.slice(0, dim).map((o, j) => o - E[j]);
+        let chi2;
+        if (dim === 1) {
+            chi2 = (d[0] * d[0]) / V[0][0];
+        } else {
+            // Solve V * x = d; then chi² = d' x. Use Gauss-Jordan.
+            const M = V.map((row, i) => row.concat([d[i]]));
+            for (let p = 0; p < dim; p++) {
+                let max = Math.abs(M[p][p]); let pivot = p;
+                for (let r = p + 1; r < dim; r++) {
+                    if (Math.abs(M[r][p]) > max) { max = Math.abs(M[r][p]); pivot = r; }
+                }
+                if (pivot !== p) { const tmp = M[p]; M[p] = M[pivot]; M[pivot] = tmp; }
+                if (M[p][p] === 0) return null;
+                for (let r = 0; r < dim; r++) {
+                    if (r === p) continue;
+                    const f = M[r][p] / M[p][p];
+                    for (let c = p; c <= dim; c++) M[r][c] -= f * M[p][c];
+                }
+            }
+            chi2 = 0;
+            for (let i = 0; i < dim; i++) chi2 += d[i] * (M[i][dim] / M[i][i]);
+        }
+        const df = dim;
+        const pValue = 1 - chiSquaredCDF(chi2, df);
 
-        // HR from O-E method
-        const hr = Math.exp((O1 - E1) / V);
-        const seLnHR = 1 / Math.sqrt(V);
-        const z = normalQuantile(0.975);
-        const hrCI = {
-            lower: Math.exp(Math.log(hr) - z * seLnHR),
-            upper: Math.exp(Math.log(hr) + z * seLnHR)
-        };
+        const result = { chi2, df, pValue, observed: O, expected: E, groups: uniqueGroups };
 
-        return { chi2, pValue, O1, E1, V, hr, hrCI, seLnHR };
+        // HR / CI only meaningful for 2 groups (group 0 vs group 1)
+        if (k === 2) {
+            const Vscalar = V[0][0];
+            if (Vscalar > 0) {
+                const hr = Math.exp(d[0] / Vscalar);
+                const seLnHR = 1 / Math.sqrt(Vscalar);
+                const z = normalQuantile(0.975);
+                result.O1 = O[0]; result.E1 = E[0]; result.V = Vscalar;
+                result.hr = hr;
+                result.seLnHR = seLnHR;
+                result.hrCI = {
+                    lower: Math.exp(Math.log(hr) - z * seLnHR),
+                    upper: Math.exp(Math.log(hr) + z * seLnHR)
+                };
+            }
+        }
+
+        return result;
     }
 
     // ============================================================

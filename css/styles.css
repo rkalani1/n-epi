@@ -1880,10 +1880,15 @@ textarea.form-input {
     }
 
     .mobile-nav-item {
-        padding: 6px 8px;
-        font-size: 0.58rem;
+        padding: 8px 8px;
+        min-height: 44px;
+        min-width: 44px;
+        font-size: 0.62rem;
         border-radius: var(--radius);
         position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .mobile-nav-item.active::after {
@@ -1985,8 +1990,8 @@ textarea.form-input {
 
 .mobile-header-menu,
 .mobile-header-search {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;

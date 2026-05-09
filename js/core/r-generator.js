@@ -280,13 +280,16 @@ var RGenerator = (function() {
                 '',
                 '  n_per_group <- ceiling(result$n)',
                 '',
-                '  # Adjust for unequal allocation',
+                '  # Adjust for unequal allocation. Use pwr.2p2n.test directly when',
+                '  # ratio != 1 to get a properly adjusted N for each arm; the design',
+                '  # factor (1+r)^2/(4r) is the inflation in *total* sample size (NOT in',
+                '  # the control arm) relative to balanced allocation.',
                 '  if (ratio != 1) {',
-                '    # For unequal allocation, inflate by design factor',
                 '    design_factor <- (1 + ratio)^2 / (4 * ratio)',
-                '    n_control <- ceiling(n_per_group * design_factor)',
-                '    n_treatment <- ceiling(n_control * ratio)',
-                '    total_n <- n_control + n_treatment',
+                '    total_balanced <- n_per_group * 2',
+                '    total_n <- ceiling(total_balanced * design_factor)',
+                '    n_control <- ceiling(total_n / (1 + ratio))',
+                '    n_treatment <- total_n - n_control',
                 '  } else {',
                 '    n_control <- n_per_group',
                 '    n_treatment <- n_per_group',
@@ -474,8 +477,9 @@ var RGenerator = (function() {
                 '  # Schoenfeld formula for required number of events',
                 '  events_needed <- ceiling(4 * (z_alpha + z_beta)^2 / (log(hr))^2)',
                 '',
-                '  # Freedman formula (alternative)',
-                '  events_freedman <- ceiling(((z_alpha + z_beta) / (1 - hr))^2 * (1 + hr)^2 / (1 + ratio)^2 * (1 + ratio))',
+                '  # Freedman (1982) total events; lambda = ratio = n2/n1.',
+                '  # d = (z_a + z_b)^2 * (1 + lambda*hr)^2 / (lambda * (1 - hr)^2)',
+                '  events_freedman <- ceiling((z_alpha + z_beta)^2 * (1 + ratio * hr)^2 / (ratio * (1 - hr)^2))',
                 '',
                 '  # Estimate event probability',
                 '  lambda <- log(2) / median_surv',
@@ -634,12 +638,20 @@ var RGenerator = (function() {
                 '  z_alpha <- qnorm(1 - alpha)',
                 '  z_beta <- qnorm(power)',
                 '',
+                '  # Variance term assuming both groups share rate p (true diff = 0)',
+                '  var_term <- 2 * p * (1 - p)',
+                '',
                 '  if (design == "equiv") {',
-                '    # Two one-sided tests (TOST)',
-                '    n_per_group <- ceiling(((z_alpha + z_beta)^2 * 2 * p * (1 - p)) / margin^2)',
+                '    # Two one-sided tests (TOST). Each test uses alpha (one-sided);',
+                '    # combined Type I error is alpha. For 1-beta power both tests',
+                '    # must reject -- use z_beta_eff = qnorm(1 - (1 - power)/2) when',
+                '    # the true difference is exactly zero this collapses to z_beta.',
+                '    z_beta_eff <- qnorm(1 - (1 - power) / 2)',
+                '    n_per_group <- ceiling(((z_alpha + z_beta_eff)^2 * var_term) / margin^2)',
                 '  } else {',
-                '    # Non-inferiority',
-                '    n_per_group <- ceiling(((z_alpha + z_beta)^2 * 2 * p * (1 - p)) / margin^2)',
+                '    # Non-inferiority: H0: p_T - p_C <= -margin vs H1: p_T - p_C > -margin',
+                '    # When true difference = 0, formula reduces to symmetric one below.',
+                '    n_per_group <- ceiling(((z_alpha + z_beta)^2 * var_term) / margin^2)',
                 '  }',
                 '',
                 '  total_n <- n_per_group * 2',
@@ -1389,15 +1401,20 @@ var RGenerator = (function() {
             '  cat("Chi-squared p:", format.pval(chi_test$p.value, digits = 4), "\\n")',
             '  cat("Fisher p:", format.pval(fisher$p.value, digits = 4), "\\n")',
             '',
-            '  # Fragility Index',
+            '  # Fragility Index (Walsh 2014: convert a non-event to an event in the',
+            '  # arm with FEWER events until p-value crosses 0.05).',
             '  frag_idx <- 0',
             '  if (fisher$p.value < 0.05) {',
             '    aa <- a; bb <- b; cc <- c; dd <- d',
             '    while (fisher.test(matrix(c(aa, bb, cc, dd), nrow = 2, byrow = TRUE))$p.value < 0.05) {',
-            '      if (aa / (aa + bb) > cc / (cc + dd)) {',
-            '        aa <- aa - 1; bb <- bb + 1',
+            '      if (aa / (aa + bb) < cc / (cc + dd)) {',
+            '        # Treatment has lower event rate -> add an event to treatment',
+            '        if (bb <= 0) break',
+            '        aa <- aa + 1; bb <- bb - 1',
             '      } else {',
-            '        cc <- cc - 1; dd <- dd + 1',
+            '        # Control has lower event rate -> add an event to control',
+            '        if (dd <= 0) break',
+            '        cc <- cc + 1; dd <- dd - 1',
             '      }',
             '      frag_idx <- frag_idx + 1',
             '      if (frag_idx > 1000) break',
@@ -1784,12 +1801,12 @@ var RGenerator = (function() {
     /*  Biostats Reference — P-value adjustment                        */
     /* -------------------------------------------------------------- */
     function biostatPvalAdjust(params) {
-        var pvals = params.pvals || [];
+        var pvals = (params.pvals || []).map(rNum);
         var alpha = params.alpha || 0.05;
         var lines = [
             header('Multiple Testing P-Value Adjustment'),
             '# --- Input ---',
-            'pvals <- c(' + pvals.join(', ') + ')',
+            'pvals <- c(' + (pvals.length ? pvals.join(', ') : '# add p-values here') + ')',
             'alpha <- ' + rNum(alpha),
             '',
             '# --- Adjustments (using built-in p.adjust) ---',
@@ -1947,9 +1964,12 @@ var RGenerator = (function() {
             '# Each stratum: a (exposed/case), b (exposed/non-case), c (unexposed/case), d (unexposed/non-case)'
         ];
 
+        if (k === 0) {
+            lines.push('# (No strata supplied. Provide at least one 2x2 table.)');
+        }
         for (var i = 0; i < k; i++) {
             var t = tables[i];
-            lines.push('s' + (i + 1) + ' <- matrix(c(' + t.a + ', ' + t.b + ', ' + t.c + ', ' + t.d + '), nrow = 2, byrow = TRUE,');
+            lines.push('s' + (i + 1) + ' <- matrix(c(' + rNum(t.a) + ', ' + rNum(t.b) + ', ' + rNum(t.c) + ', ' + rNum(t.d) + '), nrow = 2, byrow = TRUE,');
             lines.push('            dimnames = list(Exposure = c("Yes", "No"), Outcome = c("Yes", "No")))');
         }
 

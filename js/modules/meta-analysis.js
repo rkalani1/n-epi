@@ -452,8 +452,12 @@
                     eff2 = Math.log(rrVal);
                     se2 = 1 / (a + cc) - 1 / (n1 + 2 * cc) + 1 / (c + cc) - 1 / (n2 + 2 * cc);
                 } else if (selectedMeasure === 'RD') {
-                    eff2 = a / n1 - c / n2;
-                    se2 = (a * b) / (n1 * n1 * n1) + (c * dv) / (n2 * n2 * n2);
+                    // Apply same 0.5 continuity correction when any cell is zero so
+                    // variance does not collapse to 0 from the (a*b)/n1^3 + (c*d)/n2^3 form.
+                    var aR = a + cc, bR = b + cc, cR = c + cc, dR = dv + cc;
+                    var n1R = n1 + 2 * cc, n2R = n2 + 2 * cc;
+                    eff2 = aR / n1R - cR / n2R;
+                    se2 = (aR * bR) / (n1R * n1R * n1R) + (cR * dR) / (n2R * n2R * n2R);
                 } else {
                     var orV2 = ((a + cc) * (dv + cc)) / ((b + cc) * (c + cc));
                     eff2 = Math.log(orV2);

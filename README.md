@@ -65,13 +65,13 @@ No build step required. Open `index.html` in any modern browser.
 
 ```bash
 # Clone the repository
-git clone https://github.com/rkalani1/neuroepi-suite.git
+git clone https://github.com/rkalani1/n-epi.git
 
 # Open in browser
-open neuroepi-suite/index.html
+open n-epi/index.html
 ```
 
-Or visit the [live site](https://rkalani1.github.io/neuroepi-suite/).
+Or visit the [live site](https://rkalani1.github.io/n-epi/).
 
 ## Technology
 

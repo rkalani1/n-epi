@@ -1878,10 +1878,16 @@
                 });
                 html += '</div></div>';
             });
-            html += '<div class="flex items-center gap-1 mt-1"><span style="font-size:0.8rem">Risk of Bias:</span><span class="risk-badge" id="ca-quadas-' + di + '">--</span>'
-                + '<span style="font-size:0.8rem;margin-left:12px">Applicability Concern:</span>'
-                + '<select class="form-select" id="ca-quadas-app-' + di + '" style="width:120px;height:28px;font-size:0.75rem">'
-                + '<option>Low</option><option>High</option><option>Unclear</option></select></div>';
+            // QUADAS-2 (Whiting 2011 Annals Intern Med): applicability concerns are
+            // assessed only for Patient Selection, Index Test, and Reference Standard.
+            // The Flow & Timing domain has risk-of-bias only.
+            html += '<div class="flex items-center gap-1 mt-1"><span style="font-size:0.8rem">Risk of Bias:</span><span class="risk-badge" id="ca-quadas-' + di + '">--</span>';
+            if (di < 3) {
+                html += '<span style="font-size:0.8rem;margin-left:12px">Applicability Concern:</span>'
+                    + '<select class="form-select" id="ca-quadas-app-' + di + '" style="width:120px;height:28px;font-size:0.75rem">'
+                    + '<option>Low</option><option>High</option><option>Unclear</option></select>';
+            }
+            html += '</div>';
             html += '</div>';
         });
 

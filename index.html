@@ -14,9 +14,10 @@
 </head>
 
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div class="app-layout">
         <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar"></aside>
+        <aside id="sidebar" class="sidebar" aria-label="Module navigation"></aside>
 
         <!-- Sidebar overlay for mobile -->
         <div id="sidebar-overlay" class="sidebar-overlay" onclick="App.closeSidebar()"></div>
@@ -30,7 +31,7 @@
         </div>
 
         <!-- Main content -->
-        <main class="main-content">
+        <main class="main-content" id="main-content" tabindex="-1">
             <div id="module-content"></div>
         </main>
 

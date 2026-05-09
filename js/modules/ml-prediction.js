@@ -668,8 +668,9 @@
 
         /* === Card 4: TRIPOD+AI Checklist === */
         html += '<div class="card">';
-        html += '<div class="card-title">TRIPOD+AI Checklist</div>';
-        html += '<div class="card-subtitle">Checklist for reporting prediction model studies with AI/ML components. Based on TRIPOD with AI extensions.</div>';
+        html += '<div class="card-title">TRIPOD+AI &mdash; Summary Checklist (planning aid)</div>';
+        html += '<div class="card-subtitle">Condensed planning checklist inspired by TRIPOD+AI (Collins GS et al. BMJ 2024;385:e078378). '
+            + 'For manuscript submission, use the full 27-item checklist with sub-items at <a href="https://www.tripod-statement.org" target="_blank" rel="noopener">tripod-statement.org</a>.</div>';
 
         /* Progress bar */
         html += '<div style="margin-bottom:1rem;">';

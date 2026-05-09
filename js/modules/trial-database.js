@@ -61,8 +61,20 @@
         deduplicateTrials();
         var html = App.createModuleLayout(
             'Clinical Trial Database',
-            'Comprehensive database of landmark clinical trials with verified data. Search, filter, compare, and generate citation text for grants and manuscripts.'
+            'Curated database of landmark clinical trials. Search, filter, compare, and generate citation text for grants and manuscripts.'
         );
+
+        // ---- Data quality disclaimer ----
+        html += '<div class="card" style="border-left:4px solid var(--warning,#f59e0b); background:rgba(245,158,11,0.06);">';
+        html += '<div style="display:flex;gap:12px;align-items:flex-start;">';
+        html += '<div style="font-size:1.4rem;">&#9888;</div>';
+        html += '<div>';
+        html += '<div style="font-weight:700;color:var(--warning,#f59e0b);margin-bottom:4px;">Verify before citing</div>';
+        html += '<div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.55;">';
+        html += 'Trial entries are curated from public sources. <strong>Always confirm PMID/DOI, sample size, and primary outcome against the original publication on PubMed/journal site before citing in a grant or manuscript.</strong> ';
+        html += 'Some entries are duplicated across batches with conflicting metadata; the deduplicator merges them but conflicts can persist. ';
+        html += 'Each row shows a "PubMed" / "DOI" link &mdash; use it to verify.';
+        html += '</div></div></div></div>';
 
         // ---- Learn & Reference ----
         html += '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';

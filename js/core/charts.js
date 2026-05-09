@@ -591,10 +591,10 @@ var Charts = (() => {
             ctx.textAlign = 'left';
             ctx.fillText(summary.label || 'Overall', 10, y);
 
-            // Diamond (improved with stroke outline)
-            var cx = sx(summary.estimate);
-            var dl = sx(summary.ci.lower);
-            var dr = sx(summary.ci.upper);
+            // Diamond, clamped to plot area so wide CIs don't overshoot the axis.
+            var cx = Math.max(plotLeft, Math.min(plotRight, sx(summary.estimate)));
+            var dl = Math.max(plotLeft, sx(Math.max(plotMin, summary.ci.lower)));
+            var dr = Math.min(plotRight, sx(Math.min(plotMax, summary.ci.upper)));
             var dh = 9;
             drawDiamond(cx, y - 5, dl, dr, dh, theme.accent + 'cc', theme.accent);
 
@@ -1260,8 +1260,16 @@ var Charts = (() => {
 
         const cerN = Math.round(cer * n);
         const eerN = Math.round(eer * n);
-        const prevented = cerN - eerN;
-        const harmed = eerN > cerN ? eerN - cerN : 0;
+        const isHarm = eerN > cerN;
+        const prevented = isHarm ? 0 : cerN - eerN;
+        const harmed = isHarm ? eerN - cerN : 0;
+
+        // Layout: red events first; then either green (prevented, beneficial) or
+        // an amber band (extra harms, harmful intervention); then grey "no event".
+        const greenStart = eerN;
+        const greenEnd = isHarm ? eerN : cerN;     // no green band when harmful
+        const amberStart = isHarm ? cerN : eerN;   // harm band sits between cerN and eerN
+        const amberEnd = isHarm ? eerN : eerN;     // empty when beneficial
 
         for (let i = 0; i < n; i++) {
             const row = Math.floor(i / cols);
@@ -1270,12 +1278,14 @@ var Charts = (() => {
             const cy = pad.top + row * cellH + cellH / 2;
 
             let color;
-            if (i < eerN) {
-                color = theme.danger; // Event with treatment
-            } else if (i < cerN) {
-                color = theme.success; // Prevented by treatment
+            if (isHarm) {
+                if (i < cerN) color = theme.danger;       // baseline events (still occur)
+                else if (i < eerN) color = theme.warning || '#f59e0b'; // harms added by treatment
+                else color = theme.textTertiary + '40';
             } else {
-                color = theme.textTertiary + '40'; // No event
+                if (i < eerN) color = theme.danger;       // events still on treatment
+                else if (i < cerN) color = theme.success; // prevented by treatment
+                else color = theme.textTertiary + '40';
             }
 
             // Person icon
@@ -1299,13 +1309,19 @@ var Charts = (() => {
             ctx.stroke();
         }
 
-        // Legend
+        // Legend (branches by sign of effect)
         const ly = height - pad.bottom + 20;
-        const items = [
-            { color: theme.danger, label: `Events with treatment (${eerN})` },
-            { color: theme.success, label: `Events prevented (${prevented})` },
-            { color: theme.textTertiary + '40', label: `No event (${n - cerN})` }
-        ];
+        const items = isHarm
+            ? [
+                { color: theme.danger, label: `Baseline events (${cerN})` },
+                { color: theme.warning || '#f59e0b', label: `Extra events from treatment (${harmed})` },
+                { color: theme.textTertiary + '40', label: `No event (${n - eerN})` }
+            ]
+            : [
+                { color: theme.danger, label: `Events with treatment (${eerN})` },
+                { color: theme.success, label: `Events prevented (${prevented})` },
+                { color: theme.textTertiary + '40', label: `No event (${n - cerN})` }
+            ];
         let lx = pad.left;
         items.forEach(item => {
             ctx.fillStyle = item.color;
@@ -1317,12 +1333,14 @@ var Charts = (() => {
             lx += ctx.measureText(item.label).width + 30;
         });
 
-        // NNT
-        const nnt = prevented > 0 ? Math.round(n / prevented) : '∞';
+        // NNT or NNH
+        const denom = isHarm ? harmed : prevented;
+        const label = isHarm ? 'NNH' : 'NNT';
+        const value = denom > 0 ? Math.round(n / denom) : '∞';
         ctx.fillStyle = theme.accent;
         ctx.font = 'bold 14px system-ui';
         ctx.textAlign = 'center';
-        ctx.fillText(`NNT = ${nnt}`, width / 2, height - 10);
+        ctx.fillText(`${label} = ${value}`, width / 2, height - 10);
     }
 
     // ============================================================
@@ -1401,25 +1419,35 @@ var Charts = (() => {
         groups.forEach((g, gi) => {
             const color = g.color || theme.series[gi % theme.series.length];
 
-            // CI band
+            // CI band — true step function: at each table row the survival
+            // probability changes instantaneously, so the CI band is a series
+            // of constant-height rectangles. We trace upper then lower.
             if (showCI) {
                 ctx.fillStyle = color + '15';
                 ctx.beginPath();
-                let started = false;
-                g.table.forEach((r, ri) => {
-                    if (ri === 0) { ctx.moveTo(sx(r.time), sy(r.ciUpper || r.survival)); started = true; }
-                    else {
-                        const prevT = g.table[ri - 1].time;
-                        ctx.lineTo(sx(r.time), sy(g.table[ri - 1].ciUpper || g.table[ri - 1].survival));
-                        ctx.lineTo(sx(r.time), sy(r.ciUpper || r.survival));
+                // Forward pass — upper bound, step-after
+                for (let ri = 0; ri < g.table.length; ri++) {
+                    const r = g.table[ri];
+                    const u = sy(r.ciUpper != null ? r.ciUpper : r.survival);
+                    if (ri === 0) {
+                        ctx.moveTo(sx(r.time), u);
+                    } else {
+                        const prevU = sy(g.table[ri - 1].ciUpper != null ? g.table[ri - 1].ciUpper : g.table[ri - 1].survival);
+                        ctx.lineTo(sx(r.time), prevU); // horizontal at previous upper
+                        ctx.lineTo(sx(r.time), u);     // vertical to new upper
                     }
-                });
+                }
+                // Backward pass — lower bound, mirrored step-after
                 for (let ri = g.table.length - 1; ri >= 0; ri--) {
                     const r = g.table[ri];
-                    if (ri < g.table.length - 1) {
-                        ctx.lineTo(sx(g.table[ri + 1].time), sy(r.ciLower || r.survival));
+                    const l = sy(r.ciLower != null ? r.ciLower : r.survival);
+                    if (ri === g.table.length - 1) {
+                        ctx.lineTo(sx(r.time), l);
+                    } else {
+                        const nextL = sy(g.table[ri + 1].ciLower != null ? g.table[ri + 1].ciLower : g.table[ri + 1].survival);
+                        ctx.lineTo(sx(r.time), nextL); // horizontal at next-lower at this x
+                        ctx.lineTo(sx(r.time), l);     // vertical to current lower
                     }
-                    ctx.lineTo(sx(r.time), sy(r.ciLower || r.survival));
                 }
                 ctx.closePath();
                 ctx.fill();

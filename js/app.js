@@ -181,10 +181,18 @@ const App = (() => {
     // CALCULATION HISTORY
     // ============================================================
 
-    var CALC_HISTORY_KEY = 'ne-calc-history';
+    // Single canonical key — Export.addToHistory writes here too. The legacy
+    // 'ne-calc-history' key is read once for back-compat then merged in.
+    var CALC_HISTORY_KEY = 'neuroepi_history';
+    var LEGACY_CALC_HISTORY_KEY = 'ne-calc-history';
     var CALC_HISTORY_MAX = 20;
 
     function addToHistory(moduleName, calcName, resultSummary) {
+        // Delegate to Export.addToHistory so both shells write to the same key.
+        if (typeof Export !== 'undefined' && Export.addToHistory) {
+            Export.addToHistory(moduleName, { calc: calcName, summary: resultSummary });
+            return;
+        }
         var history = getCalcHistory();
         history.unshift({
             module: moduleName,
@@ -204,11 +212,9 @@ const App = (() => {
 
     function getCalcHistory() {
         try {
-            // Read from Export's history (neuroepi_history) which modules write to
-            var exportData = localStorage.getItem('neuroepi_history');
+            var exportData = localStorage.getItem(CALC_HISTORY_KEY);
             var exportHistory = exportData ? JSON.parse(exportData) : [];
-            // Also read from App's own key (ne-calc-history)
-            var appData = localStorage.getItem(CALC_HISTORY_KEY);
+            var appData = localStorage.getItem(LEGACY_CALC_HISTORY_KEY);
             var appHistory = appData ? JSON.parse(appData) : [];
             // Merge: normalize Export entries to dashboard format
             var merged = [];
@@ -293,15 +299,17 @@ const App = (() => {
         var allMods = getAllModules();
 
         var html = '<div class="sidebar-header">'
-            + '<div class="sidebar-logo" onclick="App.navigate(\'home\')" style="cursor:pointer;">'
-            + '<div>'
-            + '</div></div>'
+            + '<button class="sidebar-logo" onclick="App.navigate(\'home\')" '
+            + 'aria-label="n-epi home" '
+            + 'style="cursor:pointer;background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;display:flex;align-items:center;gap:8px;">'
+            + '<span style="font-weight:700;font-size:1.05rem;color:var(--accent);letter-spacing:-0.02em;">n-epi</span>'
+            + '</button>'
             + '<button class="sidebar-cmd-k-btn" onclick="App.openCommandPalette()" title="Search modules (Cmd+K)">'
             + '<span style="opacity:0.6;">Search...</span>'
             + '<kbd class="kbd-hint">&#8984;K</kbd>'
             + '</button>'
             + '</div>'
-            + '<nav class="sidebar-nav">';
+            + '<nav class="sidebar-nav" aria-label="Modules">';
 
         // Favorites section
         if (favs.length > 0) {
@@ -339,7 +347,7 @@ const App = (() => {
 
         html += '</nav>'
             + '<div class="sidebar-footer">'
-            + '<a href="https://github.com/rkalani1/neuroepi-suite" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-tertiary);">GitHub</a>'
+            + '<a href="https://github.com/rkalani1/n-epi" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-tertiary);">GitHub</a>'
             + '<div style="display:flex;gap:6px;align-items:center;">'
             + '<button class="theme-toggle" onclick="App.showShortcutsModal()" title="Keyboard shortcuts">'
             + '<span>?</span>'
@@ -727,7 +735,7 @@ const App = (() => {
             + '<span class="module-footer-updated">Last updated: February 2025</span>'
             + '</div>'
             + '<div class="module-footer-right">'
-            + '<a href="https://github.com/rkalani1/neuroepi-suite/issues/new?title=Issue+with+' + moduleId + '" target="_blank" rel="noopener" class="module-footer-link">Report Issue</a>'
+            + '<a href="https://github.com/rkalani1/n-epi/issues/new?title=Issue+with+' + moduleId + '" target="_blank" rel="noopener" class="module-footer-link">Report Issue</a>'
             + '<button class="btn btn-ghost btn-xs module-footer-share" onclick="App.shareModule(\'' + moduleId + '\')" title="Copy link">'
             + '<span style="margin-right:4px;">&#128279;</span>Share'
             + '</button>'
@@ -917,8 +925,8 @@ const App = (() => {
             + '<h2 class="dashboard-section-title">&#127881; What\'s New in v2.1</h2>'
             + '<div class="dashboard-whats-new card">'
             + '<ul class="dashboard-changelog">'
-            + '<li><strong>R Script Generation</strong> &mdash; 26 calculators now generate ready-to-run R scripts with one click</li>'
-            + '<li><strong>26 Modules</strong> &mdash; Added R Code Library, Teaching Tools, and Quick Reference</li>'
+            + '<li><strong>R Script Generation</strong> &mdash; 25 calculators now generate ready-to-run R scripts with one click</li>'
+            + '<li><strong>25 Modules</strong> &mdash; Added R Code Library, Teaching Tools, and Quick Reference</li>'
             + '<li><strong>200+ Clinical Trials</strong> &mdash; Expanded database across 17 neurological categories</li>'
             + '<li><strong>Deeper Modules</strong> &mdash; Every module expanded with new calculators, tables, and educational content</li>'
             + '<li><strong>PRECIS-2 Tool</strong> &mdash; Pragmatic-explanatory spectrum scorer in Study Design Guide</li>'
@@ -1046,22 +1054,33 @@ const App = (() => {
 
             setTimeout(function () { content.classList.remove('animate-in'); }, 200);
         } else {
-            var header = document.createElement('div');
-            header.className = 'module-header';
-            var h1 = document.createElement('h1');
-            h1.textContent = moduleId.replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-            var p = document.createElement('p');
-            p.textContent = 'Loading module...';
-            header.appendChild(h1);
-            header.appendChild(p);
             content.textContent = '';
+            var notFound = document.createElement('div');
+            notFound.className = 'result-panel';
+            notFound.style.cssText = 'border-left:4px solid var(--warning,#f59e0b);padding:1.5rem;margin-top:1rem;';
+            var ntTitle = document.createElement('div');
+            ntTitle.style.cssText = 'font-weight:700;color:var(--warning,#f59e0b);margin-bottom:0.5rem;font-size:1.1rem;';
+            ntTitle.textContent = 'Module not found';
+            var ntMsg = document.createElement('div');
+            ntMsg.style.cssText = 'font-size:0.9rem;color:var(--text-secondary);';
+            ntMsg.textContent = 'No module is registered for "' + moduleId + '". The link may be stale or the module was renamed.';
+            var ntBtn = document.createElement('button');
+            ntBtn.className = 'btn btn-primary mt-2';
+            ntBtn.style.marginTop = '12px';
+            ntBtn.textContent = 'Return to dashboard';
+            ntBtn.addEventListener('click', function () { App.navigate('home'); });
+            notFound.appendChild(ntTitle);
+            notFound.appendChild(ntMsg);
+            notFound.appendChild(ntBtn);
+            content.appendChild(notFound);
+            currentModule = 'home';
+        }
 
-            // Add breadcrumb
-            var breadcrumbDiv2 = document.createElement('div');
-            setTrustedHTML(breadcrumbDiv2, getBreadcrumbHTML(moduleId));
-            content.appendChild(breadcrumbDiv2);
-
-            content.appendChild(header);
+        // Move keyboard focus to the main region after every route change so that
+        // screen-reader users hear the new page and Tab order resets.
+        var mainEl = document.getElementById('main-content');
+        if (mainEl && typeof mainEl.focus === 'function') {
+            try { mainEl.focus({ preventScroll: false }); } catch (e) { /* ignore */ }
         }
 
         var savedInputs = Export.loadState('inputs_' + moduleId);

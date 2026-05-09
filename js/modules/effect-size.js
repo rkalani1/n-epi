@@ -375,7 +375,9 @@
         var absRD = Math.abs(main.rd);
         var nntVal = absRD > 0 ? 1 / absRD : Infinity;
         var nntDisplay = nntVal === Infinity ? '\u221E' : Math.ceil(nntVal);
-        var nntType = main.rd < 0 ? 'NNH' : 'NNT';
+        // rd = EER − CER. rd < 0 → treatment reduces events (benefit, NNT/NNTB);
+        // rd > 0 → treatment increases events (harm, NNH/NNTH).
+        var nntType = main.rd > 0 ? 'NNH' : 'NNT';
         if (main.rd === 0) nntType = 'NNT';
 
         var nntCIStr = '';

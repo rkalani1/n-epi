@@ -404,9 +404,9 @@
         // KM analysis
         var km = Statistics.kaplanMeier(times, events, groupArr);
 
-        // Log-rank test (if 2 groups)
+        // Log-rank test (any k >= 2 groups; HR/CI populated only for k=2)
         var logRank = null;
-        if (hasGroups && groups.length === 2) {
+        if (hasGroups && groups.length >= 2) {
             logRank = Statistics.logRankTest(times, events, groupArr);
         }
 
@@ -501,18 +501,23 @@
         }
         html += '</div>';
 
-        // Log-rank test results
+        // Log-rank test results (HR/CI shown only for 2-group case)
         if (logRank) {
             html += '<div class="card-title mt-3">Log-Rank Test</div>';
             html += '<div class="result-grid">';
             html += '<div class="result-item"><div class="result-item-value">' + logRank.chi2.toFixed(3) + '</div>'
-                + '<div class="result-item-label">Chi-squared (df=1)</div></div>';
+                + '<div class="result-item-label">Chi-squared (df=' + logRank.df + ')</div></div>';
             html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(logRank.pValue) + '</div>'
                 + '<div class="result-item-label">P-value</div></div>';
-            html += '<div class="result-item"><div class="result-item-value">' + logRank.hr.toFixed(3) + '</div>'
-                + '<div class="result-item-label">Hazard Ratio</div></div>';
-            html += '<div class="result-item"><div class="result-item-value">[' + logRank.hrCI.lower.toFixed(3) + ', ' + logRank.hrCI.upper.toFixed(3) + ']</div>'
-                + '<div class="result-item-label">HR 95% CI</div></div>';
+            if (logRank.hr !== undefined && logRank.hrCI) {
+                html += '<div class="result-item"><div class="result-item-value">' + logRank.hr.toFixed(3) + '</div>'
+                    + '<div class="result-item-label">Hazard Ratio</div></div>';
+                html += '<div class="result-item"><div class="result-item-value">[' + logRank.hrCI.lower.toFixed(3) + ', ' + logRank.hrCI.upper.toFixed(3) + ']</div>'
+                    + '<div class="result-item-label">HR 95% CI</div></div>';
+            } else {
+                html += '<div class="result-item"><div class="result-item-value">k=' + (logRank.groups ? logRank.groups.length : '?') + '</div>'
+                    + '<div class="result-item-label">Groups (HR shown only for 2)</div></div>';
+            }
             html += '</div>';
         }
 
@@ -619,11 +624,13 @@
     }
 
     function getAtRisk(table, targetTime) {
-        // Find number at risk just before or at targetTime
+        // Pre-event "at risk" at the latest table row whose time is <= targetTime.
+        // (Each table row's nRisk is the count just BEFORE that row's events/censorings,
+        // so we should not subtract events/censored.)
         var nRisk = table[0].nRisk;
         for (var i = 1; i < table.length; i++) {
             if (table[i].time > targetTime) break;
-            nRisk = table[i].nRisk - table[i].events - table[i].censored;
+            nRisk = table[i].nRisk;
         }
         return Math.max(0, nRisk);
     }
@@ -709,9 +716,11 @@
 
             if (logRank) {
                 text += 'The log-rank test ' + (logRank.pValue < 0.05 ? 'showed a statistically significant difference' : 'did not show a statistically significant difference')
-                    + ' between groups (chi-squared = ' + logRank.chi2.toFixed(2) + ', P ' + Statistics.formatPValue(logRank.pValue) + '). '
-                    + 'The hazard ratio was ' + logRank.hr.toFixed(2)
-                    + ' (95% CI, ' + logRank.hrCI.lower.toFixed(2) + ' to ' + logRank.hrCI.upper.toFixed(2) + '). ';
+                    + ' between groups (chi-squared = ' + logRank.chi2.toFixed(2) + ', df = ' + logRank.df + ', P ' + Statistics.formatPValue(logRank.pValue) + '). ';
+                if (logRank.hr !== undefined && logRank.hrCI) {
+                    text += 'The hazard ratio was ' + logRank.hr.toFixed(2)
+                        + ' (95% CI, ' + logRank.hrCI.lower.toFixed(2) + ' to ' + logRank.hrCI.upper.toFixed(2) + '). ';
+                }
             }
 
             // RMST
