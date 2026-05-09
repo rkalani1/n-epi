@@ -216,58 +216,64 @@ const References = {
         certaintyLevels: ['High', 'Moderate', 'Low', 'Very Low']
     },
 
-    // RoB 2.0 domains
+    // RoB 2.0 domains. Each signaling question carries a `polarity`:
+    //   'positive' = "Yes" / "Probably Yes" indicates bias-FREE
+    //   'negative' = "Yes" / "Probably Yes" indicates BIAS
+    // Per-question polarity is derived from Sterne 2019 BMJ; the previous
+    // implementation applied a single polarity to all SQs, which inverted the
+    // judgment for D3.3, D4.1, D4.2, D4.3, D5.2, etc.
     rob2: {
         domains: [
             {
                 id: 'D1',
                 name: 'Randomization process',
                 questions: [
-                    'Was the allocation sequence random?',
-                    'Was the allocation sequence concealed until participants were enrolled and assigned?',
-                    'Did baseline differences between groups suggest a problem with randomization?'
+                    { text: 'Was the allocation sequence random?', polarity: 'positive' },
+                    { text: 'Was the allocation sequence concealed until participants were enrolled and assigned?', polarity: 'positive' },
+                    { text: 'Did baseline differences between groups suggest a problem with randomization?', polarity: 'negative' }
                 ]
             },
             {
                 id: 'D2',
-                name: 'Deviations from intended interventions',
+                name: 'Deviations from intended interventions (effect of assignment)',
                 questions: [
-                    'Were participants aware of their assigned intervention during the trial?',
-                    'Were carers and trial personnel aware of assigned intervention during the trial?',
-                    'Were there deviations from the intended intervention that arose because of the trial context?',
-                    'Were these deviations likely to have affected the outcome?',
-                    'Was an appropriate analysis used to estimate the effect of assignment to intervention?'
+                    { text: 'Were participants aware of their assigned intervention during the trial?', polarity: 'negative' },
+                    { text: 'Were carers and trial personnel aware of assigned intervention during the trial?', polarity: 'negative' },
+                    { text: 'Were there deviations from the intended intervention that arose because of the trial context?', polarity: 'negative' },
+                    { text: 'Were these deviations likely to have affected the outcome?', polarity: 'negative' },
+                    { text: 'Was an appropriate analysis used to estimate the effect of assignment to intervention?', polarity: 'positive' }
                 ]
             },
             {
                 id: 'D3',
                 name: 'Missing outcome data',
                 questions: [
-                    'Were data for this outcome available for all, or nearly all, participants?',
-                    'Is there evidence that the result was not biased by missing outcome data?',
-                    'Could missingness depend on true value of the outcome?'
+                    { text: 'Were data for this outcome available for all, or nearly all, participants?', polarity: 'positive' },
+                    { text: 'Is there evidence that the result was not biased by missing outcome data?', polarity: 'positive' },
+                    { text: 'Could missingness depend on true value of the outcome?', polarity: 'negative' }
                 ]
             },
             {
                 id: 'D4',
                 name: 'Measurement of the outcome',
                 questions: [
-                    'Was the method of measuring the outcome inappropriate?',
-                    'Could measurement of the outcome have differed between groups?',
-                    'Were outcome assessors aware of the intervention received by study participants?'
+                    { text: 'Was the method of measuring the outcome inappropriate?', polarity: 'negative' },
+                    { text: 'Could measurement of the outcome have differed between groups?', polarity: 'negative' },
+                    { text: 'Were outcome assessors aware of the intervention received by study participants?', polarity: 'negative' }
                 ]
             },
             {
                 id: 'D5',
                 name: 'Selection of the reported result',
                 questions: [
-                    'Were the data that produced this result analysed in accordance with a pre-specified analysis plan?',
-                    'Is the numerical result likely to have been selected from multiple outcome measurements or analyses?'
+                    { text: 'Were the data that produced this result analysed in accordance with a pre-specified analysis plan?', polarity: 'positive' },
+                    { text: 'Is the numerical result likely to have been selected from multiple outcome measurements or analyses?', polarity: 'negative' },
+                    { text: 'Is the numerical result likely to have been selected from multiple eligible analyses of the data?', polarity: 'negative' }
                 ]
             }
         ],
         judgmentOptions: ['Low risk', 'Some concerns', 'High risk'],
-        algorithm: 'Overall: Low if all domains Low; High if any domain High; Some concerns otherwise'
+        algorithm: 'Overall: Low if all domains Low; High if any domain High; Some concerns otherwise. Note: per-question polarity governs whether "Yes/Probably Yes" represents the bias-free or biased response (Sterne 2019 BMJ).'
     },
 
     // AMSTAR-2 items

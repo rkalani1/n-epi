@@ -360,3 +360,49 @@ SWIFT PRIME, REVASCAT, DEFUSE 3, ISAT, SOCRATES, CHANCE, POINT now have verified
 - **Published-example checks** (Egger asymmetric, AUC trapezoidal, trim-and-fill, MH/Hauck, Pocock 1977/Jennison-Turnbull, OBF) all match expected.
 - **JS syntax** clean across all 36 referenced files.
 - **246 trial entries** now correctly normalized to **210 unique trials** after dedup (matches the "200+" claim).
+
+---
+
+# Round 4 — Algorithm correctness & content fidelity
+
+## Round 4 — fixed
+
+### RoB 2 polarity (real algorithm bug)
+- **Per-question polarity now encoded** in `references.js` `rob2.domains[*].questions[*]` as `{ text, polarity: 'positive' | 'negative' }`. The renderer at `critical-appraisal.js:530` and the algorithm at line 2486 read it. For `polarity: 'positive'` (e.g., D1.1 "Was the allocation sequence random?"), Yes/Probably-Yes are bias-free. For `polarity: 'negative'` (e.g., D4.1 "Was the method of measuring the outcome inappropriate?", D3.3 "Could missingness depend on true value of the outcome?"), Yes/Probably-Yes indicate bias. The judgment now correctly aggregates per-question bias flags.
+- The on-screen prompt next to each negative-polarity question now shows **"(Yes ⇒ bias)"** so users know which way the answer cuts.
+- D5 gained the missing third signaling question: "Is the numerical result likely to have been selected from multiple eligible analyses of the data?" (Sterne 2019 RoB 2 SQ 5.3).
+
+### PRISMA 2020 sub-items
+- Items **13a-f, 16a-b, 19a-b, 20a-d, 23a-d, 24a-c** are now split per Page 2021 BMJ. Items 25, 26, 27 are also separated (funding, competing interests, data/code availability). Total checklist size goes from 27 flat items to ~36 items including sub-items, matching the published checklist exactly.
+
+### CHEERS 2022 — full 28 items
+- Was **truncated to 19 items**. Now reflects all 28 items of Husereau et al. BMJ 2022;376:e067975 with the published section names (Title, Abstract, Introduction, Methods, Results, Discussion, Other), including:
+  - 11a/11b split (health-outcome valuation methods + preference elicitation)
+  - 18 (distributional effects)
+  - 19 (uncertainty characterisation)
+  - 20 (patient/public/stakeholder engagement)
+  - 28 (separate competing-interests item)
+
+### DALY discount rate
+- DALY tab now exposes **discount-rate selector** (0%, 3%, 5%) using the constant-exponential discount formula `D(T, r) = (1 − e^(−rT))/r` (Murray 1996; current GBD uses 0). YLL and YLD apply the discount factor to the duration term; output explicitly labels the rate used in the calculation row.
+- Added bounds check on disability weight (`0 ≤ DW ≤ 1`).
+
+### CONSORT 2025 reference
+- Sidebar / use-text for CONSORT now notes the April 2025 BMJ update by Hopewell et al. so users know the tool currently reflects CONSORT 2010.
+
+## Tests post-Round-4
+
+- **86/86 numerical regression checks** still pass.
+- All 36 referenced JS files parse cleanly.
+- RoB 2 polarity: data-shape change is backwards-compatible (legacy string-form questions still accepted via `typeof q === 'string'` guard).
+
+## Round 4 — still pending follow-up
+
+- D2 "effect of assignment vs adherence" path (RoB 2 publishes two parallel question sets; the tool encodes the assignment path).
+- TRIPOD+AI full 27-item official content (currently labelled "planning aid" with a link to tripod-statement.org).
+- QUADAS-C (Yang 2021) implementation.
+- CONSORT 2025 full 30-item content.
+- DAG analyser back-door criterion implementation.
+- R-code library: Fine-Gray, E-value, modified-Poisson, MMRM recipes.
+- DALY: West-26 / GBD-2019 standard life-expectancy table.
+- Trial database: full PMID/DOI verification of all 247 entries against PubMed eUtils; remaining ~30 cross-batch duplicates with conflicting metadata.

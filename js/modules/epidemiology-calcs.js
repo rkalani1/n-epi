@@ -293,7 +293,7 @@
         // TAB: DALY / YLL
         // ============================================================
         html += '<div class="tab-content" id="epi-tab-daly">';
-        html += '<div class="card-subtitle">Calculate Disability-Adjusted Life Years (DALY) as the sum of Years of Life Lost (YLL) and Years Lived with Disability (YLD).</div>';
+        html += '<div class="card-subtitle">Calculate Disability-Adjusted Life Years (DALY) as the sum of Years of Life Lost (YLL) and Years Lived with Disability (YLD). Optionally apply a constant time-discount rate (Murray 1996; current GBD uses r=0).</div>';
         html += '<div class="result-grid">';
         html += '<div><strong>YLL (Mortality)</strong>'
             + '<div class="form-group"><label class="form-label">Number of Deaths</label><input type="number" class="form-input" id="epi_yll_deaths" value="10"></div>'
@@ -310,6 +310,16 @@
             + '<button class="btn btn-xs btn-outline" onclick="EpiCalcModule.setDW(0.552)">Sev</button>'
             + '</div></div>';
         html += '</div>';
+        html += '<div class="form-row form-row--2 mt-2">'
+            + '<div class="form-group"><label class="form-label">Discount rate (per year)</label>'
+            + '<select class="form-select" id="epi_daly_disc">'
+            + '<option value="0" selected>0% (current GBD; Murray 2012)</option>'
+            + '<option value="0.03">3% (classical WHO/GBD 1996; constant exponential)</option>'
+            + '<option value="0.05">5% (cost-effectiveness convention)</option>'
+            + '</select></div>'
+            + '<div class="form-group"><label class="form-label">Convention note</label>'
+            + '<input class="form-input" type="text" value="Constant exponential discount (1−e^(−rT))/r" disabled></div>'
+            + '</div>';
         html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcDALY()">Calculate DALY</button>';
         html += '<div id="epi-daly-results" class="mt-2"></div>';
         html += '</div>';
@@ -1843,12 +1853,27 @@
             Export.showToast('Please enter valid numbers', 'error');
             return;
         }
+        if (dw < 0 || dw > 1) {
+            Export.showToast('Disability weight must be in [0, 1]', 'error');
+            return;
+        }
 
-        // YLL = Number of deaths x Remaining life expectancy at age of death
-        var yll = deaths * lifeExpectancy;
+        var discEl = document.getElementById('epi_daly_disc');
+        var r = discEl ? parseFloat(discEl.value) : 0;
+        // Constant-exponential discount factor over a duration T:
+        //   D(T, r) = (1 − e^(−r·T)) / r   (with D(T, 0) = T)
+        // Murray 1996; Murray 2012 GBD (current default r=0).
+        function discFactor(T) {
+            if (!isFinite(T) || T <= 0) return 0;
+            if (r <= 0) return T;
+            return (1 - Math.exp(-r * T)) / r;
+        }
 
-        // YLD = Number of cases x Duration x Disability weight
-        var yld = cases * duration * dw;
+        // YLL = deaths × discounted remaining life expectancy
+        var yll = deaths * discFactor(lifeExpectancy);
+
+        // YLD = cases × disability weight × discounted duration
+        var yld = cases * dw * discFactor(duration);
 
         // DALY = YLL + YLD
         var daly = yll + yld;
@@ -1870,9 +1895,10 @@
         // Detail table
         html += '<div class="card-title mt-2">Calculation Details</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Component</th><th>Formula</th><th>Value</th><th>% of DALY</th></tr></thead><tbody>';
-        html += '<tr><td>YLL</td><td class="num">' + deaths + ' deaths x ' + lifeExpectancy.toFixed(1) + ' years</td><td class="num" style="color:var(--danger)">' + yll.toFixed(1) + '</td><td class="num">' + yllPct.toFixed(1) + '%</td></tr>';
-        html += '<tr><td>YLD</td><td class="num">' + cases + ' cases x ' + duration.toFixed(1) + ' years x ' + dw.toFixed(3) + '</td><td class="num" style="color:var(--warning)">' + yld.toFixed(1) + '</td><td class="num">' + yldPct.toFixed(1) + '%</td></tr>';
-        html += '<tr style="font-weight:bold"><td>DALY</td><td class="num">YLL + YLD</td><td class="num" style="color:var(--accent)">' + daly.toFixed(1) + '</td><td class="num">100%</td></tr>';
+        var discNote = r > 0 ? ' × (1−e^(−' + r + '·T))/r' : '';
+        html += '<tr><td>YLL</td><td class="num">' + deaths + ' deaths × ' + lifeExpectancy.toFixed(1) + ' years' + discNote + '</td><td class="num" style="color:var(--danger)">' + yll.toFixed(1) + '</td><td class="num">' + yllPct.toFixed(1) + '%</td></tr>';
+        html += '<tr><td>YLD</td><td class="num">' + cases + ' cases × ' + duration.toFixed(1) + ' years × ' + dw.toFixed(3) + discNote + '</td><td class="num" style="color:var(--warning)">' + yld.toFixed(1) + '</td><td class="num">' + yldPct.toFixed(1) + '%</td></tr>';
+        html += '<tr style="font-weight:bold"><td>DALY</td><td class="num">YLL + YLD (discount r = ' + r + ')</td><td class="num" style="color:var(--accent)">' + daly.toFixed(1) + '</td><td class="num">100%</td></tr>';
         html += '</tbody></table></div>';
 
         html += '<div class="btn-group mt-2">'

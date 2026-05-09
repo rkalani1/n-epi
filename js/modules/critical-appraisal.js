@@ -529,11 +529,18 @@
 
             domain.questions.forEach(function(q, qi) {
                 var qId = domain.id + '_q' + qi;
+                // Support both legacy string-form questions and the new
+                // {text, polarity} object form.
+                var qText = (typeof q === 'string') ? q : (q.text || '');
+                var polarity = (typeof q === 'object' && q.polarity) ? q.polarity : 'positive';
+                var hint = polarity === 'negative'
+                    ? '<span style="font-size:0.75rem;color:var(--text-tertiary);margin-left:6px;">(Yes ⇒ bias)</span>'
+                    : '';
                 html += '<div class="checklist-question">';
-                html += '<div class="checklist-question-text">' + q + '</div>';
+                html += '<div class="checklist-question-text">' + qText + hint + '</div>';
                 html += '<div class="radio-group">';
                 ['Yes', 'Probably Yes', 'Probably No', 'No', 'No Information'].forEach(function(opt) {
-                    html += '<label class="radio-pill"><input type="radio" name="ca-' + qId + '" value="' + opt + '" onchange="CritAppraisal.updateRoB()">' + opt + '</label>';
+                    html += '<label class="radio-pill"><input type="radio" name="ca-' + qId + '" value="' + opt + '" data-polarity="' + polarity + '" onchange="CritAppraisal.updateRoB()">' + opt + '</label>';
                 });
                 html += '</div></div>';
             });
@@ -2479,23 +2486,39 @@
     function updateRoB() {
         var domainJudgments = {};
         References.rob2.domains.forEach(function(domain) {
-            var answers = [];
+            // Per-question, classify the response as bias-free / bias / unknown
+            // honoring the per-question polarity. For 'positive' polarity ("Yes
+            // is bias-free"), Yes/Probably Yes are bias-free, No/Probably No
+            // indicate bias. For 'negative' polarity ("Yes is bias"), it
+            // reverses.
+            var biasFlags = []; // 'free', 'bias', 'unknown'
             domain.questions.forEach(function(q, qi) {
                 var qId = domain.id + '_q' + qi;
                 var selected = document.querySelector('input[name="ca-' + qId + '"]:checked');
-                if (selected) answers.push(selected.value);
+                if (!selected) return;
+                var polarity = (typeof q === 'object' && q.polarity) ? q.polarity : 'positive';
+                var ans = selected.value;
+                var isYes = (ans === 'Yes' || ans === 'Probably Yes');
+                var isNo = (ans === 'No' || ans === 'Probably No');
+                var isUnk = (ans === 'No Information');
+                if (isUnk) { biasFlags.push('unknown'); return; }
+                if (polarity === 'positive') {
+                    biasFlags.push(isYes ? 'free' : (isNo ? 'bias' : 'unknown'));
+                } else {
+                    biasFlags.push(isYes ? 'bias' : (isNo ? 'free' : 'unknown'));
+                }
             });
 
             var judgment = 'Not assessed';
             var badgeClass = '';
-            if (answers.length === domain.questions.length) {
-                var hasNo = answers.some(function(a) { return a === 'No' || a === 'Probably No'; });
-                var hasNI = answers.some(function(a) { return a === 'No Information'; });
+            if (biasFlags.length === domain.questions.length) {
+                var hasBias = biasFlags.some(function(f) { return f === 'bias'; });
+                var hasUnknown = biasFlags.some(function(f) { return f === 'unknown'; });
 
-                if (!hasNo && !hasNI) {
+                if (!hasBias && !hasUnknown) {
                     judgment = 'Low risk';
                     badgeClass = 'risk-badge--low';
-                } else if (hasNo) {
+                } else if (hasBias) {
                     judgment = 'High risk';
                     badgeClass = 'risk-badge--high';
                 } else {
