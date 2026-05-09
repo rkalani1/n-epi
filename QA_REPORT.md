@@ -308,3 +308,55 @@ These are out-of-scope-now items; documented for the next pass:
 - **Statistical engine numerical regression**: 40/40 round-1 + 19/19 round-2 = **59/59 numerical checks pass**.
 - **Published-example checks** (Egger, AUC, trim-and-fill, MH/Hauck, Pocock, OBF): all match expected.
 - **JS syntax** across all 36 referenced files: clean.
+
+---
+
+# Round 3 — Algorithmic & content fixes
+
+After round 2 I dispatched two more parallel deep-audits: (a) `references.js` content and `critical-appraisal.js` / `reporting-guidelines.js` algorithm correctness; (b) cross-cutting spell, grammar, terminology, and accessibility audit. The latter found **no duplicate-word typos and no misspelled statistical terms** anywhere in the codebase — the writing is consistently clean.
+
+Round-3 numerical regression: **40 + 19 + 27 = 86 numerical checks pass** (round-1 + round-2 + round-3 edge-case suite).
+
+## Round 3 — fixed
+
+### Algorithms
+- **AMSTAR-2 confidence-rating algorithm** had **no branch for `0 critical + >1 non-critical` weaknesses** — that important case silently rendered "Not Assessed". Rewrote per Shea 2017 BMJ Table 2: Critically Low (>1 critical) → Low (1 critical) → Moderate (0 critical, >1 non-critical) → High (0 critical, ≤1 non-critical).
+- **Trial-database schema fragmentation** — `t.n`/`t.comparator` (batches 1-3,5) vs `t.sampleSize`/`t.control`/`secondary`/`keyFindings` (batch 4) caused 55 trials to render with empty cells after deduplication (which kept the batch-4 entry). Added `normalizeTrialSchema()` that maps the alternate keys to the canonical form, splits `secondary` strings into `keySecondary` arrays, and converts string `primaryOutcome` to the structured object the renderer expects.
+- **Trial categories `antiplatelet` (legacy singular)** and `hemorrhagic` (not in filter list) are now normalized to `antiplatelets` and `ich` so all trials are filterable.
+
+### Content
+- **`references.js` HERMES pooled cOR** changed from 2.0 → 2.49 (Goyal 2016 Lancet).
+- **`references.js` ECASS III mRS rates** — the 0.39 / 0.29 figures stored under `'mRS 0-1 after tPA'` / `'mRS 0-1 placebo'` with `source: 'ECASS III'` were actually NINDS values. Re-attributed to NINDS Part 2 (correct), and added **separate ECASS III** entries with the actual published 0.524 / 0.452 figures from Hacke 2008 NEJM.
+- **`references.js` NASCET** key relabeled from "5yr" → "2yr" and source updated to NEJM 1991 (NASCET interim) since the 0.26 figure is the 2-year ipsilateral-stroke rate, not 5-year.
+- **`reporting-guidelines.js`** — added a footnote to the CONSORT 2010 entry pointing at CONSORT 2025 (Hopewell BMJ 2025) so users know the tool currently reflects the 2010 statement.
+
+### Trial PMIDs (carried through)
+SWIFT PRIME, REVASCAT, DEFUSE 3, ISAT, SOCRATES, CHANCE, POINT now have verified PubMed IDs.
+
+### UX / a11y / cosmetic
+- "data is" → "data are" in 5 user-visible strings (academic-writing convention).
+- `Knapp-Hartung` → `Hartung-Knapp` (HKSJ) standardized in `meta-analysis.js` and `methods-generator.js`.
+- Modal close button now has `aria-label="Close keyboard shortcuts"`.
+
+## Round 3 — flagged for follow-up (not fixed)
+
+- **RoB 2 D4.1 / D3.3 inverted polarity** — the algorithm treats every "No"/"Probably No" as bias-inducing. For these reverse-polarity questions (D4.1 "Was the method inappropriate?"; D3.3 "Could missingness depend on true value?"), "No" is the bias-free answer. Fixing this requires data-file metadata to encode polarity per question, which we'll do in a focused follow-up to avoid touching the entire RoB 2 questionnaire data shape in this pass.
+- **RoB 2 D5 missing SQ 5.3** — published RoB 2 has 3 signaling questions in D5; the data file only encodes 2. Need to add 5.3 ("Is the numerical result likely to have been selected from multiple analyses…").
+- **D2 effect-of-assignment vs adherence path** — RoB 2 publishes two parallel question sets in D2; the tool only encodes one (assignment).
+- **PRISMA 2020 sub-items collapsed** — items 13, 20, 24 should be split into 13a-f, 20a-d, 24a-c per Page 2021 BMJ. Currently merged.
+- **CHEERS 2022 truncated** — only 19 of the 28 items in Husereau 2022 BMJ are present.
+- **TRIPOD+AI** content — labeled honestly as "planning aid" with link to the official 27-item checklist; full official-item text is a bigger content task.
+- **QUADAS-C** (Yang 2021) is not implemented.
+- **DALY** module — discount rate, age-weighting K, built-in West-26 / GBD-2019 standard life-expectancy table, abridged life-table builder.
+- **DAG analyser** — does not currently compute Pearl back-door criterion.
+- **R-code library** — Fine-Gray competing risks, E-value, modified-Poisson, MMRM recipes still missing.
+- **NRI/IDI** — IDI inferential statistics still missing.
+- **Heading hierarchy** — `r-code-library.js`, `quick-reference.js`, `teaching-tools.js` use `<h3>` directly under the page `<h1>`, skipping `<h2>`. Cosmetic a11y fix.
+- **P-value capitalization** — `p-value` / `P-value` / `P value` mixed across the codebase. Consistent but inert.
+
+## Tests post-Round-3
+
+- **86/86 numerical regression checks** (40 round-1 + 19 round-2 + 27 round-3 edge cases) pass.
+- **Published-example checks** (Egger asymmetric, AUC trapezoidal, trim-and-fill, MH/Hauck, Pocock 1977/Jennison-Turnbull, OBF) all match expected.
+- **JS syntax** clean across all 36 referenced files.
+- **246 trial entries** now correctly normalized to **210 unique trials** after dedup (matches the "200+" claim).

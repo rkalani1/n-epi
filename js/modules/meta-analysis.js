@@ -950,7 +950,7 @@
             + '<li>Requires at least 10 studies per moderator (rule of thumb)</li>'
             + '<li>Results are ecological (study-level) associations -- do not imply individual-level effects</li>'
             + '<li>Pre-specify moderators to avoid data dredging</li>'
-            + '<li>Use Knapp-Hartung adjustment for small number of studies</li>'
+            + '<li>Use Hartung-Knapp adjustment (HKSJ) for small number of studies</li>'
             + '<li>Report R' + String.fromCharCode(178) + ' (proportion of heterogeneity explained)</li>'
             + '</ul></div>';
         html += '</div>';

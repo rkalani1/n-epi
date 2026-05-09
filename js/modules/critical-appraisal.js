@@ -2589,21 +2589,30 @@
             }
         });
 
-        var rating = 'Not Assessed';
-        var color = 'var(--text-secondary)';
-        var detail = '';
-        if (criticalWeaknesses === 0 && nonCriticalWeaknesses === 0) {
-            rating = 'High'; color = 'var(--success)';
-            detail = 'No critical or non-critical weaknesses.';
-        } else if (criticalWeaknesses === 0 && nonCriticalWeaknesses <= 1) {
-            rating = 'Moderate'; color = 'var(--success)';
-            detail = nonCriticalWeaknesses + ' non-critical weakness(es), no critical weaknesses.';
+        // AMSTAR-2 confidence rating per Shea 2017 BMJ:
+        //   High         — no or 1 non-critical weakness, 0 critical
+        //   Moderate     — >1 non-critical weakness, 0 critical
+        //                  ("more than one non-critical may diminish confidence")
+        //   Low          — exactly 1 critical weakness (regardless of non-critical)
+        //   Critically Low— >1 critical weakness
+        // The previous implementation had no branch for 0 critical + >1 non-critical
+        // and silently rendered "Not Assessed" for that important case.
+        var rating, color, detail;
+        if (criticalWeaknesses > 1) {
+            rating = 'Critically Low'; color = 'var(--danger)';
+            detail = criticalWeaknesses + ' critical weaknesses. ' + nonCriticalWeaknesses + ' non-critical weakness(es).';
         } else if (criticalWeaknesses === 1) {
             rating = 'Low'; color = 'var(--warning)';
             detail = '1 critical weakness. ' + nonCriticalWeaknesses + ' non-critical weakness(es).';
-        } else if (criticalWeaknesses > 1) {
-            rating = 'Critically Low'; color = 'var(--danger)';
-            detail = criticalWeaknesses + ' critical weaknesses. ' + nonCriticalWeaknesses + ' non-critical weakness(es).';
+        } else if (nonCriticalWeaknesses > 1) {
+            rating = 'Moderate'; color = 'var(--warning)';
+            detail = nonCriticalWeaknesses + ' non-critical weaknesses, no critical weaknesses (>1 non-critical → Moderate confidence).';
+        } else if (nonCriticalWeaknesses === 1) {
+            rating = 'High'; color = 'var(--success)';
+            detail = '1 non-critical weakness; review still rated High confidence (Shea 2017).';
+        } else {
+            rating = 'High'; color = 'var(--success)';
+            detail = 'No critical or non-critical weaknesses.';
         }
 
         var el = document.getElementById('ca-amstar-rating');

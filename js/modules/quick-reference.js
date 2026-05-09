@@ -621,7 +621,7 @@
         { term: 'Mann-Whitney U Test', def: 'Non-parametric test comparing distributions of two independent groups. Also called Wilcoxon rank-sum test.' },
         { term: 'Matching', def: 'Design strategy pairing cases and controls (or exposed/unexposed) on potential confounders to control confounding.' },
         { term: "McNemar's Test", def: 'Tests for changes in paired proportions (e.g., before-after). Uses discordant pairs only.' },
-        { term: 'Median', def: 'Middle value when data is ordered. Robust to outliers. Preferred over mean for skewed distributions.' },
+        { term: 'Median', def: 'Middle value when data are ordered. Robust to outliers. Preferred over mean for skewed distributions.' },
         { term: 'Meta-Analysis', def: 'Statistical method that combines results from multiple independent studies to produce a weighted overall estimate.' },
         { term: 'Misclassification', def: 'Error in categorizing exposure or outcome status. Differential (related to other variable) or non-differential (random).' },
         { term: 'Mixed Effects Model', def: 'Statistical model containing both fixed effects (population-level) and random effects (individual-level variability).' },

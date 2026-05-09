@@ -13,7 +13,7 @@
     /*  Guideline metadata                                                 */
     /* ------------------------------------------------------------------ */
     var guidelines = {
-        'CONSORT':   { name: 'CONSORT 2010',     use: 'Randomised controlled trials' },
+        'CONSORT':   { name: 'CONSORT 2010',     use: 'Randomised controlled trials. Note: CONSORT 2025 (Hopewell et al. BMJ 2025) expands the checklist; this tool currently reflects the 2010 version.' },
         'STROBE':    { name: 'STROBE',            use: 'Observational studies (cohort, case-control, cross-sectional)' },
         'PRISMA':    { name: 'PRISMA 2020',       use: 'Systematic reviews and meta-analyses' },
         'PRISMA-ScR':{ name: 'PRISMA-ScR',        use: 'Scoping reviews' },

@@ -209,7 +209,7 @@
         html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
             + '<div>DeLong et al. (1988) proposed a non-parametric method for comparing correlated AUCs.</div>'
             + '<div>This module provides the trapezoidal AUC approximation for each test; for formal DeLong\'s test, '
-            + 'individual-level data is required (use R <code>pROC::roc.test()</code> or SAS).</div>'
+            + 'individual-level data are required (use R <code>pROC::roc.test()</code> or SAS).</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Assumptions</div>';

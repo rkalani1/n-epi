@@ -43,7 +43,7 @@
         html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\');">'
             + '\u25B6 Learn: Scientific Data Cleaning (GIGO Principle)</div>';
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
-        html += '<p><strong>Garbage In, Garbage Out (GIGO):</strong> Even the most advanced causal inference or machine learning models fail if the input data is flawed. Scientific rigor requires proactive detection of biological impossibilities and statistical outliers.</p>';
+        html += '<p><strong>Garbage In, Garbage Out (GIGO):</strong> Even the most advanced causal inference or machine learning models fail if the input data are flawed. Scientific rigor requires proactive detection of biological impossibilities and statistical outliers.</p>';
         html += '<div class="card-subtitle" style="font-weight:600;">Standard Checks</div>';
         html += '<ul style="margin:0 0 12px 16px;">'
             + '<li><strong>Biological Impossibility:</strong> e.g., diastolic BP > systolic BP, or age < 0.</li>'

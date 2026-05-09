@@ -154,7 +154,7 @@
         {
             name: 'Leave-One-Out Cross-Validation (LOOCV)',
             desc: 'Special case of k-fold where k equals the number of samples. Each sample is used as a single test case.',
-            when: 'Very small datasets (<100 samples) where maximizing training data is essential.',
+            when: 'Very small datasets (<100 samples) where maximizing training data are essential.',
             pros: 'Maximum use of available data; nearly unbiased.',
             cons: 'Computationally expensive; high variance; may overfit.',
             recommendation: 'Consider only for very small datasets. Prefer 10-fold CV or bootstrap for most scenarios.'
@@ -332,10 +332,10 @@
         },
         {
             title: 'Not Accounting for Missing Data Properly',
-            content: 'Missing data is ubiquitous in clinical datasets and how it is handled profoundly affects results.\n\n'
+            content: 'Missing data are ubiquitous in clinical datasets and how they are handled profoundly affects results.\n\n'
                 + '<strong>Approaches (from worst to best):</strong>\n'
                 + '<ul style="margin:0.5rem 0;padding-left:1.5rem;">'
-                + '<li><strong>Complete-case analysis:</strong> Deletes rows with missing values. Introduces bias if data is not MCAR; loses statistical power.</li>'
+                + '<li><strong>Complete-case analysis:</strong> Deletes rows with missing values. Introduces bias if data are not MCAR; loses statistical power.</li>'
                 + '<li><strong>Single imputation (mean/median):</strong> Underestimates variance; introduces bias toward the mean.</li>'
                 + '<li><strong>Multiple imputation:</strong> Creates multiple plausible datasets, analyses each, and combines results. Gold standard for statistical models.</li>'
                 + '<li><strong>Indicator method:</strong> Adding a "missing" indicator variable. Can sometimes be useful but biased in many settings.</li>'

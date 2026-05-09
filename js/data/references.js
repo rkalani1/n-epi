@@ -22,8 +22,10 @@ const References = {
     eventRates: {
         'mRS 0-2 LVO control': { rate: 0.28, description: 'Functional independence (mRS 0-2) in LVO with medical therapy', source: 'Meta-analysis of EVT trials' },
         'mRS 0-2 LVO EVT': { rate: 0.46, description: 'Functional independence (mRS 0-2) with EVT', source: 'Meta-analysis of EVT trials' },
-        'mRS 0-1 after tPA': { rate: 0.39, description: 'Excellent outcome (mRS 0-1) with IV tPA within 4.5h', source: 'ECASS III' },
-        'mRS 0-1 placebo': { rate: 0.29, description: 'Excellent outcome (mRS 0-1) without treatment', source: 'ECASS III control' },
+        'mRS 0-1 after tPA': { rate: 0.39, description: 'Excellent outcome (mRS 0-1) at 90d, NINDS Part 2 tPA arm (3-h window)', source: 'NINDS' },
+        'mRS 0-1 placebo': { rate: 0.26, description: 'Excellent outcome (mRS 0-1) at 90d, NINDS Part 2 placebo arm', source: 'NINDS' },
+        'mRS 0-1 ECASS III tPA': { rate: 0.524, description: 'Excellent outcome (mRS 0-1) at 90d, ECASS III alteplase arm (3-4.5 h)', source: 'ECASS III (Hacke 2008 NEJM)' },
+        'mRS 0-1 ECASS III placebo': { rate: 0.452, description: 'Excellent outcome (mRS 0-1) at 90d, ECASS III placebo arm', source: 'ECASS III (Hacke 2008 NEJM)' },
         '90-day mortality LVO': { rate: 0.20, description: '90-day mortality in LVO stroke', source: 'Meta-analysis' },
         'sICH with tPA': { rate: 0.06, description: 'Symptomatic ICH rate with IV tPA', source: 'SITS-MOST, NINDS' },
         'sICH with EVT': { rate: 0.05, description: 'Symptomatic ICH rate with EVT + tPA', source: 'HERMES meta-analysis' },
@@ -33,13 +35,13 @@ const References = {
         'Stroke/SEE AF DOAC': { rate: 0.012, description: 'Annual stroke/SEE with DOAC in AF', source: 'Meta-analysis of DOAC trials' },
         'ICH growth >33%': { rate: 0.38, description: 'ICH hematoma expansion >33%', source: 'INTERACT2' },
         'ICH 90-day mortality': { rate: 0.30, description: 'ICH 90-day mortality', source: 'Observational data' },
-        'Carotid ipsilateral stroke 5yr': { rate: 0.26, description: '5-year ipsilateral stroke with ≥70% carotid stenosis (medical)', source: 'NASCET' }
+        'Carotid ipsilateral stroke 2yr': { rate: 0.26, description: '2-year ipsilateral stroke risk with ≥70% carotid stenosis (medical arm)', source: 'NASCET (NEJM 1991)' }
     },
 
     // Common effect sizes
     effectSizes: {
         'EVT common OR (large)': { value: 2.6, type: 'OR', source: 'ESCAPE', description: 'Common OR for mRS shift, ESCAPE trial' },
-        'EVT common OR (pooled)': { value: 2.0, type: 'OR', source: 'HERMES', description: 'Pooled common OR from 5 pivotal EVT trials' },
+        'EVT common OR (pooled)': { value: 2.49, type: 'OR', source: 'HERMES (Goyal 2016 Lancet)', description: 'Pooled common OR for mRS shift from 5 pivotal EVT trials (HERMES)' },
         'EVT common OR (late window)': { value: 2.0, type: 'OR', source: 'DAWN', description: 'Common OR for late-window EVT' },
         'Realistic new EVT trial': { value: 1.5, type: 'OR', source: 'Assumption', description: 'Conservative common OR for new EVT indication trial' },
         'tPA OR (within 3h)': { value: 1.75, type: 'OR', source: 'NINDS', description: 'OR for favorable outcome with tPA within 3 hours' },

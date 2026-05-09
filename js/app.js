@@ -600,7 +600,7 @@ const App = (() => {
         setTrustedHTML(dialog,
             '<div class="shortcuts-modal-header">'
             + '<h3>Keyboard Shortcuts</h3>'
-            + '<button class="btn btn-ghost btn-sm" onclick="App.closeShortcutsModal()">&times;</button>'
+            + '<button class="btn btn-ghost btn-sm" onclick="App.closeShortcutsModal()" aria-label="Close keyboard shortcuts">&times;</button>'
             + '</div>'
             + '<div class="shortcuts-modal-body">'
             + '<div class="shortcut-row"><kbd>&#8984;K</kbd><span>Open command palette</span></div>'

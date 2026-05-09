@@ -40,17 +40,42 @@
         { id: 'other', label: 'Other' }
     ];
 
-    // Deduplicate trials by name (keep last entry which has richer schema from batch files)
+    // Normalize schema differences across batch files so the rendering code can
+    // assume a single canonical shape. Batch-4 used `sampleSize`/`control`/
+    // `secondary` (string) / `keyFindings`; the rest use `n`/`comparator`/
+    // `keySecondary` (array) / `significance`.
+    function normalizeTrialSchema(t) {
+        if (t.n === undefined && t.sampleSize !== undefined) t.n = t.sampleSize;
+        if (t.comparator === undefined && t.control !== undefined) t.comparator = t.control;
+        if (t.significance === undefined && t.keyFindings !== undefined) t.significance = t.keyFindings;
+        if (t.keySecondary === undefined && t.secondary !== undefined) {
+            t.keySecondary = typeof t.secondary === 'string'
+                ? t.secondary.split(/\.\s+|;\s+/).filter(function (s) { return s.trim().length > 0; })
+                : t.secondary;
+        }
+        // primaryOutcome may be a string in some batches; render code expects an object.
+        if (typeof t.primaryOutcome === 'string') {
+            t.primaryOutcome = { measure: t.primaryOutcome, result: '', ci: '', pValue: '' };
+        }
+        // Normalise legacy / variant category labels.
+        if (t.category === 'antiplatelet') t.category = 'antiplatelets';
+        if (t.category === 'hemorrhagic') t.category = 'ich';
+        return t;
+    }
+
+    // Deduplicate trials by name. Iterate in reverse so the LAST entry (richest
+    // metadata in later batch files) wins. Apply the schema normaliser to every
+    // surviving entry so downstream rendering uses one canonical shape.
     function deduplicateTrials() {
         if (typeof TrialDatabase === 'undefined' || !TrialDatabase.trials) return;
         var seen = {};
         var unique = [];
-        // Iterate in reverse so last entry (richer schema) wins, then reverse back
         for (var i = TrialDatabase.trials.length - 1; i >= 0; i--) {
             var t = TrialDatabase.trials[i];
+            if (!t || !t.name) continue;
             if (!seen[t.name]) {
                 seen[t.name] = true;
-                unique.push(t);
+                unique.push(normalizeTrialSchema(t));
             }
         }
         unique.reverse();
