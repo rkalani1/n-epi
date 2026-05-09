@@ -383,17 +383,33 @@
                 else if (g === 'f' || g === 'female' || g === 'woman') newRow.gender = 'Female';
             }
 
-            // Boolean Standardization (Pregnancy, etc.)
-            // Detect boolean-like columns efficiently? 
-            // For now, let's just target known columns or do a simple check
-            const boolCols = ['pregnancy', 'history_stroke', 'hypertension', 'diabetes', 'active_smoker'];
-            // Or iterate all and check if values are boolean-like?
-            // Let's stick to specific columns if possible, but generic is better.
-            // Let's do generic boolean standardization for common Yes/No terms
+            // Boolean standardization — RESTRICTED to a known whitelist of
+            // boolean columns. The previous generic version coerced ANY 0/1
+            // value to "No"/"Yes" and silently corrupted ordinal columns
+            // (e.g., NIHSS scores, severity grades, mRS scores). Convert only
+            // when (a) the column name is in the whitelist AND (b) the value
+            // looks textual (yes/no/y/n/true/false), never bare 0/1.
+            const boolCols = new Set([
+                'pregnancy', 'pregnant',
+                'history_stroke', 'prior_stroke',
+                'hypertension', 'htn',
+                'diabetes', 'dm',
+                'active_smoker', 'smoker', 'smoking',
+                'atrial_fibrillation', 'afib',
+                'tpa_given', 'thrombolysis'
+            ]);
             Object.keys(newRow).forEach(k => {
-                const val = newRow[k]?.toLowerCase().trim();
-                if (val === 'yes' || val === 'y' || val === 'true' || val === '1') newRow[k] = 'Yes';
-                if (val === 'no' || val === 'n' || val === 'false' || val === '0') newRow[k] = 'No';
+                if (!boolCols.has(k.toLowerCase())) return;
+                const raw = newRow[k];
+                if (raw === undefined || raw === null) return;
+                const val = String(raw).toLowerCase().trim();
+                if (val === 'yes' || val === 'y' || val === 'true') newRow[k] = 'Yes';
+                else if (val === 'no' || val === 'n' || val === 'false') newRow[k] = 'No';
+                // Numeric 0/1 in known boolean columns: still coerce, but the
+                // column-level guard above prevents collateral damage to
+                // ordinal/score columns.
+                else if (val === '1') newRow[k] = 'Yes';
+                else if (val === '0') newRow[k] = 'No';
             });
 
             return newRow;

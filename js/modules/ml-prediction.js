@@ -1288,9 +1288,19 @@
         var nriNonevent = (noneventDown - noneventUp) / totalNonevents;
         var nri = nriEvent + nriNonevent;
 
-        // Standard errors
-        var seNriEvent = Math.sqrt((eventUp + eventDown) / (totalEvents * totalEvents));
-        var seNriNonevent = Math.sqrt((noneventUp + noneventDown) / (totalNonevents * totalNonevents));
+        // Standard errors per Pencina 2008 (eq. 7 / 8 of Stat Med 27:157):
+        //   Var(NRI_event)   = (up_e + down_e)/n_e − (up_e − down_e)² / n_e²
+        //   Var(NRI_nonevent)= (up_ne + down_ne)/n_ne − (up_ne − down_ne)² / n_ne²
+        //   Var(NRI) = Var(NRI_event) + Var(NRI_nonevent) (events ⫫ non-events)
+        var varNriEvent = (eventUp + eventDown) / totalEvents
+            - Math.pow(eventUp - eventDown, 2) / (totalEvents * totalEvents);
+        var varNriNonevent = (noneventUp + noneventDown) / totalNonevents
+            - Math.pow(noneventUp - noneventDown, 2) / (totalNonevents * totalNonevents);
+        // Guard against tiny negative values from floating-point cancellation.
+        varNriEvent = Math.max(0, varNriEvent);
+        varNriNonevent = Math.max(0, varNriNonevent);
+        var seNriEvent = Math.sqrt(varNriEvent / totalEvents);
+        var seNriNonevent = Math.sqrt(varNriNonevent / totalNonevents);
         var seNri = Math.sqrt(seNriEvent * seNriEvent + seNriNonevent * seNriNonevent);
         var zNri = seNri > 0 ? nri / seNri : 0;
         var pNri = seNri > 0 ? 2 * (1 - 0.5 * (1 + erf(Math.abs(zNri) / Math.sqrt(2)))) : 1;
@@ -1328,7 +1338,7 @@
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Measure</th><th>Old Model</th><th>New Model</th><th>Difference</th></tr></thead><tbody>';
         html += '<tr><td>Mean predicted prob (events)</td><td class="num">' + oldEventProb.toFixed(3) + '</td><td class="num">' + newEventProb.toFixed(3) + '</td><td class="num">' + (newEventProb - oldEventProb).toFixed(3) + '</td></tr>';
         html += '<tr><td>Mean predicted prob (non-events)</td><td class="num">' + oldNoneventProb.toFixed(3) + '</td><td class="num">' + newNoneventProb.toFixed(3) + '</td><td class="num">' + (newNoneventProb - oldNoneventProb).toFixed(3) + '</td></tr>';
-        html += '<tr><td>Integrated Sensitivity (IS)</td><td class="num">' + isOld.toFixed(3) + '</td><td class="num">' + isNew.toFixed(3) + '</td><td class="num" style="font-weight:700;color:' + (idi > 0 ? 'var(--success)' : 'var(--danger)') + '">' + idi.toFixed(3) + '</td></tr>';
+        html += '<tr><td>IS &minus; IP (mean p̂<sub>events</sub> &minus; mean p̂<sub>non-events</sub>)</td><td class="num">' + isOld.toFixed(3) + '</td><td class="num">' + isNew.toFixed(3) + '</td><td class="num" style="font-weight:700;color:' + (idi > 0 ? 'var(--success)' : 'var(--danger)') + '">' + idi.toFixed(3) + '</td></tr>';
         html += '</tbody></table></div>';
 
         html += '<div style="margin-top:0.8rem;font-size:0.85rem;line-height:1.7;">';

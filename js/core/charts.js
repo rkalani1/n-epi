@@ -134,8 +134,13 @@ var Charts = (() => {
     // HIGH-RES EXPORT
     // ============================================================
 
+    // Re-render a chart at higher DPI by invoking its registered draw callback.
+    // Each chart that wants crisp PNG export should attach a function via
+    // `canvas._reDraw = function(ctx, logicalWidth, logicalHeight) { ... }` when
+    // it draws (the callback should NOT call setupCanvas; it should treat the
+    // ctx as already scaled). Fallback: rasterize the existing canvas (blurry).
     function exportHighRes(canvas, scale) {
-        scale = scale || 2;
+        scale = scale || 3;
         if (!guardCanvas(canvas)) return null;
 
         var origWidth = parseInt(canvas.style.width, 10) || canvas.width;
@@ -144,12 +149,26 @@ var Charts = (() => {
         var offscreen = document.createElement('canvas');
         offscreen.width = origWidth * scale;
         offscreen.height = origHeight * scale;
+        offscreen.style.width = origWidth + 'px';
+        offscreen.style.height = origHeight + 'px';
         var offCtx = offscreen.getContext('2d');
         offCtx.scale(scale, scale);
 
-        // Draw the existing canvas content scaled up
-        // We draw from the already-rendered canvas (which is at dpr resolution)
-        offCtx.drawImage(canvas, 0, 0, origWidth, origHeight);
+        if (typeof canvas._reDraw === 'function') {
+            // Crisp re-render path
+            try {
+                canvas._reDraw(offCtx, origWidth, origHeight);
+            } catch (e) {
+                // Fall back to rasterizing the existing canvas if redraw fails
+                offCtx.setTransform(1, 0, 0, 1, 0, 0);
+                offCtx.drawImage(canvas, 0, 0, offscreen.width, offscreen.height);
+            }
+        } else {
+            // Best we can do without a redraw callback: stretch the rendered canvas.
+            // Keeps proportional layout but does not produce true high-DPI text.
+            offCtx.setTransform(1, 0, 0, 1, 0, 0);
+            offCtx.drawImage(canvas, 0, 0, offscreen.width, offscreen.height);
+        }
 
         return offscreen.toDataURL('image/png');
     }

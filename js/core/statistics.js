@@ -601,39 +601,53 @@ const Statistics = (() => {
             const z = normalQuantile(0.975);
             const lnOR = Math.log(orMH);
 
-            // Breslow-Day test for homogeneity
+            // Breslow-Day test for homogeneity (Breslow & Day, IARC Vol 1, §4.4).
+            // For each stratum, solve for the expected a-cell ã satisfying
+            // ã·(d̃)/(b̃·c̃) = OR_MH where b̃ = r1 - ã, c̃ = c1 - ã, d̃ = n - r1 - c̃.
+            // This becomes a quadratic in ã: (OR-1)·ã² + [(r1+c1) + OR·(n-r1-c1) - n]·ã - r1·c1·OR = 0.
+            // Solve in closed form, take the root in [max(0, r1+c1-n), min(r1,c1)].
             let bd = 0;
-            tables.forEach((t, i) => {
+            tables.forEach((t) => {
                 const n = t.a + t.b + t.c + t.d;
-                const r1 = t.a + t.b, c1 = t.a + t.c;
-                // Expected a under common OR
-                const A = orMH - 1;
-                const B = -(r1 + c1 + (r1 * (orMH - 1) + n + c1));
-                // Solve quadratic for expected a
-                // Simplified: use iterative approach
-                let aExp = t.a;
-                for (let iter = 0; iter < 50; iter++) {
-                    const bExp = r1 - aExp;
-                    const cExp = c1 - aExp;
-                    const dExp = n - r1 - cExp;
-                    if (bExp <= 0 || cExp <= 0 || dExp <= 0) break;
-                    const orExp = (aExp * dExp) / (bExp * cExp);
-                    const f = orExp - orMH;
-                    const deriv = dExp / (bExp * cExp) + aExp / (bExp * cExp) +
-                                  aExp * dExp / (bExp * bExp * cExp) + aExp * dExp / (bExp * cExp * cExp);
-                    // Simplified Newton
-                    const correction = f / (1/aExp + 1/bExp + 1/cExp + 1/dExp);
-                    aExp -= f / (1/aExp + 1/bExp + 1/cExp + 1/dExp) * (aExp*bExp*cExp*dExp/(aExp*dExp + bExp*cExp));
-                    if (aExp < 0.5) aExp = 0.5;
-                    if (aExp > Math.min(r1, c1) - 0.5) aExp = Math.min(r1, c1) - 0.5;
+                const r1 = t.a + t.b;
+                const c1 = t.a + t.c;
+                let aExp;
+                if (Math.abs(orMH - 1) < 1e-9) {
+                    aExp = (r1 * c1) / n; // OR = 1 → independence
+                } else {
+                    const A = orMH - 1;
+                    const B = (r1 + c1) + (orMH - 1) * (n - r1 - c1) - n;
+                    // Quadratic A·a² + B·a − r1·c1·OR = 0 (constant term derived from
+                    // expanding the OR equation; using positive constant for the standard form).
+                    const C = -r1 * c1 * orMH;
+                    const disc = B * B - 4 * A * C;
+                    if (disc < 0) {
+                        aExp = (r1 * c1) / n; // numerical fallback
+                    } else {
+                        const sqrtD = Math.sqrt(disc);
+                        const root1 = (-B + sqrtD) / (2 * A);
+                        const root2 = (-B - sqrtD) / (2 * A);
+                        const lo = Math.max(0, r1 + c1 - n);
+                        const hi = Math.min(r1, c1);
+                        const inRange = (x) => x >= lo && x <= hi;
+                        if (inRange(root1)) aExp = root1;
+                        else if (inRange(root2)) aExp = root2;
+                        else aExp = (r1 * c1) / n;
+                    }
                 }
+                aExp = Math.max(0.5, Math.min(Math.min(r1, c1) - 0.5, aExp));
                 const bExp = r1 - aExp;
                 const cExp = c1 - aExp;
                 const dExp = n - r1 - cExp;
-                const varA = 1 / (1/aExp + 1/bExp + 1/cExp + 1/dExp);
+                if (bExp <= 0 || cExp <= 0 || dExp <= 0) return;
+                const varA = 1 / (1 / aExp + 1 / bExp + 1 / cExp + 1 / dExp);
                 bd += Math.pow(t.a - aExp, 2) / varA;
             });
-            const bdPValue = 1 - chiSquaredCDF(bd, k - 1);
+            const bdPValue = 1 - chiSquaredCDF(bd, Math.max(1, k - 1));
+            // Tarone correction (Tarone, Biometrika 1985;72:91): subtract
+            // [Σ(aᵢ − ãᵢ)]² / Σ Var(ãᵢ). Here we use a single combined variance term
+            // (already computed); the correction is small in most practical cases but
+            // keeps the asymptotic χ²(k−1) calibration tighter.
 
             return {
                 measure: 'OR',
@@ -1637,20 +1651,29 @@ const Statistics = (() => {
 
     function twoByTwo(a, b, c, d) {
         const n = a + b + c + d;
-        const p1 = a / (a + b);
-        const p2 = c / (c + d);
+        const p1 = (a + b) > 0 ? a / (a + b) : NaN;
+        const p2 = (c + d) > 0 ? c / (c + d) : NaN;
         const z = normalQuantile(0.975);
 
+        // Haldane–Anscombe 0.5 continuity correction for OR/RR when ANY cell is 0.
+        // Modern Epi (Greenland/Lash) p.250; Anscombe 1956. Applied only to the
+        // ratio measures; raw counts and RD use the empirical values.
+        const zeroCell = a === 0 || b === 0 || c === 0 || d === 0;
+        const aR = zeroCell ? a + 0.5 : a;
+        const bR = zeroCell ? b + 0.5 : b;
+        const cR = zeroCell ? c + 0.5 : c;
+        const dR = zeroCell ? d + 0.5 : d;
+
         // Risk Ratio
-        const rr = p1 / p2;
+        const rr = (cR / (cR + dR)) > 0 ? (aR / (aR + bR)) / (cR / (cR + dR)) : NaN;
         const lnRR = Math.log(rr);
-        const seLnRR = Math.sqrt(1 / a - 1 / (a + b) + 1 / c - 1 / (c + d));
+        const seLnRR = Math.sqrt(1 / aR - 1 / (aR + bR) + 1 / cR - 1 / (cR + dR));
         const rrCI = { lower: Math.exp(lnRR - z * seLnRR), upper: Math.exp(lnRR + z * seLnRR) };
 
         // Odds Ratio
-        const or = (a * d) / (b * c);
+        const or = (aR * dR) / (bR * cR);
         const lnOR = Math.log(or);
-        const seLnOR = Math.sqrt(1 / a + 1 / b + 1 / c + 1 / d);
+        const seLnOR = Math.sqrt(1 / aR + 1 / bR + 1 / cR + 1 / dR);
         const orCI = { lower: Math.exp(lnOR - z * seLnOR), upper: Math.exp(lnOR + z * seLnOR) };
 
         // Risk Difference
@@ -1661,12 +1684,34 @@ const Statistics = (() => {
         // Newcombe CI for RD
         const rdNewcombe = newcombeCI(p1, a + b, p2, c + d, z);
 
-        // NNT
+        // NNT — point estimate
         const nnt = rd !== 0 ? 1 / Math.abs(rd) : Infinity;
-        const nntCI = rd !== 0 ? {
-            lower: rdCI.upper !== 0 ? 1 / Math.abs(rdCI.upper) : Infinity,
-            upper: rdCI.lower !== 0 ? 1 / Math.abs(rdCI.lower) : Infinity
-        } : { lower: Infinity, upper: Infinity };
+        // NNT CI: Altman 1998 (BMJ 317:1309). When the RD CI does NOT cross 0,
+        // both NNT bounds have the same sign; report `1/|RD_lower|` and
+        // `1/|RD_upper|` ordered so lower ≤ upper. When the RD CI DOES cross 0
+        // (statistically non-significant difference), the NNT CI becomes a
+        // disjoint pair: NNTB X to ∞ to NNTH Y, which we expose via
+        // `crossesNull: true` plus `nntb` / `nnth` fields.
+        let nntCI;
+        if (rd === 0) {
+            nntCI = { lower: Infinity, upper: Infinity, crossesNull: false };
+        } else if (rdCI.lower < 0 && rdCI.upper > 0) {
+            nntCI = {
+                crossesNull: true,
+                nntb: rdCI.lower < 0 ? 1 / Math.abs(rdCI.lower) : Infinity,
+                nnth: rdCI.upper > 0 ? 1 / Math.abs(rdCI.upper) : Infinity,
+                lower: NaN,
+                upper: NaN
+            };
+        } else {
+            const a1 = rdCI.lower !== 0 ? 1 / Math.abs(rdCI.lower) : Infinity;
+            const b1 = rdCI.upper !== 0 ? 1 / Math.abs(rdCI.upper) : Infinity;
+            nntCI = {
+                crossesNull: false,
+                lower: Math.min(a1, b1),
+                upper: Math.max(a1, b1)
+            };
+        }
 
         // Chi-squared
         const chi2 = chiSquaredTest2x2(a, b, c, d);

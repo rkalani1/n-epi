@@ -988,10 +988,16 @@
             html += '<li><strong>Unadjusted analysis:</strong> Estimate the association between '
                 + (exposures.length > 0 ? exposures[0].name : 'exposure') + ' and '
                 + (outcomes.length > 0 ? outcomes[0].name : 'outcome') + ' without adjustment.</li>';
+            // EPV must count ALL model predictors (exposure + confounders + precision
+            // covariates), not just confounders. Peduzzi 1996 / van Smeden 2019.
+            var epvVarsAdj = exposures.length + confounders.length + precision.length;
             html += '<li><strong>Adjusted analysis:</strong> Include confounders: '
                 + confounders.map(function(v) { return v.name; }).join(', ')
-                + '. EPV check: ' + confounders.length + ' confounders require at least '
-                + (confounders.length * 10) + ' events (EPV=10).</li>';
+                + '. EPV check: model has ' + epvVarsAdj + ' predictor'
+                + (epvVarsAdj === 1 ? '' : 's')
+                + ' (' + exposures.length + ' exposure, ' + confounders.length + ' confounders, '
+                + precision.length + ' precision); ≥' + (epvVarsAdj * 10)
+                + ' events recommended (EPV ≥ 10, Peduzzi 1996; ≥20 for prediction models, van Smeden 2019).</li>';
         } else {
             html += '<li><strong>Primary analysis:</strong> Estimate the association between '
                 + (exposures.length > 0 ? exposures[0].name : 'exposure') + ' and '
@@ -1018,7 +1024,9 @@
         if (moderators.length > 0) {
             warnings.push({ type: 'Interaction Testing', message: 'Interaction tests require ~4x the sample size. Report as exploratory unless specifically powered.', severity: 'warning' });
         }
-        var totalModelVars = confounders.length + precision.length + (moderators.length > 0 ? moderators.length + exposures.length : 0);
+        // Total model predictors: always include exposures; count moderators only when present.
+        var totalModelVars = exposures.length + confounders.length + precision.length
+            + (moderators.length > 0 ? moderators.length : 0);
         if (totalModelVars > 15) {
             warnings.push({ type: 'Model Complexity', message: totalModelVars + ' variables require at least ' + (totalModelVars * 10) + ' events (EPV=10). Consider penalized regression.', severity: 'warning' });
         }
@@ -1049,7 +1057,8 @@
         var text = 'Analysis Plan\nExposure(s): ' + exposures.map(function(v) { return v.name; }).join(', ')
             + '\nOutcome(s): ' + outcomes.map(function(v) { return v.name; }).join(', ')
             + '\nConfounders: ' + confounders.map(function(v) { return v.name; }).join(', ')
-            + '\nMinimum events needed (EPV=10): ' + (confounders.length * 10);
+            + '\nMinimum events needed (EPV ≥ 10, all model predictors): '
+            + ((exposures.length + confounders.length + precision.length) * 10);
         Export.copyText(text);
     }
 

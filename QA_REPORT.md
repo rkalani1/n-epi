@@ -231,3 +231,80 @@ This is a **parameter/preset library, not a bibliography**. No formal author/jou
 | References (presets) | **High** — parameter values mostly correct; 2 numeric values flagged for review. |
 
 The platform is now safe and credible for study-design exploration, sample-size planning, biostatistical reasoning, methods-paragraph drafting, and critical-appraisal teaching. The trial-database surface should be treated as a **starting index, not a citable source**, until the manual cleanup recommended above is completed.
+
+---
+
+# Round 2 — Deeper audit & additional fixes
+
+After the initial pass, I ran four parallel deep-audit agents covering modules I had not personally inspected: `epidemiology-calcs`, `study-design-guide` + `hypothesis-builder` + `regression-helper`, the writing/teaching cluster (`methods-generator`, `results-interpreter`, `quick-reference`, `r-code-library`, `teaching-tools`), and the productivity cluster (`power-analysis`, `ml-prediction`, `project-planner`, `biobank-cleaning`).
+
+Round-2 numerical regression: **40/40 round-1 tests + 19/19 new round-2 tests pass**.
+
+## Round 2 — fixed
+
+### Statistics engine
+- **NNT confidence interval bug** (`statistics.js:1664`). When the RD CI crossed zero, the previous code returned a spuriously narrow finite interval. Replaced with the **Altman 1998 (BMJ 317:1309) disjoint-interval form**: `crossesNull: true` flag plus `nntb`/`nnth` scalars when the RD CI straddles zero; otherwise an ordered `lower`/`upper` (smaller of the two NNT bounds first).
+- **No Haldane continuity correction for zero cells** in `twoByTwo`. Now applies the 0.5 correction (Anscombe 1956 / Greenland & Lash, *Modern Epi* 4e p.250) to OR/RR when any cell is empty, preventing `NaN`/`Infinity` SEs.
+- **Breslow-Day Newton iteration was algebraically broken** (`statistics.js:625-626`). The "correction" line was unused dead code; the actual update used a malformed factor and converged only by luck. Replaced with the **closed-form quadratic solution** for the expected `a`-cell (Breslow & Day, IARC Vol 1 §4.4) in `[max(0, r1+c1−n), min(r1,c1)]`.
+- (**Already in Round 1**: Freedman, MA k=1, multi-arm α/power, log-rank k≥2, Hussey-Hughes SW, Pocock published constants.)
+
+### Modules
+- **`effect-size.js`** — Round 1 already reversed NNT/NNH direction.
+- **`regression-helper.js:1167`** — AP printed as `0.6%` instead of `63.6%`. Fixed: multiply by 100 before `.toFixed(1)`.
+- **`regression-helper.js:185`** — Cloglog formula was wrongly written as the logit. Now: PO `logit(P(Y≤j)) = αⱼ − βX` and Cloglog `log(−log(1 − P(Y≤j))) = αⱼ − βX` are listed separately with the proper threshold notation.
+- **`hypothesis-builder.js`** — EPV miscount (used `confounders.length` only, omitting exposure and precision covariates). Now counts `exposures + confounders + precision`. Same fix in `copyAnalysisPlan`. Plus `totalModelVars` no longer drops the exposure when there are no moderators.
+- **`biobank-cleaning.js:393`** — generic `0/1 → "No"/"Yes"` coercion silently corrupted ordinal columns (NIHSS, mRS, severity grades). **Restricted to a known-boolean column whitelist** (pregnancy, history_stroke, hypertension, etc.); ordinal/numeric columns are now untouched.
+- **`ml-prediction.js:1292`** — NRI standard error formula was incomplete (missing the `(up − down)²/n²` variance term). Now matches Pencina 2008 Stat Med 27:157, eq. 7/8.
+- **`ml-prediction.js:1341`** — IDI table called the row "Integrated Sensitivity (IS)" but the value displayed is `IS − IP` (mean p̂ in events minus mean p̂ in non-events). Relabeled accurately.
+- **`r-code-library.js:304`** — `format.pval(lr$chisq, ...)` printed the chi-square statistic instead of the p-value. Generated R now correctly computes `1 − pchisq(lr$chisq, df = length(lr$n) − 1)` and reports `chi2`, `df`, and the p-value.
+- **`r-code-library.js:211`** — `comb.fixed`/`comb.random` deprecated in `meta` ≥ 5.0. Switched to `common`/`random`.
+- **`r-code-library.js:392`** — `coords()` now passes `transpose = FALSE` for compatibility with pROC ≥ 1.16.
+- **`r-code-library.js:833`** — comment conflated Hosmer-Lemeshow (calibration) with the C-statistic (discrimination). Split into two separate code blocks with correct labels.
+- **`quick-reference.js:376`** — OR worked example claimed `OR = 2.5` and `SE = 0.479` for `(a,b,c,d) = (30,20,15,35)`; the correct values are `OR = 3.50` and `SE(lnOR) = 0.423`. Fixed.
+- **`quick-reference.js:368`** — Two-proportion sample-size example claimed `n = 294`; the correct rounding is `≈ 290.08 → 291`. Fixed.
+- **`quick-reference.js:377`** — Bayes example said pre-test odds for 10% prevalence is `0.11`; correct is `0.111` (= 0.10/0.90). Fixed.
+- **`results-interpreter.js:342`** — Unbalanced quote in templating produced a stray `"` character in the non-significant branch. Fixed.
+- **`results-interpreter.js:1562`** — Hedges' g used `df=100` hardcoded; now uses `df = n1 + n2 − 2` from new exposed `n1`/`n2` inputs (Hedges 1981).
+- **`methods-generator.js:949`** — "Sample size was inflated by [X]% to account for anticipated loss to follow-up" was appended to all designs, including cross-sectional, case-control, and meta-analysis where it's nonsensical. Now only emitted for RCTs and prospective cohorts.
+- **`methods-generator.js:1064`** — "A two-sided P value < α" was hard-coded even when the user picked a one-sided α. Now reads `data-sided` attribute on the alpha select and emits "one-sided" when appropriate.
+- **`teaching-tools.js:240-247`** — MCQ Q24 (99% vs 95% CI) endorsed the Bayesian-flavored statement "the 99% CI has higher probability of containing the true parameter". Replaced with strictly correct frequentist phrasing; explanation now flags the Bayesian misinterpretation explicitly.
+- **`study-design-guide.js:564`** — Header claimed "Oxford CEBM Levels of Evidence (2011)" but the body listed the **2001/2009** sub-level set. Relabelled "(2001/2009 set; sub-levels for therapy questions)" with a footnote explaining that the 2011 OCEBM update replaced sub-levels with a question-type matrix and a link to cebm.ox.ac.uk.
+- **`study-design-guide.js:97`** — Ecological design listed at level 5; corrected to **2c** (matches the level-table caption further down the same file).
+
+### Trial database (selected concrete fixes)
+| Trial | Old PMID | Correct PMID | Source |
+|---|---|---|---|
+| SWIFT PRIME | 25671799 | 25882510 | Saver, NEJM 2015 |
+| REVASCAT | 25671800 | 25882376 | Jovin, NEJM 2015 |
+| DEFUSE 3 | 29129158 | 29364767 | Albers, NEJM 2018 |
+| ISAT | 12383368 | 12414200 | Molyneux, Lancet 2002 |
+| SOCRATES | 27428468 | 27160892 | Johnston, NEJM 2016 |
+| CHANCE | 23778136 | 23803136 | Wang, NEJM 2013 |
+| POINT | 29766752 | 29766750 | Johnston, NEJM 2018 |
+
+- **"WAKE-UP 2"** entry (n=503, 2023) was a fabrication and has been removed (the original WAKE-UP, Thomalla NEJM 2018, n=503, exists in batch 1).
+- **"PACIFIC-Stroke" entry described ARCADIA**: relabelled to **ARCADIA** (Kamel JAMA 2024, n=1015, apixaban vs aspirin in ESUS with atrial cardiopathy markers); the real PACIFIC-Stroke (Shoamanesh Lancet 2022) tested asundexian, not apixaban.
+
+### App shell, accessibility, charts
+- **Sidebar links converted from `<div onclick>` to real `<a href="#id">` elements** with proper `aria-current="page"` on the active link, focus-visible outline, and ARIA-labeled inner star buttons (`<button>` with `aria-label="Add/Remove X to/from favorites"`). Keyboard activation now works without JavaScript fallback.
+- **Sidebar group regions** got `role="group"` and `aria-label`.
+- **`exportHighRes` now supports a real high-DPI re-render path**: charts that attach a `canvas._reDraw(ctx, w, h)` callback get a crisp PNG; the rasterize-and-stretch fallback remains for charts that don't.
+
+## Round 2 — flagged but not fixed (intentional)
+
+These are out-of-scope-now items; documented for the next pass:
+
+- **Module-level computation gaps** — RERI/AP/S Hosmer-Lemeshow CIs (point estimates work; CIs missing); DAG analyzer doesn't actually compute Pearl back-door criterion (uses user labels); methods-generator lacks a TRIPOD/TRIPOD+AI prediction-model template; PRECIS-2 single-mean averaging is contrary to Loudon 2015 design.
+- **R-code library** — no Fine-Gray competing risks recipe, no E-value, no modified-Poisson for prevalence ratios; install hints inconsistent across recipes.
+- **Project planner** — Gantt durations (52 weeks) inconsistent with template descriptions ("3-5 years"); should scale with year-month grid.
+- **Biobank** — CSV parser still doesn't handle quoted fields; date-format normalization absent; no fuzzy ID linkage.
+- **Trial database** — full PMID/DOI verification of all 247 entries against PubMed eUtils. The ~30 cross-batch duplicates remain (deduplicator merges them at render time but conflicting metadata persists).
+- **Reporting guidelines** — PRISMA 2020 Abstract checklist (16 items) not surfaced as a separate accessible checklist.
+- **DALY** — discount-rate parameter, age-weighting K, and a built-in West-26 / GBD-2019 standard life-expectancy table; abridged life-table builder.
+- **Charts** — proper "Favors X / Favors Y" labels passed through from caller (currently hard-coded); chart redraw on theme toggle.
+
+## Tests post-Round-2
+
+- **Statistical engine numerical regression**: 40/40 round-1 + 19/19 round-2 = **59/59 numerical checks pass**.
+- **Published-example checks** (Egger, AUC, trim-and-fill, MH/Hauck, Pocock, OBF): all match expected.
+- **JS syntax** across all 36 referenced files: clean.

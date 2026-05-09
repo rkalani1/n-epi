@@ -321,26 +321,33 @@ const App = (() => {
                     if (allMods[i].id === favId) { mod = allMods[i]; break; }
                 }
                 if (mod) {
-                    html += '<div class="sidebar-link" data-module="' + mod.id + '" onclick="App.navigate(\'' + mod.id + '\')">'
-                        + '<span class="sidebar-link-icon">' + mod.icon + '</span>'
+                    html += '<a href="#' + mod.id + '" class="sidebar-link" data-module="' + mod.id + '" '
+                        + 'onclick="event.preventDefault();App.navigate(\'' + mod.id + '\')">'
+                        + '<span class="sidebar-link-icon" aria-hidden="true">' + mod.icon + '</span>'
                         + '<span>' + mod.label + '</span>'
-                        + '<span class="sidebar-fav-star active" onclick="event.stopPropagation();App.toggleFavorite(\'' + mod.id + '\')" title="Remove from favorites">&#9733;</span>'
-                        + '</div>';
+                        + '<button type="button" class="sidebar-fav-star active" '
+                        + 'aria-label="Remove ' + mod.label + ' from favorites" '
+                        + 'onclick="event.stopPropagation();event.preventDefault();App.toggleFavorite(\'' + mod.id + '\')">&#9733;</button>'
+                        + '</a>';
                 }
             });
             html += '</div>';
         }
 
         NAV.forEach(function (group) {
-            html += '<div class="sidebar-group">'
+            html += '<div class="sidebar-group" role="group" aria-label="' + group.title + '">'
                 + '<div class="sidebar-group-title">' + group.title + '</div>';
             group.items.forEach(function (item) {
                 var starClass = isFavorite(item.id) ? ' active' : '';
-                html += '<div class="sidebar-link" data-module="' + item.id + '" onclick="App.navigate(\'' + item.id + '\')">'
-                    + '<span class="sidebar-link-icon">' + item.icon + '</span>'
+                var favLabel = isFavorite(item.id) ? 'Remove ' + item.label + ' from favorites' : 'Add ' + item.label + ' to favorites';
+                html += '<a href="#' + item.id + '" class="sidebar-link" data-module="' + item.id + '" '
+                    + 'onclick="event.preventDefault();App.navigate(\'' + item.id + '\')">'
+                    + '<span class="sidebar-link-icon" aria-hidden="true">' + item.icon + '</span>'
                     + '<span>' + item.label + '</span>'
-                    + '<span class="sidebar-fav-star' + starClass + '" onclick="event.stopPropagation();App.toggleFavorite(\'' + item.id + '\')" title="Toggle favorite">&#9733;</span>'
-                    + '</div>';
+                    + '<button type="button" class="sidebar-fav-star' + starClass + '" '
+                    + 'aria-label="' + favLabel + '" '
+                    + 'onclick="event.stopPropagation();event.preventDefault();App.toggleFavorite(\'' + item.id + '\')">&#9733;</button>'
+                    + '</a>';
             });
             html += '</div>';
         });
@@ -993,7 +1000,10 @@ const App = (() => {
         trackModuleVisit(moduleId);
 
         document.querySelectorAll('.sidebar-link').forEach(function (el) {
-            el.classList.toggle('active', el.dataset.module === moduleId);
+            var isActive = el.dataset.module === moduleId;
+            el.classList.toggle('active', isActive);
+            if (isActive) el.setAttribute('aria-current', 'page');
+            else el.removeAttribute('aria-current');
         });
 
         document.querySelectorAll('.mobile-nav-item').forEach(function (el) {

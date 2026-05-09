@@ -94,7 +94,7 @@
         },
         {
             name: 'Ecological',
-            level: '5',
+            level: '2c',
             strengths: 'Uses readily available data; inexpensive; can study population-level exposures (e.g., policy, pollution); generates hypotheses',
             limitations: 'Ecological fallacy; cannot make individual-level inferences; confounding at group level; data quality varies',
             when: 'Studying population-level exposures; comparing geographic regions; hypothesis generation',
@@ -559,23 +559,26 @@
         }
         html += '</tbody></table></div>';
 
-        // Evidence pyramid
+        // Evidence pyramid — CEBM 2001 / 2009 levels (the question-specific 2011
+        // CEBM table is laid out as a matrix per question type and is referenced
+        // separately below).
         html += '<div class="result-panel mt-2">';
-        html += '<div class="card-subtitle">Oxford CEBM Levels of Evidence (2011)</div>';
+        html += '<div class="card-subtitle">Oxford CEBM Levels of Evidence (2001/2009 set; sub-levels for therapy questions)</div>';
         html += '<div style="font-size:0.85rem;line-height:1.7">';
         var levels = [
-            { label: '1a', desc: 'Systematic reviews of RCTs (with homogeneity)' },
-            { label: '1b', desc: 'Individual RCT (with narrow CI)' },
+            { label: '1a', desc: 'Systematic review of RCTs (with homogeneity)' },
+            { label: '1b', desc: 'Individual RCT (narrow CI)' },
             { label: '1c', desc: 'All-or-none studies' },
-            { label: '2a', desc: 'Systematic reviews of cohort studies' },
-            { label: '2b', desc: 'Individual cohort study or low-quality RCT' },
+            { label: '2a', desc: 'Systematic review of cohort studies' },
+            { label: '2b', desc: 'Individual cohort study (or low-quality RCT)' },
             { label: '2c', desc: 'Outcomes research; ecological studies' },
             { label: '3a', desc: 'Systematic review of case-control studies' },
             { label: '3b', desc: 'Individual case-control study' },
-            { label: '4', desc: 'Case series, cross-sectional studies' },
+            { label: '4', desc: 'Case series; low-quality cohort or case-control' },
             { label: '5', desc: 'Expert opinion, bench research, case reports' }
         ];
         levels.forEach(function(l) { html += '<strong>Level ' + l.label + ':</strong> ' + l.desc + '<br>'; });
+        html += '<div style="margin-top:8px;font-size:0.78rem;color:var(--text-tertiary);">Note: the 2011 OCEBM update replaced numeric sub-levels with a matrix indexed by question type (Therapy, Prevalence, Diagnosis, Prognosis, Etiology/Harm, Screening). See <a href="https://www.cebm.ox.ac.uk/resources/levels-of-evidence/ocebm-levels-of-evidence" target="_blank" rel="noopener">cebm.ox.ac.uk</a>.</div>';
         html += '</div></div>';
 
         // Evidence hierarchy visual

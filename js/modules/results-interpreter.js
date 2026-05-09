@@ -339,7 +339,7 @@
         html += '<ul style="margin-left:16px;">';
         html += '<li><strong>Wrong:</strong> "There is a ' + (p * 100).toFixed(1) + '% probability that the null hypothesis is true."<br>'
             + '<strong>Correct:</strong> The p-value is the probability of the data (or more extreme data) given the null is true, not the probability of the null being true.</li>';
-        html += '<li style="margin-top:8px;"><strong>Wrong:</strong> "The result is ' + (significant ? '' : 'not ') + 'significant, so the effect is ' + (significant ? 'real.' : 'zero."') + '<br>'
+        html += '<li style="margin-top:8px;"><strong>Wrong:</strong> "The result is ' + (significant ? '' : 'not ') + 'significant, so the effect is ' + (significant ? 'real."' : 'zero."') + '<br>'
             + '<strong>Correct:</strong> P-values are continuous measures of evidence. The 0.05 threshold is arbitrary. A p-value of 0.049 is not meaningfully different from 0.051.</li>';
         html += '<li style="margin-top:8px;"><strong>Wrong:</strong> "The p-value tells us the size of the effect."<br>'
             + '<strong>Correct:</strong> P-values conflate effect size and sample size. A tiny effect with a large N can yield a small p-value.</li>';
@@ -1523,6 +1523,12 @@
         html += '<div class="form-group"><label class="form-label">Baseline Risk (for NNT)</label>'
             + '<input type="number" class="form-input" id="esc-br" name="esc-br" step="0.01" min="0.01" max="0.99" value="0.10"></div>';
         html += '</div>';
+        html += '<div class="form-row form-row--2" style="margin-top:8px;">';
+        html += '<div class="form-group"><label class="form-label">n<sub>1</sub> (group 1, for Hedges&rsquo; g correction)</label>'
+            + '<input type="number" class="form-input" id="esc-n1" name="esc-n1" step="1" min="2" value="50"></div>';
+        html += '<div class="form-group"><label class="form-label">n<sub>2</sub> (group 2)</label>'
+            + '<input type="number" class="form-input" id="esc-n2" name="esc-n2" step="1" min="2" value="50"></div>';
+        html += '</div>';
 
         html += '<div class="btn-group">'
             + '<button class="btn btn-primary" onclick="ResultsInterp.convertES()">Convert</button>'
@@ -1559,7 +1565,13 @@
         r2 = r * r;
         lor = d * Math.PI / Math.sqrt(3);
         or_val = Math.exp(lor);
-        g = d * (1 - 3 / (4 * 100 - 1)); // approximate df=100
+        // Hedges' g uses actual df = n1 + n2 - 2 (Hedges 1981).
+        var n1G = parseInt((document.getElementById('esc-n1') || {}).value, 10);
+        var n2G = parseInt((document.getElementById('esc-n2') || {}).value, 10);
+        if (!n1G || n1G < 2) n1G = 50;
+        if (!n2G || n2G < 2) n2G = 50;
+        var dfHedges = n1G + n2G - 2;
+        g = d * (1 - 3 / (4 * dfHedges - 1));
         eta2 = d * d / (d * d + 4); // approximation for 2 groups
         f2 = eta2 / (1 - eta2);
         var rr_approx = or_val / (1 - baseRisk + baseRisk * or_val);

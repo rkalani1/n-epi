@@ -190,6 +190,12 @@ h4 { font-size: 1rem; }
     cursor: pointer;
     transition: all var(--transition);
     border-left: 3px solid transparent;
+    text-decoration: none;
+}
+
+.sidebar-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
 }
 
 .sidebar-link:hover {
@@ -1270,6 +1276,17 @@ textarea.form-input {
     transition: all var(--transition);
     flex-shrink: 0;
     line-height: 1;
+    background: transparent;
+    border: 0;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.sidebar-link:focus-within .sidebar-fav-star,
+.sidebar-fav-star:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
 }
 
 .sidebar-link:hover .sidebar-fav-star,

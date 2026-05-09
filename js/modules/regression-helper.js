@@ -182,7 +182,8 @@
             + '<div><strong>Logistic:</strong> logit(P) = \u03B2\u2080 + \u03B2\u2081X\u2081 + \u2026, OR = exp(\u03B2)</div>'
             + '<div><strong>Poisson:</strong> log(\u03BC) = \u03B2\u2080 + \u03B2\u2081X\u2081 + \u2026, IRR = exp(\u03B2)</div>'
             + '<div><strong>Cox PH:</strong> h(t) = h\u2080(t) \u00D7 exp(\u03B2\u2081X\u2081 + \u2026), HR = exp(\u03B2)</div>'
-            + '<div><strong>Ordinal (cloglog):</strong> logit(P(Y\u2264j)) = \u03B1\u2081 \u2212 \u03B2X, common OR</div>'
+            + '<div><strong>Ordinal (proportional odds):</strong> logit(P(Y\u2264j)) = \u03B1\u2C7C \u2212 \u03B2X, common OR (one threshold \u03B1 per cumulative cutpoint)</div>'
+            + '<div><strong>Ordinal (cloglog):</strong> log(\u2212log(1 \u2212 P(Y\u2264j))) = \u03B1\u2C7C \u2212 \u03B2X (proportional hazards form)</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Model Selection Rules of Thumb</div>';
@@ -1164,7 +1165,7 @@
         html += '<div class="result-detail mt-1">';
         if (reri > 0) {
             html += '<strong style="color:var(--danger)">Positive additive interaction (synergism):</strong> The joint effect of both exposures exceeds what would be expected from the sum of individual effects. '
-                + ap.toFixed(1) + '% of the risk among doubly-exposed is attributable to the interaction.';
+                + (ap * 100).toFixed(1) + '% of the risk among doubly-exposed is attributable to the interaction.';
         } else if (reri < 0) {
             html += '<strong style="color:var(--success)">Negative additive interaction (antagonism):</strong> The joint effect is less than what would be expected from the sum of individual effects.';
         } else {

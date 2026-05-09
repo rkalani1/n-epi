@@ -650,10 +650,10 @@
         html += '<div class="form-row form-row--3">';
         html += '<div class="form-group"><label class="form-label">Significance Level (alpha)</label>';
         html += '<select class="form-select" id="mg_alpha" name="mg_alpha">';
-        html += '<option value="0.05">0.05 (two-sided)</option>';
-        html += '<option value="0.01">0.01 (two-sided)</option>';
-        html += '<option value="0.025">0.025 (one-sided)</option>';
-        html += '<option value="0.10">0.10 (two-sided)</option>';
+        html += '<option value="0.05" data-sided="two">0.05 (two-sided)</option>';
+        html += '<option value="0.01" data-sided="two">0.01 (two-sided)</option>';
+        html += '<option value="0.025" data-sided="one">0.025 (one-sided)</option>';
+        html += '<option value="0.10" data-sided="two">0.10 (two-sided)</option>';
         html += '</select></div>';
 
         html += '<div class="form-group"><label class="form-label">Statistical Power</label>';
@@ -946,7 +946,14 @@
         } else if (outcomeType === 'count') {
             text += ' The sample size was based on a comparison of rates using [Poisson / negative binomial] assumptions, with an expected rate of [rate] in the reference group and a rate ratio of [RR].';
         }
-        text += ' The sample size was inflated by [X]% to account for anticipated loss to follow-up.\n\n';
+        // Loss-to-follow-up inflation only applies to designs that follow participants
+        // forward in time (RCTs and prospective cohorts). Skip for case-control,
+        // cross-sectional, meta-analysis, and diagnostic-accuracy templates.
+        var hasLTFU = design.indexOf('rct') !== -1 || design === 'cohort' || design === 'prospective-cohort';
+        if (hasLTFU) {
+            text += ' The sample size was inflated by [X]% to account for anticipated loss to follow-up.';
+        }
+        text += '\n\n';
 
         // --- Statistical Analysis ---
         text += 'Statistical Analysis\n\n';
@@ -1054,7 +1061,15 @@
         } else if (software === 'sas') {
             text += 'Key procedures included [list procedures, e.g., PROC PHREG, PROC LOGISTIC, PROC MI]. ';
         }
-        text += 'A two-sided P value <' + alpha + ' was considered statistically significant for the primary outcome. All confidence intervals are reported at the 95% level.\n';
+        // Honor the user's choice of one- vs two-sided alpha. The select option carries
+        // a `data-sided` attribute that we read back here.
+        var alphaSelect = document.getElementById('mg_alpha');
+        var sidedness = alphaSelect && alphaSelect.options[alphaSelect.selectedIndex]
+            ? (alphaSelect.options[alphaSelect.selectedIndex].getAttribute('data-sided') || 'two')
+            : 'two';
+        text += 'A ' + (sidedness === 'one' ? 'one-sided' : 'two-sided') + ' P value <' + alpha
+            + ' was considered statistically significant for the primary outcome. '
+            + 'All confidence intervals are reported at the 95% level.\n';
 
         // Store and display
         window._mgGeneratedText = text;

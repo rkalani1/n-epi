@@ -1067,22 +1067,22 @@
         phase: 'IV'
     },
     {
-        name: 'PACIFIC-Stroke',
-        year: 2023,
+        name: 'ARCADIA',
+        year: 2024,
         category: 'anticoagulation',
-        fullTitle: 'Prevention of Stroke Recurrence in Patients with Atrial Cardiopathy Using Apixaban',
+        fullTitle: 'Apixaban for Treatment of Embolic Stroke of Undetermined Source with Atrial Cardiopathy',
         journal: 'JAMA',
-        doi: '10.1001/jama.2023.16736',
-        sampleSize: 456,
-        population: 'Recent cryptogenic stroke with evidence of atrial cardiopathy (elevated NT-proBNP, P-wave terminal force, or left atrial enlargement) but no AF',
+        doi: '10.1001/jama.2024.4922',
+        sampleSize: 1015,
+        population: 'Recent ESUS with evidence of atrial cardiopathy (elevated NT-proBNP, P-wave terminal force in V1, or left atrial enlargement) but no AF',
         intervention: 'Apixaban 5 mg twice daily (or dose-reduced per label)',
         control: 'Aspirin 81 mg daily',
         primaryOutcome: {
-            measure: 'Recurrent stroke (ischemic or hemorrhagic) or TIA',
-            result: 'Trial stopped for futility; 5.7% vs 7.2% at median 1.5 years, HR 0.79 (0.41-1.52), p=0.49'
+            measure: 'Recurrent stroke (ischemic or hemorrhagic)',
+            result: 'Stopped early for futility; HR ~1.00 (95% CI ~0.64-1.55)'
         },
-        secondary: 'Major bleeding: 4.1% vs 0.9%. No reduction in recurrent ischemic stroke with apixaban.',
-        keyFindings: 'Failed to show benefit of anticoagulation over aspirin in cryptogenic stroke patients with atrial cardiopathy markers but no documented AF. Increased major bleeding with apixaban. Did not support empiric anticoagulation for suspected subclinical AF.',
+        secondary: 'Major bleeding similar between arms; no difference in recurrent ischemic stroke.',
+        keyFindings: 'Did not demonstrate benefit of apixaban over aspirin in ESUS with atrial-cardiopathy biomarkers and no AF. Argues against empiric anticoagulation in this subgroup. Note: figures here are summary; verify exact numerics against the published manuscript.',
         landmark: false,
         phase: 'III'
     },
@@ -1146,26 +1146,8 @@
         landmark: false,
         phase: 'II'
     },
-    {
-        name: 'WAKE-UP 2',
-        year: 2023,
-        category: 'imaging',
-        fullTitle: 'Efficacy and Safety of Thrombolysis in Wake-Up Stroke 2',
-        journal: 'The Lancet Neurology',
-        doi: '10.1016/S1474-4422(23)00334-X',
-        sampleSize: 503,
-        population: 'Wake-up stroke or unknown-onset stroke with DWI-FLAIR mismatch on MRI, no LVO',
-        intervention: 'IV alteplase 0.9 mg/kg',
-        control: 'Placebo',
-        primaryOutcome: {
-            measure: 'mRS 0-1 at 90 days',
-            result: '51.5% vs 41.5%; OR 1.49 (1.05-2.12), p=0.03'
-        },
-        secondary: 'sICH 2.8% vs 0.4%. Mortality 3.2% vs 2.4%. Ordinal mRS shift significantly favoring alteplase.',
-        keyFindings: 'Confirmed and extended the findings of the original WAKE-UP trial, reinforcing that MRI DWI-FLAIR mismatch reliably identifies wake-up stroke patients who benefit from IV thrombolysis.',
-        landmark: false,
-        phase: 'III'
-    }
-
-    ); // end push
+    // Note: a "WAKE-UP 2" entry was previously listed here but was not a verifiable
+    // published trial (the original WAKE-UP, Thomalla et al. NEJM 2018, n=503,
+    // appears in batch 1). Removed to avoid a fabricated citation.
+    );
 })();

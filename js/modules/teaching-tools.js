@@ -238,13 +238,13 @@
         {
             q: 'If a 99% CI is wider than a 95% CI for the same data, this is because:',
             options: [
-                'The 99% CI has a higher probability of containing the true parameter',
+                'A higher confidence level requires a wider interval, so the 99% CI is less precise',
                 'The 99% CI used a larger sample',
-                'The 99% CI is less precise',
-                'Both A and C are correct'
+                'The 99% CI implies a 99% probability that the true parameter lies within it',
+                'The 99% CI guarantees the true value will be in the next replication'
             ],
-            answer: 3,
-            explanation: 'A 99% CI is wider than a 95% CI because greater confidence requires a wider interval. There is a direct tradeoff: higher confidence level = wider interval = less precision. Both A and C are correct statements.'
+            answer: 0,
+            explanation: 'A 99% CI is wider than a 95% CI because higher confidence requires a wider interval (less precision). Option C is the classic Bayesian-flavored misinterpretation: in frequentist statistics, "99%" refers to the long-run coverage of the procedure across hypothetical repetitions of the study, not the probability that this particular interval contains the parameter.'
         },
         {
             q: 'A study with N=20 finds a large effect (d=0.9) but p=0.08. The most likely explanation is:',
