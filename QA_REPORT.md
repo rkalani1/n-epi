@@ -406,3 +406,34 @@ SWIFT PRIME, REVASCAT, DEFUSE 3, ISAT, SOCRATES, CHANCE, POINT now have verified
 - R-code library: Fine-Gray, E-value, modified-Poisson, MMRM recipes.
 - DALY: West-26 / GBD-2019 standard life-expectancy table.
 - Trial database: full PMID/DOI verification of all 247 entries against PubMed eUtils; remaining ~30 cross-batch duplicates with conflicting metadata.
+
+---
+
+# Round 5 — DAG back-door criterion + more trial corrections
+
+## Round 5 — fixed
+
+### DAG analyser implements Pearl back-door criterion
+- The previous tool just listed user-labelled confounders / mediators / colliders. **Now actually computes a minimal sufficient adjustment set** by:
+  1. Enumerating every undirected path from exposure to outcome and recording per-edge direction.
+  2. Filtering to back-door paths (paths whose first edge is incident-into the exposure).
+  3. For each candidate subset Z (in increasing cardinality), checking whether Z d-separates exposure from outcome on each back-door path: a path is blocked iff some non-collider on it is in Z, OR some collider on it has no descendants in Z.
+  4. Returns the smallest Z that blocks all back-door paths (or `{}` if none exist).
+- Output now states the number of back-door paths, the chosen adjustment set, what NOT to adjust for (mediators, colliders) with explanatory tooltips, and a contextual caveat about collider bias when present.
+- Heuristic fallback (the old confounder list) is retained for graphs with multiple exposures or multiple outcomes (where the back-door search would be ambiguous).
+
+### Additional trial-database corrections
+- **ANGEL-ASPECT** (was "ANGEL-ASPECTS"): renamed to canonical name; PMID 37212442 → 36762858 (Huo et al. NEJM 2023 — the verified PubMed ID).
+- **SELECT2**: PMID 37212441 → 36762870 (Sarraj et al. NEJM 2023).
+- **MR CLEAN-LATE**: journal corrected from NEJM → Lancet (Olthuis 2023 was published in Lancet, not NEJM); PMID 37212440 → 37003307; full title updated to the actual published title.
+- **ATTENTION**: the existing entry's clinical description (anterior-circulation, large-core thrombectomy) does not match the actual published ATTENTION trial (Tao 2022 NEJM, basilar artery occlusion). Flagged in-place for manual verification rather than guess-rewriting.
+
+## Tests post-Round-5
+- 86/86 numerical regression checks pass.
+- All 36 referenced JS files parse cleanly.
+
+## Round 5 — still pending follow-up
+- ATTENTION trial entry needs source-of-truth verification (most likely a mislabeled RESCUE-Japan LIMIT or TENSION).
+- Theme-change event for chart canvases.
+- Forest plot caller-controlled "Favors X / Favors Y" labels.
+- Remaining cross-batch duplicates (~30) in the trial database.

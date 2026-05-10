@@ -505,44 +505,206 @@
         var infoEl = document.getElementById('ci-dag-info');
         if (!infoEl || dagNodes.length === 0) return;
 
-        var exposures = dagNodes.filter(n => n.type === 'exposure').map(n => n.label);
-        var outcomes = dagNodes.filter(n => n.type === 'outcome').map(n => n.label);
-        var confounders = dagNodes.filter(n => n.type === 'confounder' || n.type === 'unmeasured').map(n => n.label);
-        var mediators = dagNodes.filter(n => n.type === 'mediator').map(n => n.label);
-        var colliders = dagNodes.filter(n => n.type === 'collider').map(n => n.label);
+        var nodesById = {};
+        dagNodes.forEach(function(n) { nodesById[n.id] = n; });
+        var children = {};
+        var parents = {};
+        dagNodes.forEach(function(n) { children[n.id] = []; parents[n.id] = []; });
+        dagEdges.forEach(function(e) {
+            if (children[e.from]) children[e.from].push(e.to);
+            if (parents[e.to]) parents[e.to].push(e.from);
+        });
+
+        var exposureNodes = dagNodes.filter(function(n) { return n.type === 'exposure'; });
+        var outcomeNodes  = dagNodes.filter(function(n) { return n.type === 'outcome'; });
+        var confounders = dagNodes.filter(function(n) { return n.type === 'confounder' || n.type === 'unmeasured'; }).map(function(n) { return n.label; });
+        var mediators = dagNodes.filter(function(n) { return n.type === 'mediator'; }).map(function(n) { return n.label; });
+        var colliders = dagNodes.filter(function(n) { return n.type === 'collider'; }).map(function(n) { return n.label; });
+
+        // ------------------------------------------------------------
+        // Pearl back-door criterion: enumerate ALL undirected paths from
+        // exposure to outcome, classify each edge as "into" or "out of"
+        // each node it touches, and find paths that begin with an arrow
+        // INTO the exposure (back-door paths). A path is blocked by an
+        // adjustment set Z iff (a) it contains a non-collider that is in Z,
+        // OR (b) it contains a collider whose descendants (incl. itself) are
+        // NOT in Z. We iterate over node subsets and report a minimal
+        // sufficient adjustment set.
+        // ------------------------------------------------------------
+        function descendants(start) {
+            var seen = {}; var stack = [start];
+            while (stack.length) {
+                var v = stack.pop();
+                if (seen[v]) continue;
+                seen[v] = true;
+                (children[v] || []).forEach(function(c) { stack.push(c); });
+            }
+            return seen;
+        }
+        function enumeratePaths(srcId, dstId) {
+            // DFS over undirected graph storing edge directions
+            var paths = [];
+            function visit(node, visited, pathNodes, pathDirs) {
+                if (node === dstId) {
+                    paths.push({ nodes: pathNodes.slice(), dirs: pathDirs.slice() });
+                    return;
+                }
+                if (paths.length > 200) return; // safety
+                visited[node] = true;
+                // outgoing edges
+                (children[node] || []).forEach(function(next) {
+                    if (visited[next]) return;
+                    pathNodes.push(next);
+                    pathDirs.push({from: node, to: next, direction: 'out'}); // arrow node -> next
+                    visit(next, visited, pathNodes, pathDirs);
+                    pathNodes.pop();
+                    pathDirs.pop();
+                });
+                // incoming edges
+                (parents[node] || []).forEach(function(prev) {
+                    if (visited[prev]) return;
+                    pathNodes.push(prev);
+                    pathDirs.push({from: prev, to: node, direction: 'in'}); // arrow prev -> node
+                    visit(prev, visited, pathNodes, pathDirs);
+                    pathNodes.pop();
+                    pathDirs.pop();
+                });
+                visited[node] = false;
+            }
+            visit(srcId, {}, [srcId], []);
+            return paths;
+        }
+        function isBackdoor(path) {
+            // The first edge is incident to source. Direction "in" w.r.t. source
+            // means arrow into source (back-door). Direction "out" means causal/forward.
+            if (!path.dirs.length) return false;
+            var first = path.dirs[0];
+            return first.direction === 'in';
+        }
+        function classifyNonCollider(path, idx) {
+            // returns true iff node at idx is a NON-collider on the path
+            // (collider <=> two arrows point INTO the node from its two neighbours)
+            if (idx === 0 || idx === path.nodes.length - 1) return true;
+            var leftDir  = path.dirs[idx - 1]; // neighbour-to-node or node-to-neighbour
+            var rightDir = path.dirs[idx];
+            var leftPointsIn  = leftDir.to === path.nodes[idx];
+            var rightPointsIn = rightDir.to === path.nodes[idx];
+            return !(leftPointsIn && rightPointsIn);
+        }
+        function pathBlockedBy(path, Z) {
+            // Returns true iff at least one node on the path satisfies one of:
+            //  - non-collider AND in Z (blocks)
+            //  - collider AND neither it nor any descendant is in Z (blocks)
+            for (var i = 1; i < path.nodes.length - 1; i++) {
+                var node = path.nodes[i];
+                var nonCol = classifyNonCollider(path, i);
+                if (nonCol) {
+                    if (Z[node]) return true;
+                } else {
+                    var d = descendants(node);
+                    var anyDescInZ = false;
+                    for (var k in Z) {
+                        if (Z[k] && (d[k] || k === node)) { anyDescInZ = true; break; }
+                    }
+                    if (!anyDescInZ) return true;
+                }
+            }
+            return false;
+        }
+        function blocksAllBackdoor(Z, paths) {
+            for (var i = 0; i < paths.length; i++) {
+                if (!isBackdoor(paths[i])) continue;
+                if (!pathBlockedBy(paths[i], Z)) return false;
+            }
+            return true;
+        }
+        function findMinimalAdjustment(srcId, dstId, candidateIds) {
+            var paths = enumeratePaths(srcId, dstId);
+            // Subsets in size order (0, 1, 2, ..., k)
+            for (var size = 0; size <= candidateIds.length && size <= 5; size++) {
+                var combos = [];
+                (function combine(start, current) {
+                    if (current.length === size) { combos.push(current.slice()); return; }
+                    for (var i = start; i < candidateIds.length; i++) {
+                        current.push(candidateIds[i]);
+                        combine(i + 1, current);
+                        current.pop();
+                    }
+                })(0, []);
+                for (var c = 0; c < combos.length; c++) {
+                    var Z = {};
+                    combos[c].forEach(function(id) { Z[id] = true; });
+                    if (blocksAllBackdoor(Z, paths)) {
+                        return combos[c].map(function(id) { return nodesById[id].label; });
+                    }
+                }
+            }
+            return null;
+        }
+
+        var adjustmentSets = [];
+        var backdoorPathCount = 0;
+        if (exposureNodes.length === 1 && outcomeNodes.length === 1) {
+            var src = exposureNodes[0].id, dst = outcomeNodes[0].id;
+            var paths = enumeratePaths(src, dst);
+            backdoorPathCount = paths.filter(isBackdoor).length;
+            // Candidate adjustment nodes: anything except exposure, outcome,
+            // mediators (which lie on causal paths), or pure colliders without
+            // a directed path back to the outcome.
+            var candidates = dagNodes
+                .filter(function(n) { return n.id !== src && n.id !== dst && n.type !== 'mediator'; })
+                .map(function(n) { return n.id; });
+            var minSet = findMinimalAdjustment(src, dst, candidates);
+            if (minSet !== null) adjustmentSets.push(minSet);
+        }
 
         var html = '<div class="result-panel animate-in mt-1">';
-        html += '<div class="card-title">Causal Structure Analysis</div>';
+        html += '<div class="card-title">Causal Structure Analysis (Pearl back-door criterion)</div>';
 
-        if (exposures.length && outcomes.length) {
-            html += '<p style="font-size:0.9rem;"><strong>Path:</strong> ' + exposures.join(', ') + ' &rarr; ' + outcomes.join(', ') + '</p>';
+        if (exposureNodes.length && outcomeNodes.length) {
+            html += '<p style="font-size:0.9rem;"><strong>Causal question:</strong> '
+                + exposureNodes.map(function(n) { return n.label; }).join(', ')
+                + ' &rarr; '
+                + outcomeNodes.map(function(n) { return n.label; }).join(', ')
+                + '</p>';
+            if (exposureNodes.length === 1 && outcomeNodes.length === 1) {
+                html += '<p style="font-size:0.85rem;color:var(--text-secondary);">Found ' + backdoorPathCount + ' back-door path' + (backdoorPathCount === 1 ? '' : 's') + ' between exposure and outcome.</p>';
+            } else {
+                html += '<p style="font-size:0.85rem;color:var(--warning);">Adjustment-set search supports a single exposure and single outcome; using the labelled-confounder heuristic instead.</p>';
+            }
         }
 
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;font-size:0.85rem;">';
 
-        // Adjustment set
         html += '<div>';
-        html += '<div style="font-weight:600;color:var(--success);">Adjust For (Confounders):</div>';
-        html += '<ul>' + (confounders.length ? confounders.map(c => '<li>' + c + '</li>').join('') : '<li>No confounders identified</li>') + '</ul>';
+        html += '<div style="font-weight:600;color:var(--success);">Minimal sufficient adjustment set:</div>';
+        if (adjustmentSets.length && adjustmentSets[0].length === 0) {
+            html += '<ul><li>{} — empty set; back-door paths are already blocked (or none exist)</li></ul>';
+        } else if (adjustmentSets.length) {
+            html += '<ul><li>{ ' + adjustmentSets[0].join(', ') + ' }</li></ul>';
+        } else if (confounders.length) {
+            html += '<ul>' + confounders.map(function(c) { return '<li>' + c + '</li>'; }).join('') + '</ul>';
+            html += '<div style="font-size:0.78rem;color:var(--text-tertiary);">(Fall-back: user-labelled confounders; back-door search did not converge within size limit.)</div>';
+        } else {
+            html += '<ul><li>No adjustment set computed</li></ul>';
+        }
         html += '</div>';
 
-        // Forbidden set
         html += '<div>';
-        html += '<div style="font-weight:600;color:var(--danger);">Do NOT Adjust For:</div>';
+        html += '<div style="font-weight:600;color:var(--danger);">Do NOT adjust for:</div>';
         html += '<ul>';
-        if (mediators.length) html += '<li title="Adjusting for mediators blocks the causal path">Mediators: ' + mediators.join(', ') + '</li>';
-        if (colliders.length) html += '<li title="Adjusting for colliders introduces selection bias">Colliders: ' + colliders.join(', ') + '</li>';
+        if (mediators.length) html += '<li title="Adjusting for mediators blocks part of the causal path; estimates direct effect rather than total effect">Mediators: ' + mediators.join(', ') + '</li>';
+        if (colliders.length) html += '<li title="Adjusting for colliders opens a non-causal path between exposure and outcome">Colliders: ' + colliders.join(', ') + '</li>';
         if (!mediators.length && !colliders.length) html += '<li>None identified</li>';
         html += '</ul>';
         html += '</div>';
 
         html += '</div>';
 
-        // AI Insight
         var insight = '';
-        if (colliders.length > 0) insight = '<strong>Warning:</strong> Collider bias detected. Adjusting for ' + colliders[0] + ' will open a non-causal path between exposure and outcome.';
-        else if (confounders.length > 0) insight = 'To estimate the total effect, you should perform multivariable adjustment or use propensity score methods for ' + confounders.join(', ') + '.';
-        else if (mediators.length > 0) insight = 'Adjusting for ' + mediators[0] + ' will allow you to estimate the Direct Effect, but will bias the Total Effect estimate.';
+        if (colliders.length > 0) insight = '<strong>Warning:</strong> Collider bias possible. Adjusting for <em>' + colliders[0] + '</em> would open a non-causal path between exposure and outcome.';
+        else if (adjustmentSets.length && adjustmentSets[0].length > 0) insight = 'Estimate the total effect by adjusting for the variables listed above (multivariable regression, IPTW, or matching).';
+        else if (mediators.length > 0) insight = 'Adjusting for <em>' + mediators[0] + '</em> would estimate the controlled direct effect, not the total effect.';
 
         if (insight) html += '<div class="result-detail mt-1" style="border-top:1px solid var(--border);padding-top:0.5rem;">' + insight + '</div>';
 

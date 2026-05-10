@@ -406,11 +406,11 @@ var TrialDatabase = {
       tags: ["endovascular", "late window", "perfusion mismatch", "16-hour"]
     },
     {
-      name: "MR CLEAN LATE",
-      fullTitle: "MR CLEAN LATE: Endovascular Treatment in the Late Time Window",
+      name: "MR CLEAN-LATE",
+      fullTitle: "Endovascular treatment versus no endovascular treatment after 6-24 h in patients with ischaemic stroke and collateral flow on CT angiography (MR CLEAN-LATE)",
       year: 2023,
-      journal: "New England Journal of Medicine",
-      pmid: "37212440",
+      journal: "Lancet",
+      pmid: "37003307",
       design: "Phase 3 RCT, open-label with blinded outcome assessment",
       n: 502,
       population: "LVO stroke 6-24 hours with collateral-based imaging selection on CTA",
@@ -431,11 +431,11 @@ var TrialDatabase = {
       tags: ["endovascular", "late window", "collaterals", "CTA-based selection"]
     },
     {
-      name: "ANGEL-ASPECTS",
-      fullTitle: "Endovascular Treatment for Acute Anterior Circulation Large Vessel Occlusion with a Large Ischemic Core",
+      name: "ANGEL-ASPECT",
+      fullTitle: "Trial of Endovascular Therapy for Acute Ischemic Stroke with Large Infarct (ANGEL-ASPECT)",
       year: 2023,
       journal: "New England Journal of Medicine",
-      pmid: "37212442",
+      pmid: "36762858",
       design: "Phase 3 RCT, open-label with blinded outcome assessment",
       n: 456,
       population: "Anterior circulation LVO stroke within 24 hours with large ischemic core (ASPECTS 3-5)",
@@ -457,10 +457,10 @@ var TrialDatabase = {
     },
     {
       name: "SELECT2",
-      fullTitle: "Endovascular Thrombectomy for Large Ischemic Core Stroke",
+      fullTitle: "Trial of Endovascular Thrombectomy for Large Ischemic Strokes (SELECT2)",
       year: 2023,
       journal: "New England Journal of Medicine",
-      pmid: "37212441",
+      pmid: "36762870",
       design: "Phase 3 RCT, open-label with blinded outcome assessment",
       n: 352,
       population: "Anterior circulation LVO stroke within 24 hours with large ischemic core (>=50 mL on CT perfusion or ASPECTS 3-5)",
@@ -481,11 +481,16 @@ var TrialDatabase = {
       tags: ["endovascular", "large core", "LVO", "CT perfusion"]
     },
     {
-      name: "ATTENTION",
-      fullTitle: "Endovascular Treatment for Acute Anterior Circulation Large Vessel Occlusion Stroke with Large Infarct",
+      // NOTE: The data below describes a large-core anterior thrombectomy
+      // trial. The ATTENTION trial (Tao 2022 NEJM, PMID 36138605) actually
+      // tested basilar artery thrombectomy — the entry name is likely a
+      // mislabel for a different trial (RESCUE-Japan LIMIT / TENSION-style).
+      // Marked as needing manual verification against the original publication.
+      name: "ATTENTION (verify entry; description does not match published basilar trial)",
+      fullTitle: "Endovascular Treatment for Acute Anterior Circulation Large Vessel Occlusion Stroke with Large Infarct (entry needs verification)",
       year: 2023,
       journal: "New England Journal of Medicine",
-      pmid: "37212439",
+      pmid: "verify-against-PubMed",
       design: "Phase 3 RCT, open-label with blinded outcome assessment",
       n: 340,
       population: "Anterior circulation LVO stroke within 24 hours with large ischemic core (ASPECTS 3-5)",
