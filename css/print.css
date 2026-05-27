@@ -1,0 +1,175 @@
+/* Neuro-Epi — Print Stylesheet */
+@media print {
+    body {
+        background: white;
+        color: #000;
+        font-size: 11pt;
+        line-height: 1.5;
+    }
+
+    /* Hide interactive elements */
+    .sidebar,
+    .mobile-nav,
+    .mobile-header,
+    .sidebar-overlay,
+    .btn,
+    .r-script-btn,
+    .theme-toggle,
+    .chart-actions,
+    .preset-group,
+    .filter-tags,
+    .search-box,
+    .ne-toast,
+    .command-palette-overlay,
+    .shortcuts-modal,
+    .breadcrumbs,
+    .module-footer,
+    .r-script-overlay,
+    .favorites-star,
+    .tabs,
+    .expandable-header,
+    .copy-btn {
+        display: none !important;
+    }
+
+    /* Show expandable content */
+    .expandable-body,
+    .learn-body {
+        display: block !important;
+        max-height: none !important;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 0;
+        max-width: 100%;
+    }
+
+    .app-layout {
+        display: block;
+    }
+
+    /* Cards */
+    .card {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        page-break-inside: avoid;
+        margin-bottom: 12pt;
+        padding: 10pt;
+    }
+
+    .card-title {
+        color: #000;
+        font-size: 12pt;
+        border-bottom: 1px solid #999;
+        padding-bottom: 4pt;
+        margin-bottom: 8pt;
+    }
+
+    /* Results */
+    .result-panel {
+        border-left: 3px solid #000;
+        background: #f5f5f5;
+        page-break-inside: avoid;
+        padding: 8pt;
+    }
+
+    .result-value {
+        color: #000;
+        font-size: 16pt;
+    }
+
+    .result-grid {
+        page-break-inside: avoid;
+    }
+
+    .result-item {
+        border: 1px solid #ddd;
+        background: #fafafa;
+    }
+
+    /* Tables */
+    .data-table {
+        font-size: 9pt;
+        page-break-inside: auto;
+    }
+
+    .data-table th,
+    .data-table td {
+        border: 1px solid #ccc;
+        padding: 3pt 6pt;
+    }
+
+    .data-table th {
+        background: #eee !important;
+        color: #000 !important;
+    }
+
+    .data-table tr {
+        page-break-inside: avoid;
+    }
+
+    /* Charts */
+    canvas {
+        max-width: 100%;
+        page-break-inside: avoid;
+    }
+
+    .chart-container {
+        page-break-inside: avoid;
+        margin: 8pt 0;
+    }
+
+    /* Links */
+    a[href]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #666;
+    }
+
+    /* Headers */
+    .module-header h1 {
+        color: #000;
+        border-bottom: 2px solid #000;
+        padding-bottom: 6pt;
+        font-size: 16pt;
+    }
+
+    .module-header .module-subtitle {
+        color: #333;
+    }
+
+    /* Form elements (read-only print) */
+    .form-input, .form-select {
+        border: 1px solid #ccc;
+        background: #fafafa;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Text outputs */
+    .text-output {
+        border: 1px solid #ddd;
+        background: #f9f9f9;
+        font-size: 10pt;
+    }
+
+    /* Page breaks */
+    h1, h2, h3 {
+        page-break-after: avoid;
+    }
+
+    .result-panel, .card {
+        page-break-before: auto;
+    }
+
+    /* Footer */
+    @page {
+        margin: 1.5cm;
+        @bottom-center {
+            content: "Neuro-Epi Suite — neuroepi-suite.github.io";
+            font-size: 8pt;
+            color: #999;
+        }
+    }
+}
