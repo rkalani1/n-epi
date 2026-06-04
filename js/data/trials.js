@@ -481,34 +481,30 @@ var TrialDatabase = {
       tags: ["endovascular", "large core", "LVO", "CT perfusion"]
     },
     {
-      // NOTE: The data below describes a large-core anterior thrombectomy
-      // trial. The ATTENTION trial (Tao 2022 NEJM, PMID 36138605) actually
-      // tested basilar artery thrombectomy — the entry name is likely a
-      // mislabel for a different trial (RESCUE-Japan LIMIT / TENSION-style).
-      // Marked as needing manual verification against the original publication.
-      name: "ATTENTION (verify entry; description does not match published basilar trial)",
-      fullTitle: "Endovascular Treatment for Acute Anterior Circulation Large Vessel Occlusion Stroke with Large Infarct (entry needs verification)",
-      year: 2023,
+      name: "ATTENTION",
+      fullTitle: "Trial of Endovascular Treatment of Acute Basilar-Artery Occlusion",
+      year: 2022,
       journal: "New England Journal of Medicine",
-      pmid: "verify-against-PubMed",
+      pmid: "36239645",
       design: "Phase 3 RCT, open-label with blinded outcome assessment",
       n: 340,
-      population: "Anterior circulation LVO stroke within 24 hours with large ischemic core (ASPECTS 3-5)",
-      intervention: "Endovascular thrombectomy + medical care",
-      comparator: "Medical care alone",
+      population: "Acute basilar-artery occlusion (BAO), NIHSS ≥ 10, within 12 hours of estimated stroke onset (China)",
+      intervention: "Endovascular thrombectomy + best medical management",
+      comparator: "Best medical management alone",
       primaryOutcome: {
-        measure: "mRS distribution (ordinal shift) at 90 days",
-        result: "Adjusted cOR 1.57",
-        ci: "1.18-2.08",
-        pValue: "p=0.002"
+        measure: "Good functional status (mRS 0-3) at 90 days",
+        result: "46% (EVT) vs 23% (control); adjusted RR 2.06",
+        ci: "1.46-2.91",
+        pValue: "p<0.001"
       },
       keySecondary: [
-        "mRS 0-3: 47.0% vs 34.2%",
-        "sICH 6.5% vs 2.4%"
+        "Mortality at 90 days: 37% (EVT) vs 55% (control), adjusted RR 0.66 (0.52-0.82)",
+        "sICH within 24 h: 5% vs 0%",
+        "Procedural complication: 14% in EVT group"
       ],
-      significance: "Third major trial in 2023 confirming thrombectomy benefit in large core strokes. Collectively, these trials expanded indications to include patients with ASPECTS 3-5.",
+      significance: "First randomized trial to clearly demonstrate benefit of endovascular thrombectomy in basilar-artery occlusion within 12 hours. Together with BAOCHE (NEJM 2022), established EVT as standard of care for acute BAO in selected patients.",
       category: "thrombectomy",
-      tags: ["endovascular", "large core", "low ASPECTS", "Chinese population"]
+      tags: ["endovascular", "basilar artery occlusion", "posterior circulation", "BAO"]
     },
     {
       name: "RESCUE-Japan LIMIT",

@@ -362,6 +362,11 @@ var Charts = (() => {
         var heterogeneity = options.heterogeneity; // {I2, Q, p, tau2}
         var subgroupSummaries = options.subgroupSummaries; // {groupName: {estimate, ci:{lower,upper}, label?}}
         var dropShadow = options.dropShadow || false;
+        // Caller can override the "Favors X" labels under the null line — important
+        // for measures where the convention differs (e.g., HR < 1 favours
+        // experimental, but the label depends on which arm is which).
+        var leftLabel = options.leftLabel || 'Favors Treatment';
+        var rightLabel = options.rightLabel || 'Favors Control';
 
         var theme = getTheme();
         var rowH = 28;
@@ -664,10 +669,10 @@ var Charts = (() => {
         var nv = logScale ? Math.exp(nullValue).toFixed(1) : nullValue.toFixed(1);
         ctx.fillText(nv, sx(nullValue), y + 25);
 
-        // Favors labels
+        // Favors labels (caller-overridable via options.leftLabel / rightLabel)
         ctx.font = '10px system-ui, -apple-system, sans-serif';
-        ctx.fillText('\u2190 Favors Treatment', (plotLeft + sx(nullValue)) / 2, y + 40);
-        ctx.fillText('Favors Control \u2192', (sx(nullValue) + plotRight) / 2, y + 40);
+        ctx.fillText('\u2190 ' + leftLabel, (plotLeft + sx(nullValue)) / 2, y + 40);
+        ctx.fillText(rightLabel + ' \u2192', (sx(nullValue) + plotRight) / 2, y + 40);
 
         // Heterogeneity statistics below the plot
         if (heterogeneity) {
@@ -2465,5 +2470,29 @@ var Charts = (() => {
         setupCanvas: setupCanvas
     };
 })();
+
+// Theme-aware redraw: when app.js dispatches 'nepi:themechange', every
+// currently-visible canvas that registered a `_reDraw(ctx, width, height)`
+// callback gets re-rendered with the new palette. Charts that don't
+// register one are unaffected.
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('nepi:themechange', function () {
+        var canvases = document.querySelectorAll('canvas');
+        canvases.forEach(function (c) {
+            if (typeof c._reDraw !== 'function') return;
+            var w = parseInt(c.style.width, 10) || c.width;
+            var h = parseInt(c.style.height, 10) || c.height;
+            var ctx = c.getContext('2d');
+            ctx.clearRect(0, 0, c.width, c.height);
+            // setupCanvas resets dpr scaling cleanly
+            var dpr = window.devicePixelRatio || 1;
+            c.width = w * dpr;
+            c.height = h * dpr;
+            ctx = c.getContext('2d');
+            ctx.scale(dpr, dpr);
+            try { c._reDraw(ctx, w, h); } catch (e) { /* ignore */ }
+        });
+    });
+}
 
 if (typeof module !== 'undefined') module.exports = Charts;

@@ -437,3 +437,49 @@ SWIFT PRIME, REVASCAT, DEFUSE 3, ISAT, SOCRATES, CHANCE, POINT now have verified
 - Theme-change event for chart canvases.
 - Forest plot caller-controlled "Favors X / Favors Y" labels.
 - Remaining cross-batch duplicates (~30) in the trial database.
+
+---
+
+# Round 6 — Charts, R-code recipes, DALY standard tables, ATTENTION trial fix
+
+## Round 6 — fixed
+
+### Charts
+- **Theme-aware chart redraw**: `app.js` `toggleTheme()` now dispatches
+  `nepi:themechange`; `charts.js` registers a window listener that
+  re-invokes every visible canvas's `_reDraw(ctx, w, h)` callback so colors
+  refresh without navigating away. Charts that have not registered a
+  `_reDraw` are simply untouched.
+- **Forest plot "Favors" labels are caller-controllable**: `ForestPlot` now
+  reads `options.leftLabel` and `options.rightLabel`. Default remains
+  "Favors Treatment" / "Favors Control" so existing callers don't break.
+
+### R-code library
+Three new recipes added:
+- **Fine-Gray competing-risks model** (`cmprsk::crr`) with subdistribution
+  hazard ratios, cumulative-incidence plot, and the recommended dual report
+  alongside cause-specific Cox per Austin & Fine 2017.
+- **Modified-Poisson for prevalence ratios** (`glm(family=poisson(log)) +
+  sandwich`) — Zou 2004 alternative to log-binomial for common outcomes.
+- **E-value sensitivity analysis** for OR / RR / HR (`EValue::evalues.*`)
+  per VanderWeele & Ding 2017, with explicit guidance to report E-values
+  for both point estimate and CI limit closest to the null.
+- **MMRM** via `nlme::gls` with unstructured covariance and `emmeans`
+  contrasts at each visit, for longitudinal continuous endpoints.
+
+### DALY
+- **Standard life-expectancy tables**: GBD 2019 SLT and Coale-Demeny West
+  Level 26, with linear interpolation by age. User can leave it on "manual"
+  or pick a table; "Age at death" change auto-fills "Remaining life
+  expectancy" from the selected table.
+
+### Trial database
+- **ATTENTION** entry was previously flagged as needing verification (the
+  description conflated parameters from multiple anterior-circulation
+  large-core trials). Replaced with the verified ATTENTION basilar-artery
+  trial (Tao et al. NEJM 2022;387:1361; PMID 36239645; n=340; mRS 0-3 at
+  90d, 46% vs 23%; adjusted RR 2.06, 95% CI 1.46-2.91).
+
+## Tests post-Round-6
+- 40/40 numerical regression tests pass.
+- All 36 referenced JS files parse cleanly.

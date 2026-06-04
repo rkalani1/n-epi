@@ -966,9 +966,16 @@ const App = (() => {
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('neuroepi_theme', next);
         updateThemeIcon(next);
+        // Notify the current module via its onThemeChange callback (if any).
         if (currentModule && modules[currentModule] && modules[currentModule].onThemeChange) {
-            modules[currentModule].onThemeChange();
+            try { modules[currentModule].onThemeChange(next); } catch (e) { /* ignore */ }
         }
+        // Broadcast for any chart canvas that registered itself via
+        // canvas._reDraw — charts.js listens for this on the window and
+        // re-renders so the new theme colors take effect without a navigate.
+        try {
+            window.dispatchEvent(new CustomEvent('nepi:themechange', { detail: { theme: next } }));
+        } catch (e) { /* ignore */ }
     }
 
     function updateThemeIcon(theme) {

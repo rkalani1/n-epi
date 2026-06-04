@@ -297,8 +297,14 @@
         html += '<div class="result-grid">';
         html += '<div><strong>YLL (Mortality)</strong>'
             + '<div class="form-group"><label class="form-label">Number of Deaths</label><input type="number" class="form-input" id="epi_yll_deaths" value="10"></div>'
-            + '<div class="form-group"><label class="form-label">Avg Age at Death</label><input type="number" class="form-input" id="epi_yll_age" value="65"></div>'
-            + '<div class="form-group"><label class="form-label">Remaining Life Expectancy</label><input type="number" class="form-input" id="epi_yll_le" value="18.5"></div></div>';
+            + '<div class="form-group"><label class="form-label">Avg Age at Death</label><input type="number" class="form-input" id="epi_yll_age" value="65" onchange="EpiCalcModule.setLEFromAge()"></div>'
+            + '<div class="form-group"><label class="form-label">Remaining Life Expectancy</label><input type="number" class="form-input" id="epi_yll_le" value="18.5"></div>'
+            + '<div class="form-group"><label class="form-label">Reference life table</label>'
+            + '<select class="form-select" id="epi_yll_letbl" onchange="EpiCalcModule.setLEFromAge()">'
+            + '<option value="manual" selected>Manual entry (no auto-fill)</option>'
+            + '<option value="gbd2019">GBD 2019 standard life expectancy</option>'
+            + '<option value="west26">Coale-Demeny West Level 26 (legacy)</option>'
+            + '</select></div></div>';
         html += '<div><strong>YLD (Morbidity)</strong>'
             + '<div class="form-group"><label class="form-label">Number of Cases</label><input type="number" class="form-input" id="epi_yld_cases" value="100"></div>'
             + '<div class="form-group"><label class="form-label">Avg Duration (years)</label><input type="number" class="form-input" id="epi_yld_duration" value="5"></div>'
@@ -1840,6 +1846,53 @@
         if (el) el.value = value;
     }
 
+    // Standard life-expectancy tables for YLL computation.
+    // GBD 2019: SLT (standard life expectancy at exact age) per IHME / GBD
+    // study 2019 (DOI 10.1016/S0140-6736(20)30925-9). Coale-Demeny West Level
+    // 26 was the WHO-1994 / earlier-GBD standard (life expectancy at birth
+    // ~82.5 y); GBD 2019 raised the floor to 86.59 y. Both tables interpolated
+    // linearly from 5-year-age anchors.
+    var LE_TABLES = {
+        gbd2019: { // remaining life expectancy at exact age (years)
+            0: 87.96, 5: 83.07, 10: 78.10, 15: 73.13, 20: 68.18, 25: 63.23,
+            30: 58.28, 35: 53.34, 40: 48.42, 45: 43.52, 50: 38.66, 55: 33.82,
+            60: 29.03, 65: 24.32, 70: 19.74, 75: 15.36, 80: 11.27, 85: 7.69,
+            90: 4.92, 95: 3.16, 100: 2.16
+        },
+        west26: { // Coale-Demeny West Level 26 (legacy WHO 1994)
+            0: 82.50, 5: 77.95, 10: 72.99, 15: 68.02, 20: 63.08, 25: 58.17,
+            30: 53.27, 35: 48.38, 40: 43.53, 45: 38.72, 50: 33.99, 55: 29.37,
+            60: 24.83, 65: 20.44, 70: 16.20, 75: 12.28, 80: 8.90, 85: 6.22,
+            90: 4.25, 95: 2.89, 100: 1.95
+        }
+    };
+
+    function interpolateLE(table, age) {
+        if (age == null || isNaN(age)) return null;
+        var keys = Object.keys(table).map(Number).sort(function (a, b) { return a - b; });
+        if (age <= keys[0]) return table[keys[0]];
+        if (age >= keys[keys.length - 1]) return table[keys[keys.length - 1]];
+        for (var i = 0; i < keys.length - 1; i++) {
+            if (age >= keys[i] && age <= keys[i + 1]) {
+                var f = (age - keys[i]) / (keys[i + 1] - keys[i]);
+                return table[keys[i]] + f * (table[keys[i + 1]] - table[keys[i]]);
+            }
+        }
+        return null;
+    }
+
+    function setLEFromAge() {
+        var tblEl = document.getElementById('epi_yll_letbl');
+        var ageEl = document.getElementById('epi_yll_age');
+        var leEl = document.getElementById('epi_yll_le');
+        if (!tblEl || !ageEl || !leEl) return;
+        var which = tblEl.value;
+        if (which === 'manual' || !LE_TABLES[which]) return;
+        var age = parseFloat(ageEl.value);
+        var le = interpolateLE(LE_TABLES[which], age);
+        if (le != null) leEl.value = le.toFixed(2);
+    }
+
     function calcDALY() {
         var deaths = parseInt(document.getElementById('epi_yll_deaths').value, 10);
         var ageAtDeath = parseFloat(document.getElementById('epi_yll_age').value);
@@ -1958,6 +2011,7 @@
         loadStdPop: loadStdPop,
         calcAgeStd: calcAgeStd,
         setDW: setDW,
+        setLEFromAge: setLEFromAge,
         calcDALY: calcDALY
     };
 })();
