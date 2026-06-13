@@ -938,53 +938,21 @@
         }
 
         var alpha = 1 - level;
-        var z = jStat && jStat.normal ? jStat.normal.inv(1 - alpha / 2, 0, 1) : 1.96;
+        var z = Statistics.normalQuantile(1 - alpha / 2);
         var p = x / n;
 
-        // Wald
-        var waldSE = Math.sqrt(p * (1 - p) / n);
-        var waldLo = Math.max(0, p - z * waldSE);
-        var waldHi = Math.min(1, p + z * waldSE);
+        // All four interval methods come from the shared Statistics engine
+        // (loaded before every module). waldCI/wilsonCI/agrestiCoullCI take a
+        // proportion and z-score; clopperPearsonCI takes the count and alpha.
+        var wald = Statistics.waldCI(p, n, z);
+        var wilson = Statistics.wilsonCI(p, n, z);
+        var ac = Statistics.agrestiCoullCI(p, n, z);
+        var cp = Statistics.clopperPearsonCI(x, n, alpha);
 
-        // Wilson
-        var wilsonDenom = 1 + z * z / n;
-        var wilsonCenter = (p + z * z / (2 * n)) / wilsonDenom;
-        var wilsonHalf = (z / wilsonDenom) * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
-        var wilsonLo = Math.max(0, wilsonCenter - wilsonHalf);
-        var wilsonHi = Math.min(1, wilsonCenter + wilsonHalf);
-
-        // Agresti-Coull
-        var nTilde = n + z * z;
-        var pTilde = (x + z * z / 2) / nTilde;
-        var acSE = Math.sqrt(pTilde * (1 - pTilde) / nTilde);
-        var acLo = Math.max(0, pTilde - z * acSE);
-        var acHi = Math.min(1, pTilde + z * acSE);
-
-        // Clopper-Pearson (exact) using beta distribution
-        var cpLo, cpHi;
-        if (typeof jStat !== 'undefined' && jStat.beta) {
-            cpLo = x === 0 ? 0 : jStat.beta.inv(alpha / 2, x, n - x + 1);
-            cpHi = x === n ? 1 : jStat.beta.inv(1 - alpha / 2, x + 1, n - x);
-        } else {
-            cpLo = waldLo;
-            cpHi = waldHi;
-        }
-
-        var hasStats = typeof Statistics !== 'undefined';
-        if (hasStats && typeof Statistics.wilsonCI === 'function') {
-            try {
-                var wCI = Statistics.wilsonCI(x, n, level);
-                wilsonLo = wCI[0];
-                wilsonHi = wCI[1];
-            } catch (e) { /* fallback already calculated */ }
-        }
-        if (hasStats && typeof Statistics.clopperPearsonCI === 'function') {
-            try {
-                var cpCI = Statistics.clopperPearsonCI(x, n, level);
-                cpLo = cpCI[0];
-                cpHi = cpCI[1];
-            } catch (e) { /* fallback already calculated */ }
-        }
+        var waldLo = wald.lower, waldHi = wald.upper;
+        var wilsonLo = wilson.lower, wilsonHi = wilson.upper;
+        var acLo = ac.lower, acHi = ac.upper;
+        var cpLo = cp.lower, cpHi = cp.upper;
 
         var results = [
             { name: 'Wald', lo: waldLo, hi: waldHi },
