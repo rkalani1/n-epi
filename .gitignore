@@ -1,0 +1,3 @@
+# Local audit/verification working notes (eslint config, Node test harness, reports).
+# Not part of the app; kept out of the tree intentionally.
+.polish/
