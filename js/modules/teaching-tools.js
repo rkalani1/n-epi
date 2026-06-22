@@ -807,6 +807,34 @@
         return flashcardState.deck;
     }
 
+    function getFlashcardHtml(card) {
+        var bgColor = flashcardState.flipped ? 'var(--surface-2)' : 'var(--surface-1)';
+        var borderColor = flashcardState.flipped ? 'var(--accent)' : 'var(--border)';
+
+        var html = '<div onclick="window.TeachingTools.flipFlashcard()" '
+            + 'style="cursor:pointer;min-height:200px;padding:2rem;border:2px solid ' + borderColor + ';border-radius:12px;'
+            + 'background:' + bgColor + ';display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;'
+            + 'transition:all 0.2s;margin-bottom:1rem;user-select:none">';
+
+        if (!flashcardState.flipped) {
+            // Front: term
+            html += '<div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:1px">Term</div>'
+                + '<div style="font-size:1.5rem;font-weight:700;color:var(--accent)">' + card.term + '</div>'
+                + '<div style="margin-top:1.5rem;font-size:0.85rem;color:var(--text-secondary)">Click to reveal definition</div>';
+        } else {
+            // Back: definition + example
+            html += '<div style="font-size:0.8rem;color:var(--accent);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:1px">' + card.term + '</div>'
+                + '<div style="font-size:1.05rem;line-height:1.6;margin-bottom:1rem;color:var(--text-primary)">' + card.definition + '</div>'
+                + '<div style="padding:0.75rem;background:var(--surface-1);border-radius:8px;border-left:3px solid var(--accent);text-align:left;width:100%">'
+                + '<strong style="font-size:0.85rem;color:var(--accent)">Example:</strong><br>'
+                + '<span style="font-size:0.9rem;color:var(--text-secondary)">' + card.example + '</span></div>'
+                + '<div style="margin-top:1rem;font-size:0.85rem;color:var(--text-secondary)">Click to see term</div>';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
     function renderFlashcards(el) {
         var deck = getFlashcardDeck();
         var card = deck[flashcardState.currentIdx];
@@ -831,30 +859,7 @@
             + '</div></div>';
 
         // Flashcard
-        var bgColor = flashcardState.flipped ? 'var(--surface-2)' : 'var(--surface-1)';
-        var borderColor = flashcardState.flipped ? 'var(--accent)' : 'var(--border)';
-
-        html += '<div onclick="window.TeachingTools.flipFlashcard()" '
-            + 'style="cursor:pointer;min-height:200px;padding:2rem;border:2px solid ' + borderColor + ';border-radius:12px;'
-            + 'background:' + bgColor + ';display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;'
-            + 'transition:all 0.2s;margin-bottom:1rem;user-select:none">';
-
-        if (!flashcardState.flipped) {
-            // Front: term
-            html += '<div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:1px">Term</div>'
-                + '<div style="font-size:1.5rem;font-weight:700;color:var(--accent)">' + card.term + '</div>'
-                + '<div style="margin-top:1.5rem;font-size:0.85rem;color:var(--text-secondary)">Click to reveal definition</div>';
-        } else {
-            // Back: definition + example
-            html += '<div style="font-size:0.8rem;color:var(--accent);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:1px">' + card.term + '</div>'
-                + '<div style="font-size:1.05rem;line-height:1.6;margin-bottom:1rem;color:var(--text-primary)">' + card.definition + '</div>'
-                + '<div style="padding:0.75rem;background:var(--surface-1);border-radius:8px;border-left:3px solid var(--accent);text-align:left;width:100%">'
-                + '<strong style="font-size:0.85rem;color:var(--accent)">Example:</strong><br>'
-                + '<span style="font-size:0.9rem;color:var(--text-secondary)">' + card.example + '</span></div>'
-                + '<div style="margin-top:1rem;font-size:0.85rem;color:var(--text-secondary)">Click to see term</div>';
-        }
-
-        html += '</div>';
+        html += getFlashcardHtml(card);
 
         // Navigation buttons
         html += '<div style="display:flex;justify-content:center;gap:0.5rem;align-items:center">'
