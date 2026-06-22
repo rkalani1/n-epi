@@ -1,0 +1,12 @@
+{
+  "name": "n-epi",
+  "version": "1.0.0",
+  "description": "Comprehensive epidemiology, biostatistics, and clinical research platform.",
+  "main": "index.html",
+  "scripts": {
+    "test": "node js/tests/biostats-reference.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0"
+  }
+}
