@@ -506,62 +506,64 @@ const App = (() => {
     // KEYBOARD SHORTCUTS
     // ============================================================
 
+    function handleGlobalKeydown(e) {
+        // Ignore shortcuts when typing in inputs (except Escape and Cmd+K)
+        var tag = e.target.tagName;
+        var isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
+
+        // Cmd+K / Ctrl+K — Command Palette
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            if (commandPaletteOpen) {
+                closeCommandPalette();
+            } else {
+                openCommandPalette();
+            }
+            return;
+        }
+
+        // Escape — close overlays
+        if (e.key === 'Escape') {
+            if (commandPaletteOpen) {
+                closeCommandPalette();
+                return;
+            }
+            if (shortcutsModalOpen) {
+                closeShortcutsModal();
+                return;
+            }
+            // Close sidebar on mobile
+            closeSidebar();
+            return;
+        }
+
+        if (isInput) return;
+
+        // ? — Shortcuts help
+        if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            if (shortcutsModalOpen) {
+                closeShortcutsModal();
+            } else {
+                showShortcutsModal();
+            }
+            return;
+        }
+
+        // 1-7 — Quick switch nav groups
+        if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+            var num = parseInt(e.key, 10);
+            if (num >= 1 && num <= 7 && num <= NAV.length) {
+                e.preventDefault();
+                var firstItem = NAV[num - 1].items[0];
+                if (firstItem) navigate(firstItem.id);
+                return;
+            }
+        }
+    }
+
     function initKeyboardShortcuts() {
-        document.addEventListener('keydown', function (e) {
-            // Ignore shortcuts when typing in inputs (except Escape and Cmd+K)
-            var tag = e.target.tagName;
-            var isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
-
-            // Cmd+K / Ctrl+K — Command Palette
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                if (commandPaletteOpen) {
-                    closeCommandPalette();
-                } else {
-                    openCommandPalette();
-                }
-                return;
-            }
-
-            // Escape — close overlays
-            if (e.key === 'Escape') {
-                if (commandPaletteOpen) {
-                    closeCommandPalette();
-                    return;
-                }
-                if (shortcutsModalOpen) {
-                    closeShortcutsModal();
-                    return;
-                }
-                // Close sidebar on mobile
-                closeSidebar();
-                return;
-            }
-
-            if (isInput) return;
-
-            // ? — Shortcuts help
-            if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
-                e.preventDefault();
-                if (shortcutsModalOpen) {
-                    closeShortcutsModal();
-                } else {
-                    showShortcutsModal();
-                }
-                return;
-            }
-
-            // 1-7 — Quick switch nav groups
-            if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-                var num = parseInt(e.key, 10);
-                if (num >= 1 && num <= 7 && num <= NAV.length) {
-                    e.preventDefault();
-                    var firstItem = NAV[num - 1].items[0];
-                    if (firstItem) navigate(firstItem.id);
-                    return;
-                }
-            }
-        });
+        document.addEventListener('keydown', handleGlobalKeydown);
     }
 
     // ============================================================
