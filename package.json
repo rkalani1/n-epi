@@ -1,0 +1,18 @@
+{
+  "name": "neuroepi-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive epidemiology, biostatistics, and clinical research platform.",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.4.1",
+    "jsdom": "^24.1.0"
+  }
+}

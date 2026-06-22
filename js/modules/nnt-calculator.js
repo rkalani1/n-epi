@@ -778,6 +778,9 @@
         calcPEER: calcPEER,
         copyAll: copyAll,
         redrawCates: redrawCates,
-        calcNNTOverTime: calcNNTOverTime
+        calcNNTOverTime: calcNNTOverTime,
+        // Exported for testing
+        _ratesTo2x2: ratesTo2x2,
+        _publishedTo2x2: publishedTo2x2
     };
 })();
