@@ -1,0 +1,12 @@
+{
+  "name": "n-epi",
+  "version": "1.0.0",
+  "description": "Comprehensive epidemiology, biostatistics, and clinical research platform.",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}
