@@ -568,22 +568,8 @@ const App = (() => {
     // SHORTCUTS MODAL
     // ============================================================
 
-    function showShortcutsModal() {
-        closeCommandPalette();
-        var existing = document.getElementById('shortcuts-modal-overlay');
-        if (existing) existing.remove();
-
-        var overlay = document.createElement('div');
-        overlay.id = 'shortcuts-modal-overlay';
-        overlay.className = 'shortcuts-modal-overlay visible';
-        overlay.onclick = function (e) {
-            if (e.target === overlay) closeShortcutsModal();
-        };
-
-        var dialog = document.createElement('div');
-        dialog.className = 'shortcuts-modal-dialog';
-        setTrustedHTML(dialog,
-            '<div class="shortcuts-modal-header">'
+    function getShortcutsHTML() {
+        return '<div class="shortcuts-modal-header">'
             + '<h3>Keyboard Shortcuts</h3>'
             + '<button class="btn btn-ghost btn-sm" onclick="App.closeShortcutsModal()">&times;</button>'
             + '</div>'
@@ -606,8 +592,24 @@ const App = (() => {
             + '<div class="shortcut-row"><kbd>5</kbd><span>Meta-Analysis</span></div>'
             + '<div class="shortcut-row"><kbd>6</kbd><span>ML &amp; Prediction</span></div>'
             + '<div class="shortcut-row"><kbd>7</kbd><span>Writing &amp; Productivity</span></div>'
-            + '</div>'
-        );
+            + '</div>';
+    }
+
+    function showShortcutsModal() {
+        closeCommandPalette();
+        var existing = document.getElementById('shortcuts-modal-overlay');
+        if (existing) existing.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'shortcuts-modal-overlay';
+        overlay.className = 'shortcuts-modal-overlay visible';
+        overlay.onclick = function (e) {
+            if (e.target === overlay) closeShortcutsModal();
+        };
+
+        var dialog = document.createElement('div');
+        dialog.className = 'shortcuts-modal-dialog';
+        setTrustedHTML(dialog, getShortcutsHTML());
 
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
