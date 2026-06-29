@@ -796,7 +796,19 @@
         var data = getDesignData(type);
         var html = '<div class="result-panel animate-in">';
 
-        html += '<div class="card-title">Hierarchy of Evidence: ' + data.title + '</div>';
+        html += buildHierarchyHtml(data);
+        html += buildRecommendedDesignHtml(data);
+        html += buildThreatsHtml(data);
+        html += buildResearchContextHtml(data);
+        html += buildExamplesHtml(data);
+
+        html += '</div>';
+
+        App.setTrustedHTML(document.getElementById('hb-design-results'), html);
+    }
+
+    function buildHierarchyHtml(data) {
+        var html = '<div class="card-title">Hierarchy of Evidence: ' + data.title + '</div>';
         html += '<div style="margin:8px 0">';
         data.hierarchy.forEach(function(level, idx) {
             var opacity = 1 - idx * 0.12;
@@ -805,14 +817,20 @@
                 + (idx + 1) + '. ' + level + '</div>';
         });
         html += '</div>';
+        return html;
+    }
 
-        html += '<div class="card-title mt-2">Recommended Design</div>';
+    function buildRecommendedDesignHtml(data) {
+        var html = '<div class="card-title mt-2">Recommended Design</div>';
         html += '<div style="padding:16px;background:var(--surface);border-radius:12px;border-left:3px solid var(--accent)">'
             + '<div style="font-size:1.1rem;color:var(--accent);font-weight:700">' + data.recommended + '</div>'
             + '<p style="margin:8px 0;color:var(--text-secondary);font-size:0.9rem">' + data.explanation + '</p>'
             + '</div>';
+        return html;
+    }
 
-        html += '<div class="card-title mt-2">Key Threats to Validity</div>';
+    function buildThreatsHtml(data) {
+        var html = '<div class="card-title mt-2">Key Threats to Validity</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Threat</th><th>Description</th><th>Mitigation</th></tr></thead><tbody>';
         data.threats.forEach(function(t) {
             html += '<tr><td style="font-weight:600;color:var(--warning)">' + t.name + '</td>'
@@ -820,26 +838,28 @@
                 + '<td style="color:var(--text-secondary);font-size:0.85rem">' + t.mitigation + '</td></tr>';
         });
         html += '</tbody></table></div>';
+        return html;
+    }
 
-        html += '<div class="card-title mt-2">Research Context</div>';
+    function buildResearchContextHtml(data) {
+        var html = '<div class="card-title mt-2">Research Context</div>';
         html += '<div class="result-grid">'
             + '<div class="result-item"><div class="result-item-value">' + data.typicalN + '</div><div class="result-item-label">Typical Sample Size</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + data.timeline + '</div><div class="result-item-label">Typical Timeline</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + data.budget + '</div><div class="result-item-label">Budget Range</div></div>'
             + '</div>';
+        return html;
+    }
 
-        if (data.examples && data.examples.length > 0) {
-            html += '<div class="card-title mt-2">Landmark Examples</div>';
-            html += '<ul style="margin:0;padding-left:20px;color:var(--text-secondary);font-size:0.85rem;line-height:1.8">';
-            data.examples.forEach(function(ex) {
-                html += '<li><strong>' + ex.name + '</strong>: ' + ex.description + '</li>';
-            });
-            html += '</ul>';
-        }
-
-        html += '</div>';
-
-        App.setTrustedHTML(document.getElementById('hb-design-results'), html);
+    function buildExamplesHtml(data) {
+        if (!data.examples || data.examples.length === 0) return '';
+        var html = '<div class="card-title mt-2">Landmark Examples</div>';
+        html += '<ul style="margin:0;padding-left:20px;color:var(--text-secondary);font-size:0.85rem;line-height:1.8">';
+        data.examples.forEach(function(ex) {
+            html += '<li><strong>' + ex.name + '</strong>: ' + ex.description + '</li>';
+        });
+        html += '</ul>';
+        return html;
     }
 
     function getDesignData(type) {
