@@ -229,7 +229,11 @@ const Statistics = (() => {
     // ============================================================
 
     function tCDF(t, df) {
+        if (isNaN(t) || isNaN(df)) return NaN;
         if (df <= 0) return NaN;
+        if (df === Infinity) return normalCDF(t);
+        if (t === Infinity) return 1;
+        if (t === -Infinity) return 0;
         const x = df / (df + t * t);
         const prob = 0.5 * regularizedIncompleteBeta(x, df / 2, 0.5);
         return t >= 0 ? 1 - prob : prob;

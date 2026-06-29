@@ -1130,6 +1130,8 @@ const App = (() => {
     // ============================================================
 
     return {
+        getFavorites: getFavorites,
+        saveFavorites: saveFavorites,
         init: init,
         navigate: navigate,
         registerModule: registerModule,
@@ -1164,3 +1166,7 @@ window.onerror = function (msg, src, line, col, err) {
 window.addEventListener('unhandledrejection', function (e) {
     console.error('Neuro-Epi Unhandled Promise:', e.reason);
 });
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = App;
+}
