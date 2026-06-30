@@ -353,9 +353,11 @@
             html += '<p><strong>Typical Duration:</strong> ' + tpl.duration + '</p>';
             html += '<p><strong>Phases:</strong> ' + tpl.phases + '</p>';
             html += '<p><strong>Key Milestones:</strong></p><ul style="margin:0.3rem 0;padding-left:1.5rem;">';
+            var milestoneItems = [];
             for (var tmi = 0; tmi < tpl.milestones.length; tmi++) {
-                html += '<li>' + tpl.milestones[tmi] + '</li>';
+                milestoneItems.push('<li>' + tpl.milestones[tmi] + '</li>');
             }
+            html += milestoneItems.join('');
             html += '</ul>';
             html += '<p><strong>Key Risks:</strong> ' + tpl.keyRisks + '</p>';
             html += '<button class="btn btn-xs btn-primary mt-1" onclick="ProjectPlanner.loadTemplate(' + tp + ')">Load Template Milestones</button>';
