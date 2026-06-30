@@ -57,4 +57,45 @@ describe('Statistics Module', () => {
             expect(Statistics.gammaFunction(0.2)).toBeCloseTo(4.590843711998803, 10);
         });
     });
+
+    describe('normalPDF', () => {
+        it('calculates the correct density for standard normal distribution at mean (z=0)', () => {
+            const expected = 1 / Math.sqrt(2 * Math.PI); // approx 0.39894228
+            expect(Statistics.normalPDF(0)).toBeCloseTo(expected, 8);
+        });
+
+        it('calculates the correct density for z=1 and z=-1', () => {
+            const expected = (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5); // approx 0.24197072
+            expect(Statistics.normalPDF(1)).toBeCloseTo(expected, 8);
+            expect(Statistics.normalPDF(-1)).toBeCloseTo(expected, 8);
+        });
+
+        it('calculates the correct density for z=1.96', () => {
+            const expected = (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * 1.96 * 1.96); // approx 0.05844094
+            expect(Statistics.normalPDF(1.96)).toBeCloseTo(expected, 8);
+            expect(Statistics.normalPDF(-1.96)).toBeCloseTo(expected, 8);
+        });
+
+        it('calculates the correct density for custom mean and standard deviation', () => {
+            // Mean = 50, SD = 10, value = 60
+            // This is equivalent to z = 1
+            const expected = Statistics.normalPDF(1) / 10;
+            expect(Statistics.normalPDF(60, 50, 10)).toBeCloseTo(expected, 8);
+
+            // Mean = -5, SD = 2, value = -9
+            // This is equivalent to z = -2
+            const expected2 = Statistics.normalPDF(-2) / 2;
+            expect(Statistics.normalPDF(-9, -5, 2)).toBeCloseTo(expected2, 8);
+        });
+
+        it('returns close to 0 for extreme outliers', () => {
+            expect(Statistics.normalPDF(10)).toBeCloseTo(0, 10);
+            expect(Statistics.normalPDF(-10)).toBeCloseTo(0, 10);
+        });
+
+        it('returns NaN when sigma is 0', () => {
+            expect(Statistics.normalPDF(0, 0, 0)).toBeNaN();
+            expect(Statistics.normalPDF(1, 0, 0)).toBeNaN();
+        });
+    });
 });
