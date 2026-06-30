@@ -908,10 +908,7 @@
             reasoning.push('Consider the specific question and available resources.');
         }
 
-        var uniqueRecs = [];
-        for (var r = 0; r < recommendations.length; r++) {
-            if (uniqueRecs.indexOf(recommendations[r]) === -1) uniqueRecs.push(recommendations[r]);
-        }
+        var uniqueRecs = Array.from(new Set(recommendations));
 
         var out = '<div class="result-panel animate-in mt-2">';
         out += '<div class="card-title">Recommended Design' + (uniqueRecs.length > 1 ? 's' : '') + '</div>';
