@@ -30,7 +30,7 @@ const Export = (() => {
     function copyTSV(headers, rows) {
         const lines = [headers.join('\t')];
         rows.forEach(row => lines.push(row.join('\t')));
-        copyText(lines.join('\n'));
+        Export.copyText(lines.join('\n'));
     }
 
     // ============================================================
