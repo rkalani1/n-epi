@@ -421,543 +421,605 @@
     /* ------------------------------------------------------------------ */
     /*  Render                                                             */
     /* ------------------------------------------------------------------ */
+    function renderLearnAndReference() {
+            var html = '';
+            // Learn & Reference section
+            html += '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
+            html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\')">&#128218; Learn &amp; Reference <span style="font-size:0.8em; color: var(--text-muted);">(click to expand)</span></div>';
+            html += '<div class="learn-body hidden">';
+
+            html += '<div style="margin-bottom:1.2rem;">';
+            html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Key Concepts</div>';
+            html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
+            html += '<li>Bias-variance tradeoff</li>';
+            html += '<li>Overfitting vs underfitting</li>';
+            html += '<li>Feature engineering</li>';
+            html += '<li>Cross-validation (k-fold, LOOCV, nested CV)</li>';
+            html += '<li>Hyperparameter tuning</li>';
+            html += '</ul>';
+            html += '</div>';
+
+            html += '<div style="margin-bottom:1.2rem;">';
+            html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Validation Hierarchy</div>';
+            html += '<div style="font-size:0.9rem;line-height:1.7;padding-left:0.5rem;">';
+            html += 'Internal (cross-validation) &rarr; Temporal validation &rarr; External (different population) &rarr; Clinical impact study.';
+            html += '<br><strong>Always split BEFORE any data exploration.</strong>';
+            html += '</div>';
+            html += '</div>';
+
+            html += '<div style="margin-bottom:1.2rem;">';
+            html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Performance Metrics</div>';
+            html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
+            html += '<li><strong>Discrimination:</strong> AUC-ROC, c-statistic</li>';
+            html += '<li><strong>Calibration:</strong> Hosmer-Lemeshow, calibration plots</li>';
+            html += '<li><strong>Net benefit:</strong> Decision curves</li>';
+            html += '<li><strong>Clinical utility:</strong> NRI, IDI</li>';
+            html += '</ul>';
+            html += '</div>';
+
+            html += '<div style="margin-bottom:1.2rem;">';
+            html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Common Pitfalls</div>';
+            html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
+            html += '<li>Data leakage (using test info during training)</li>';
+            html += '<li>Class imbalance &rarr; misleading accuracy</li>';
+            html += '<li>Overfitting to training data</li>';
+            html += '<li>Ignoring calibration</li>';
+            html += '<li>Not reporting confidence intervals</li>';
+            html += '</ul>';
+            html += '</div>';
+
+            html += '<div style="margin-bottom:1.2rem;">';
+            html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Model Development Workflow</div>';
+            html += '<div style="font-size:0.9rem;line-height:1.7;padding-left:0.5rem;">';
+            html += '1. Define clinical question &rarr; 2. Assess data quality &rarr; 3. Handle missing data &rarr; 4. Feature selection &rarr; 5. Model training &rarr; 6. Internal validation &rarr; 7. External validation &rarr; 8. Clinical impact study';
+            html += '<br><strong>Sample size:</strong> Use Riley et al. criteria. Minimum EPV of 10-20 for logistic regression; more for complex ML methods.';
+            html += '</div>';
+            html += '</div>';
+
+            html += '<div style="margin-bottom:1.2rem;">';
+            html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Explainability Methods</div>';
+            html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
+            html += '<li><strong>SHAP values:</strong> Shapley Additive Explanations -- consistent, locally accurate feature attributions</li>';
+            html += '<li><strong>LIME:</strong> Local Interpretable Model-agnostic Explanations -- local linear approximations</li>';
+            html += '<li><strong>Partial Dependence Plots:</strong> Show marginal effect of a feature on predicted outcome</li>';
+            html += '<li><strong>Attention Maps:</strong> For deep learning -- highlight input regions driving predictions</li>';
+            html += '<li><strong>Permutation Importance:</strong> Measure drop in performance when a feature is shuffled</li>';
+            html += '</ul>';
+            html += '</div>';
+
+            html += '<div style="margin-bottom:1.2rem;">';
+            html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Fairness & Bias Assessment</div>';
+            html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
+            html += '<li>Evaluate model performance across demographic subgroups (age, sex, race/ethnicity)</li>';
+            html += '<li>Report calibration separately for each subgroup</li>';
+            html += '<li>Assess algorithmic fairness metrics: equalized odds, demographic parity, predictive parity</li>';
+            html += '<li>Document training data demographics and representativeness</li>';
+            html += '</ul>';
+            html += '</div>';
+
+            html += '<div>';
+            html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">References</div>';
+            html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.85rem;line-height:1.7;">';
+            html += '<li>Collins GS et al. TRIPOD+AI, 2024</li>';
+            html += '<li>Steyerberg EW. Clinical Prediction Models, 2nd ed. Springer 2019</li>';
+            html += '<li>Rajkomar A et al. ML in Medicine, NEJM 2019</li>';
+            html += '<li>Riley RD et al. Calculating sample size for prediction models. BMJ 2020</li>';
+            html += '<li>Van Calster B et al. Calibration. Med Decis Making 2019</li>';
+            html += '<li>Pencina MJ et al. NRI/IDI. Stat Med 2008;27:157-172</li>';
+            html += '<li>Lundberg SM, Lee SI. SHAP. NeurIPS 2017</li>';
+            html += '</ul>';
+            html += '</div>';
+
+            html += '</div></div>';
+            return html;
+        }
+
+        function renderMLMethodSelector() {
+            var html = '';
+            /* === Card 1: ML Method Selector === */
+            html += '<div class="card">';
+            html += '<div class="card-title">ML Method Selector</div>';
+            html += '<div class="card-subtitle">Answer the questions below to get algorithm recommendations tailored to your research problem.</div>';
+
+            html += '<div class="form-row form-row--2">';
+            html += '<div class="form-group"><label class="form-label">Task Type</label>';
+            html += '<select class="form-select" id="ml-task">';
+            html += '<option value="classification">Classification (binary/multi-class)</option>';
+            html += '<option value="regression">Regression (continuous outcome)</option>';
+            html += '<option value="clustering">Clustering (unsupervised grouping)</option>';
+            html += '<option value="dimensionality">Dimensionality Reduction</option>';
+            html += '<option value="survival">Survival / Time-to-Event</option>';
+            html += '</select></div>';
+
+            html += '<div class="form-group"><label class="form-label">Dataset Size</label>';
+            html += '<select class="form-select" id="ml-datasize">';
+            html += '<option value="small">Small (&lt;500 samples)</option>';
+            html += '<option value="medium" selected>Medium (500 - 10,000)</option>';
+            html += '<option value="large">Large (&gt;10,000)</option>';
+            html += '</select></div>';
+            html += '</div>';
+
+            html += '<div class="form-row form-row--2">';
+            html += '<div class="form-group"><label class="form-label">Interpretability Needed</label>';
+            html += '<select class="form-select" id="ml-interp">';
+            html += '<option value="high">High (clinician must understand model)</option>';
+            html += '<option value="medium" selected>Medium (feature importance sufficient)</option>';
+            html += '<option value="low">Low (performance is priority)</option>';
+            html += '</select></div>';
+
+            html += '<div class="form-group"><label class="form-label">Feature Types</label>';
+            html += '<select class="form-select" id="ml-features">';
+            html += '<option value="continuous">Continuous</option>';
+            html += '<option value="categorical">Categorical</option>';
+            html += '<option value="mixed" selected>Mixed</option>';
+            html += '<option value="text">Text / Clinical Notes</option>';
+            html += '<option value="images">Images (radiology, pathology)</option>';
+            html += '</select></div>';
+            html += '</div>';
+
+            html += '<div class="btn-group mt-1">';
+            html += '<button class="btn btn-primary" onclick="MLPrediction.recommend()">Get Recommendations</button>';
+            html += '</div>';
+
+            html += '<div id="ml-recommendations" class="mt-2"></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderAlgorithmReference() {
+            var html = '';
+            /* === Card 2: Algorithm Reference === */
+            html += '<div class="card">';
+            html += '<div class="card-title">Algorithm Reference</div>';
+            html += '<div class="card-subtitle">Comprehensive reference for machine learning algorithms commonly used in clinical research.</div>';
+
+            html += '<div class="table-container">';
+            html += '<table class="data-table">';
+            html += '<thead><tr><th>Algorithm</th><th>Interpretability</th><th>Description</th><th style="min-width:200px">Clinical Applications</th></tr></thead>';
+            html += '<tbody>';
+            for (var a = 0; a < algorithms.length; a++) {
+                var alg = algorithms[a];
+                var stars = '';
+                for (var si = 0; si < 5; si++) {
+                    stars += si < alg.interpretability ? '&#9733;' : '&#9734;';
+                }
+                html += '<tr>';
+                html += '<td><strong>' + alg.name + '</strong></td>';
+                html += '<td style="white-space:nowrap;">' + stars + ' (' + alg.interpretability + '/5)</td>';
+                html += '<td style="font-size:0.85rem;">' + alg.desc + '</td>';
+                html += '<td style="font-size:0.85rem;">' + alg.applications + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            html += '</div>';
+
+            /* Expandable detail cards for each algorithm */
+            html += '<div class="card-subtitle mt-2">Detailed Algorithm Information</div>';
+            for (var b = 0; b < algorithms.length; b++) {
+                var alg2 = algorithms[b];
+                html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
+                html += '<div onclick="MLPrediction.toggleAlgDetail(' + b + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
+                html += '<strong>' + alg2.name + '</strong>';
+                html += '<span id="ml-alg-arrow-' + b + '" style="transition:transform 0.2s;">&#9660;</span>';
+                html += '</div>';
+                html += '<div id="ml-alg-detail-' + b + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;">';
+                html += '<p><strong>Description:</strong> ' + alg2.desc + '</p>';
+                html += '<p><strong>Pros:</strong> ' + alg2.pros + '</p>';
+                html += '<p><strong>Cons:</strong> ' + alg2.cons + '</p>';
+                html += '<p><strong>Key Hyperparameters:</strong> ' + alg2.hyperparams + '</p>';
+                html += '<p><strong>Clinical Applications:</strong> ' + alg2.applications + '</p>';
+                html += '</div></div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderModelValidationGuide() {
+            var html = '';
+            /* === Card 3: Model Validation Guide === */
+            html += '<div class="card">';
+            html += '<div class="card-title">Model Validation Guide</div>';
+
+            html += '<div class="card-subtitle">Validation Strategies</div>';
+            for (var v = 0; v < validationStrategies.length; v++) {
+                var vs = validationStrategies[v];
+                html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
+                html += '<div onclick="MLPrediction.toggleValidation(' + v + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
+                html += '<strong>' + vs.name + '</strong>';
+                html += '<span id="ml-val-arrow-' + v + '" style="transition:transform 0.2s;">&#9660;</span>';
+                html += '</div>';
+                html += '<div id="ml-val-detail-' + v + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;">';
+                html += '<p>' + vs.desc + '</p>';
+                html += '<p><strong>When to use:</strong> ' + vs.when + '</p>';
+                html += '<p><strong>Pros:</strong> ' + vs.pros + '</p>';
+                html += '<p><strong>Cons:</strong> ' + vs.cons + '</p>';
+                html += '<p style="color:var(--accent);"><strong>Recommendation:</strong> ' + vs.recommendation + '</p>';
+                html += '</div></div>';
+            }
+
+            /* Classification metrics */
+            html += '<div class="card-subtitle mt-2">Classification Metrics</div>';
+            html += '<div class="table-container">';
+            html += '<table class="data-table">';
+            html += '<thead><tr><th>Metric</th><th>Range</th><th>Description</th><th>Notes</th></tr></thead>';
+            html += '<tbody>';
+            for (var cm = 0; cm < classificationMetrics.length; cm++) {
+                var m = classificationMetrics[cm];
+                html += '<tr><td><strong>' + m.name + '</strong></td><td style="white-space:nowrap;font-size:0.85rem;">' + m.range + '</td><td style="font-size:0.85rem;">' + m.desc + '</td><td style="font-size:0.85rem;">' + m.notes + '</td></tr>';
+            }
+            html += '</tbody></table></div>';
+
+            /* Regression metrics */
+            html += '<div class="card-subtitle mt-2">Regression Metrics</div>';
+            html += '<div class="table-container">';
+            html += '<table class="data-table">';
+            html += '<thead><tr><th>Metric</th><th>Range</th><th>Description</th><th>Notes</th></tr></thead>';
+            html += '<tbody>';
+            for (var rm = 0; rm < regressionMetrics.length; rm++) {
+                var mr = regressionMetrics[rm];
+                html += '<tr><td><strong>' + mr.name + '</strong></td><td style="white-space:nowrap;font-size:0.85rem;">' + mr.range + '</td><td style="font-size:0.85rem;">' + mr.desc + '</td><td style="font-size:0.85rem;">' + mr.notes + '</td></tr>';
+            }
+            html += '</tbody></table></div>';
+
+            /* Survival metrics */
+            html += '<div class="card-subtitle mt-2">Survival / Reclassification Metrics</div>';
+            html += '<div class="table-container">';
+            html += '<table class="data-table">';
+            html += '<thead><tr><th>Metric</th><th>Range</th><th>Description</th><th>Notes</th></tr></thead>';
+            html += '<tbody>';
+            for (var sm = 0; sm < survivalMetrics.length; sm++) {
+                var ms = survivalMetrics[sm];
+                html += '<tr><td><strong>' + ms.name + '</strong></td><td style="white-space:nowrap;font-size:0.85rem;">' + ms.range + '</td><td style="font-size:0.85rem;">' + ms.desc + '</td><td style="font-size:0.85rem;">' + ms.notes + '</td></tr>';
+            }
+            html += '</tbody></table></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderTripodChecklist() {
+            var html = '';
+            /* === Card 4: TRIPOD+AI Checklist === */
+            html += '<div class="card">';
+            html += '<div class="card-title">TRIPOD+AI Checklist</div>';
+            html += '<div class="card-subtitle">Checklist for reporting prediction model studies with AI/ML components. Based on TRIPOD with AI extensions.</div>';
+
+            /* Progress bar */
+            html += '<div style="margin-bottom:1rem;">';
+            html += '<div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.3rem;">';
+            html += '<span id="ml-tripod-progress-text">0 / ' + tripodItems.length + ' items completed</span>';
+            html += '<span id="ml-tripod-progress-pct">0%</span>';
+            html += '</div>';
+            html += '<div style="height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;">';
+            html += '<div id="ml-tripod-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width 0.3s;"></div>';
+            html += '</div>';
+            html += '</div>';
+
+            var lastTripodSection = '';
+            for (var t = 0; t < tripodItems.length; t++) {
+                var ti = tripodItems[t];
+                if (ti.section !== lastTripodSection) {
+                    if (lastTripodSection !== '') html += '</div>';
+                    html += '<div style="margin-bottom:0.5rem;">';
+                    html += '<div style="font-weight:600;font-size:0.95rem;color:var(--accent);margin:0.8rem 0 0.4rem;border-bottom:1px solid var(--border);padding-bottom:0.2rem;">' + ti.section + '</div>';
+                    lastTripodSection = ti.section;
+                }
+                var tKey = 'tripod_' + ti.num;
+                html += '<label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.35rem 0;cursor:pointer;font-size:0.9rem;">';
+                html += '<input type="checkbox" id="ml-tripod-' + tKey + '" onchange="MLPrediction.toggleTripod(\'' + ti.num + '\')" style="margin-top:3px;flex-shrink:0;">';
+                html += '<span><strong>' + ti.num + '.</strong> ' + ti.text + '</span>';
+                html += '</label>';
+            }
+            if (lastTripodSection !== '') html += '</div>';
+
+            html += '<div class="btn-group mt-2">';
+            html += '<button class="btn btn-secondary" onclick="MLPrediction.copyTripod()">Copy TRIPOD+AI Checklist</button>';
+            html += '<button class="btn btn-secondary" onclick="MLPrediction.resetTripod()">Reset</button>';
+            html += '</div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderCommonPitfalls() {
+            var html = '';
+            /* === Card 5: Common Pitfalls === */
+            html += '<div class="card">';
+            html += '<div class="card-title">Common Pitfalls in Clinical ML</div>';
+            html += '<div class="card-subtitle">Critical issues to avoid when applying machine learning to clinical research data.</div>';
+
+            for (var p = 0; p < pitfalls.length; p++) {
+                var pit = pitfalls[p];
+                html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
+                html += '<div onclick="MLPrediction.togglePitfall(' + p + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
+                html += '<strong style="color:var(--warning,#e67e22);">' + (p + 1) + '. ' + pit.title + '</strong>';
+                html += '<span id="ml-pit-arrow-' + p + '" style="transition:transform 0.2s;">&#9660;</span>';
+                html += '</div>';
+                html += '<div id="ml-pit-detail-' + p + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;">';
+                html += pit.content;
+                html += '</div></div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderValidationCalculator() {
+            var html = '';
+            /* === Card 6: Model Validation Calculator === */
+            html += '<div class="card">';
+            html += '<div class="card-title">Model Validation Calculator</div>';
+            html += '<div class="card-subtitle">Compute cross-validation, bootstrap, and train/test split performance estimates for model evaluation.</div>';
+
+            html += '<div class="form-row form-row--2">';
+            html += '<div class="form-group"><label class="form-label">Validation Method</label>';
+            html += '<select class="form-select" id="ml-val-method">';
+            html += '<option value="kfold">k-Fold Cross-Validation</option>';
+            html += '<option value="bootstrap">Bootstrap (.632+)</option>';
+            html += '<option value="traintestsplit">Train/Test Split</option>';
+            html += '</select></div>';
+            html += '<div class="form-group"><label class="form-label">Total Sample Size (N)</label>';
+            html += '<input type="number" class="form-input" id="ml-val-n" value="500" min="10"></div>';
+            html += '</div>';
+
+            html += '<div class="form-row form-row--3">';
+            html += '<div class="form-group"><label class="form-label">Number of Events</label>';
+            html += '<input type="number" class="form-input" id="ml-val-events" value="75" min="1"></div>';
+            html += '<div class="form-group"><label class="form-label">Number of Predictors</label>';
+            html += '<input type="number" class="form-input" id="ml-val-predictors" value="10" min="1"></div>';
+            html += '<div class="form-group"><label class="form-label">k (folds) / B (bootstraps)</label>';
+            html += '<input type="number" class="form-input" id="ml-val-k" value="10" min="2" max="500"></div>';
+            html += '</div>';
+
+            html += '<div class="form-row form-row--2">';
+            html += '<div class="form-group"><label class="form-label">Apparent AUC (training)</label>';
+            html += '<input type="number" class="form-input" id="ml-val-auc" value="0.82" min="0.5" max="1" step="0.01"></div>';
+            html += '<div class="form-group"><label class="form-label">Train Fraction (for split)</label>';
+            html += '<input type="number" class="form-input" id="ml-val-trainfrac" value="0.7" min="0.5" max="0.9" step="0.05"></div>';
+            html += '</div>';
+
+            html += '<div class="btn-group mt-1">';
+            html += '<button class="btn btn-primary" onclick="MLPrediction.calcValidation()">Evaluate Validation Strategy</button>';
+            html += '</div>';
+            html += '<div id="ml-val-results" class="mt-2"></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderFeatureSelection() {
+            var html = '';
+            /* === Card 7: Feature Selection Guide === */
+            html += '<div class="card">';
+            html += '<div class="card-title">Feature Selection Guide</div>';
+            html += '<div class="card-subtitle">Compare feature selection methods and get recommendations based on your data characteristics.</div>';
+
+            var featureSelMethods = [
+                { name: 'Univariate Filtering', desc: 'Rank features independently using statistical tests (t-test, chi-squared, mutual information). Select top-k features.', pros: 'Fast; simple; scales to large feature sets; no model dependency.', cons: 'Ignores feature interactions; may miss jointly predictive features; threshold is arbitrary.', when: 'Initial screening of very high-dimensional data (genomics, EHR); as a pre-filter before wrapper methods.', rCode: 'library(caret)<br>nearZeroVar(data) # Remove near-zero variance<br># Chi-squared test for categorical features<br>chisq.test(table(feature, outcome))<br># For continuous: Wilcoxon or t-test per feature' },
+                { name: 'LASSO (L1 Regularization)', desc: 'Penalized regression that shrinks coefficients toward zero. Features with zero coefficients are eliminated.', pros: 'Simultaneous selection and estimation; handles correlated features; embeds in model training.', cons: 'Assumes linearity; unstable with highly correlated features; may select arbitrarily among correlated group.', when: 'Standard choice for clinical prediction models; moderate to high-dimensional data; when interpretability is needed.', rCode: 'library(glmnet)<br>cv_fit &lt;- cv.glmnet(X, y, family="binomial", alpha=1)<br>coef(cv_fit, s="lambda.min")' },
+                { name: 'Elastic Net', desc: 'Combines L1 (LASSO) and L2 (Ridge) penalties. Alpha parameter controls the mix.', pros: 'Handles correlated features better than LASSO alone; groups correlated features; flexible.', cons: 'Two hyperparameters to tune (alpha, lambda); slightly more complex than pure LASSO.', when: 'When features are correlated (common in clinical data); when LASSO is unstable across bootstrap samples.', rCode: 'library(glmnet)<br>cv_fit &lt;- cv.glmnet(X, y, family="binomial", alpha=0.5)<br>coef(cv_fit, s="lambda.min")' },
+                { name: 'Recursive Feature Elimination (RFE)', desc: 'Iteratively trains model, ranks features by importance, removes least important, and repeats.', pros: 'Considers feature interactions; wrapper method captures model-specific importance.', cons: 'Computationally expensive; risk of overfitting if not nested in CV; greedy algorithm.', when: 'Moderate number of features (<100); when feature interactions matter; with random forest or SVM.', rCode: 'library(caret)<br>ctrl &lt;- rfeControl(functions=rfFuncs, method="cv", number=10)<br>result &lt;- rfe(X, y, sizes=c(5,10,15,20), rfeControl=ctrl)' },
+                { name: 'Stability Selection', desc: 'Runs LASSO on random subsamples of data; selects features that appear frequently across subsamples.', pros: 'Controls false discovery rate; robust; identifies truly important features.', cons: 'Computationally intensive; conservative (may miss some true features).', when: 'When controlling false positives in feature selection is critical; high-dimensional settings; biomarker discovery.', rCode: 'library(stabs)<br>stab &lt;- stabsel(X, y, fitfun=glmnet.lasso, cutoff=0.75, PFER=1)' },
+                { name: 'Boruta (Random Forest Wrapper)', desc: 'Creates shadow features (shuffled copies) and compares real feature importance against shadows using random forest.', pros: 'Statistically principled; captures non-linear relationships and interactions; all-relevant selection.', cons: 'Slow for large datasets; depends on random forest assumptions; may be unstable with small samples.', when: 'When non-linear relationships expected; exploratory analysis; complementing LASSO-based methods.', rCode: 'library(Boruta)<br>boruta_result &lt;- Boruta(outcome ~ ., data=df, doTrace=2)<br>getSelectedAttributes(boruta_result)' }
+            ];
+
+            for (var fs = 0; fs < featureSelMethods.length; fs++) {
+                var fsm = featureSelMethods[fs];
+                html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
+                html += '<div onclick="MLPrediction.toggleFeatureSel(' + fs + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
+                html += '<strong>' + fsm.name + '</strong>';
+                html += '<span id="ml-fs-arrow-' + fs + '" style="transition:transform 0.2s;">&#9660;</span>';
+                html += '</div>';
+                html += '<div id="ml-fs-detail-' + fs + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;">';
+                html += '<p>' + fsm.desc + '</p>';
+                html += '<p><strong>Pros:</strong> ' + fsm.pros + '</p>';
+                html += '<p><strong>Cons:</strong> ' + fsm.cons + '</p>';
+                html += '<p><strong>When to use:</strong> ' + fsm.when + '</p>';
+                html += '<div style="margin-top:0.5rem;padding:0.5rem;background:var(--bg-elevated);border-radius:4px;font-family:var(--font-mono,monospace);font-size:0.8rem;line-height:1.6;">' + fsm.rCode + '</div>';
+                html += '</div></div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderModelComparison() {
+            var html = '';
+            /* === Card 8: Model Comparison Metrics Table === */
+            html += '<div class="card">';
+            html += '<div class="card-title">Model Comparison Calculator</div>';
+            html += '<div class="card-subtitle">Enter metrics for multiple models to generate a comparison table. Supports AUC, Brier score, and calibration slope.</div>';
+
+            html += '<div id="ml-comp-models">';
+            html += '<div class="form-row form-row--3" style="margin-bottom:0.3rem;">';
+            html += '<div class="form-group"><label class="form-label">Model Name</label></div>';
+            html += '<div class="form-group"><label class="form-label">AUC (0.5-1.0)</label></div>';
+            html += '<div class="form-group"><label class="form-label">Brier Score (0-1)</label></div>';
+            html += '</div>';
+            for (var mi = 0; mi < 3; mi++) {
+                var mNames = ['Logistic Regression', 'Random Forest', 'XGBoost'];
+                var mAucs = ['0.78', '0.82', '0.84'];
+                var mBriers = ['0.18', '0.16', '0.15'];
+                html += '<div class="form-row form-row--3" style="margin-bottom:0.3rem;">';
+                html += '<div class="form-group"><input type="text" class="form-input" id="ml-comp-name-' + mi + '" value="' + mNames[mi] + '"></div>';
+                html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-auc-' + mi + '" value="' + mAucs[mi] + '" step="0.01" min="0" max="1"></div>';
+                html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-brier-' + mi + '" value="' + mBriers[mi] + '" step="0.01" min="0" max="1"></div>';
+                html += '</div>';
+            }
+            html += '</div>';
+
+            html += '<div class="form-row form-row--3" style="margin-bottom:0.3rem;">';
+            html += '<div class="form-group"><label class="form-label">Calibration Slope</label></div>';
+            html += '<div class="form-group"><label class="form-label">Sensitivity</label></div>';
+            html += '<div class="form-group"><label class="form-label">Specificity</label></div>';
+            html += '</div>';
+            for (var mj = 0; mj < 3; mj++) {
+                var mSlopes = ['0.95', '0.88', '0.85'];
+                var mSens = ['0.72', '0.78', '0.80'];
+                var mSpecs = ['0.74', '0.76', '0.78'];
+                html += '<div class="form-row form-row--3" style="margin-bottom:0.3rem;">';
+                html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-slope-' + mj + '" value="' + mSlopes[mj] + '" step="0.01" min="0" max="2"></div>';
+                html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-sens-' + mj + '" value="' + mSens[mj] + '" step="0.01" min="0" max="1"></div>';
+                html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-spec-' + mj + '" value="' + mSpecs[mj] + '" step="0.01" min="0" max="1"></div>';
+                html += '</div>';
+            }
+
+            html += '<div class="btn-group mt-1">';
+            html += '<button class="btn btn-primary" onclick="MLPrediction.compareModels()">Compare Models</button>';
+            html += '<button class="btn btn-secondary" onclick="MLPrediction.copyComparison()">Copy Table</button>';
+            html += '</div>';
+            html += '<div id="ml-comp-results" class="mt-2"></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderNRIIDICalculator() {
+            var html = '';
+            /* === Card 9: NRI / IDI Calculator === */
+            html += '<div class="card">';
+            html += '<div class="card-title">NRI &amp; IDI Calculator</div>';
+            html += '<div class="card-subtitle">Calculate Net Reclassification Improvement and Integrated Discrimination Improvement when comparing two models.</div>';
+
+            html += '<div class="card-subtitle" style="font-weight:600;margin-top:0.5rem;">Event Subjects</div>';
+            html += '<div class="form-row form-row--3">';
+            html += '<div class="form-group"><label class="form-label">Reclassified Up (events)</label>';
+            html += '<input type="number" class="form-input" id="ml-nri-event-up" value="25" min="0"></div>';
+            html += '<div class="form-group"><label class="form-label">Reclassified Down (events)</label>';
+            html += '<input type="number" class="form-input" id="ml-nri-event-down" value="10" min="0"></div>';
+            html += '<div class="form-group"><label class="form-label">Total Events</label>';
+            html += '<input type="number" class="form-input" id="ml-nri-total-events" value="100" min="1"></div>';
+            html += '</div>';
+
+            html += '<div class="card-subtitle" style="font-weight:600;">Non-Event Subjects</div>';
+            html += '<div class="form-row form-row--3">';
+            html += '<div class="form-group"><label class="form-label">Reclassified Up (non-events)</label>';
+            html += '<input type="number" class="form-input" id="ml-nri-nonevent-up" value="15" min="0"></div>';
+            html += '<div class="form-group"><label class="form-label">Reclassified Down (non-events)</label>';
+            html += '<input type="number" class="form-input" id="ml-nri-nonevent-down" value="30" min="0"></div>';
+            html += '<div class="form-group"><label class="form-label">Total Non-Events</label>';
+            html += '<input type="number" class="form-input" id="ml-nri-total-nonevents" value="400" min="1"></div>';
+            html += '</div>';
+
+            html += '<div class="card-subtitle" style="font-weight:600;">IDI Inputs</div>';
+            html += '<div class="form-row form-row--2">';
+            html += '<div class="form-group"><label class="form-label">Mean Predicted Prob (Old Model, Events)</label>';
+            html += '<input type="number" class="form-input" id="ml-idi-old-event" value="0.35" step="0.01" min="0" max="1"></div>';
+            html += '<div class="form-group"><label class="form-label">Mean Predicted Prob (New Model, Events)</label>';
+            html += '<input type="number" class="form-input" id="ml-idi-new-event" value="0.45" step="0.01" min="0" max="1"></div>';
+            html += '</div>';
+            html += '<div class="form-row form-row--2">';
+            html += '<div class="form-group"><label class="form-label">Mean Predicted Prob (Old Model, Non-Events)</label>';
+            html += '<input type="number" class="form-input" id="ml-idi-old-nonevent" value="0.12" step="0.01" min="0" max="1"></div>';
+            html += '<div class="form-group"><label class="form-label">Mean Predicted Prob (New Model, Non-Events)</label>';
+            html += '<input type="number" class="form-input" id="ml-idi-new-nonevent" value="0.10" step="0.01" min="0" max="1"></div>';
+            html += '</div>';
+
+            html += '<div class="btn-group mt-1">';
+            html += '<button class="btn btn-primary" onclick="MLPrediction.calcNRI()">Calculate NRI &amp; IDI</button>';
+            html += '</div>';
+            html += '<div id="ml-nri-results" class="mt-2"></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderCalibrationExplainer() {
+            var html = '';
+            /* === Card 10: Calibration Plot Explainer === */
+            html += '<div class="card">';
+            html += '<div class="card-title">Calibration Plot Explainer</div>';
+            html += '<div class="card-subtitle">Understand how to interpret calibration plots and common calibration issues in prediction models.</div>';
+
+            var calibTopics = [
+                { title: 'What is Calibration?', content: 'Calibration measures the agreement between predicted probabilities and observed outcomes. A well-calibrated model predicts 20% risk for a group where 20% of patients actually have the event.<br><br><strong>Why it matters:</strong> Clinical decisions based on predicted probabilities (e.g., "your 10-year stroke risk is 15%") require accurate calibration. A model with high AUC but poor calibration may rank patients correctly but give wrong absolute risk estimates.' },
+                { title: 'Calibration Plot Interpretation', content: '<strong>Perfect calibration:</strong> Points fall on the 45-degree diagonal line.<br><br><strong>Calibration-in-the-large (intercept):</strong> Measures whether the average predicted probability matches the overall event rate. Intercept = 0 means overall calibration is correct.<br><br><strong>Calibration slope:</strong><ul style="margin:0.5rem 0;padding-left:1.5rem;"><li>Slope = 1.0: Perfect calibration</li><li>Slope &lt; 1.0: Overfitting (predictions too extreme -- high predictions too high, low predictions too low)</li><li>Slope &gt; 1.0: Underfitting (predictions too conservative -- not spread out enough)</li></ul>' },
+                { title: 'Common Calibration Problems', content: '<strong>1. Systematic overestimation:</strong> All predicted probabilities are too high. The calibration curve falls below the diagonal. Causes: Higher event rate in development than validation population.<br><br><strong>2. Systematic underestimation:</strong> All predicted probabilities are too low. The curve falls above the diagonal.<br><br><strong>3. Overfitting:</strong> Slope &lt; 1. High-risk predictions are too high, low-risk predictions are too low. Causes: Too many predictors, small sample, no regularization.<br><br><strong>4. Poor calibration at extremes:</strong> Good calibration in middle risk groups but poor at very low or very high predicted probabilities.' },
+                { title: 'Recalibration Methods', content: '<strong>Logistic recalibration:</strong> Fit logit(observed) = a + b * logit(predicted). Adjusts intercept (a) and slope (b).<br><br><strong>Platt scaling:</strong> Post-hoc calibration using logistic regression on predicted scores. Common for SVMs and neural networks.<br><br><strong>Isotonic regression:</strong> Non-parametric calibration method. More flexible but requires larger validation sets.<br><br><strong>When to recalibrate:</strong> When applying a model to a new population with different event rate or risk factor distribution. Report both original and recalibrated performance.' },
+                { title: 'Hosmer-Lemeshow vs. Calibration Plots', content: '<strong>Hosmer-Lemeshow test:</strong><ul style="margin:0.5rem 0;padding-left:1.5rem;"><li>Groups patients into deciles of predicted risk</li><li>Compares observed vs expected events per group</li><li>p > 0.05 suggests adequate calibration</li><li><strong>Limitations:</strong> Sensitive to sample size, arbitrary grouping, low power in small samples</li></ul><strong>Calibration plots with loess smoother are preferred</strong> because they show the full calibration curve without arbitrary grouping. Report calibration slope and intercept as quantitative summary measures.' }
+            ];
+
+            for (var ct = 0; ct < calibTopics.length; ct++) {
+                var ctopic = calibTopics[ct];
+                html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
+                html += '<div onclick="MLPrediction.toggleCalib(' + ct + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
+                html += '<strong>' + ctopic.title + '</strong>';
+                html += '<span id="ml-calib-arrow-' + ct + '" style="transition:transform 0.2s;">&#9660;</span>';
+                html += '</div>';
+                html += '<div id="ml-calib-detail-' + ct + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;line-height:1.7;">';
+                html += ctopic.content;
+                html += '</div></div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderCPMChecklist() {
+            var html = '';
+            /* === Card 11: Clinical Prediction Model Development Checklist === */
+            html += '<div class="card">';
+            html += '<div class="card-title">Clinical Prediction Model Development Checklist</div>';
+            html += '<div class="card-subtitle">Step-by-step guide for developing and validating clinical prediction models following best practices.</div>';
+
+            var cpmSteps = [
+                { step: '1', title: 'Define the Clinical Problem', items: ['Specify the target population', 'Define the prediction time point (T0)', 'Define the outcome and time horizon', 'Determine intended clinical use (screening, diagnosis, prognosis)', 'Conduct a systematic review of existing models'] },
+                { step: '2', title: 'Study Design & Data', items: ['Choose appropriate study design (cohort preferred)', 'Calculate minimum sample size (Riley et al. criteria)', 'Ensure adequate events per variable (EPV >= 10-20)', 'Document data source and collection methods', 'Check data quality and completeness'] },
+                { step: '3', title: 'Candidate Predictors', items: ['Select predictors available at T0 in clinical practice', 'Limit number based on EPV considerations', 'Avoid predictors that are consequences of the outcome', 'Document how each predictor is measured', 'Consider clinical face validity'] },
+                { step: '4', title: 'Missing Data', items: ['Report missing data proportions per variable', 'Assess missing data mechanism (MCAR/MAR/MNAR)', 'Use multiple imputation (not complete case)', 'Include outcome in imputation model', 'Perform sensitivity analysis for missing data'] },
+                { step: '5', title: 'Model Development', items: ['Pre-specify the modeling strategy', 'Handle continuous predictors appropriately (no dichotomization)', 'Use penalized methods if p/n ratio is high', 'Avoid automated stepwise selection', 'Consider non-linear effects (restricted cubic splines)'] },
+                { step: '6', title: 'Internal Validation', items: ['Use bootstrap validation (200+ resamples) or cross-validation', 'Report optimism-corrected performance', 'Assess calibration (plot, slope, intercept)', 'Assess discrimination (C-statistic/AUC)', 'Report confidence intervals for all metrics'] },
+                { step: '7', title: 'Model Presentation', items: ['Present the full model (all coefficients)', 'Create a nomogram or scoring system', 'Provide example calculations', 'Develop a risk calculator or app', 'Explain how to use the model clinically'] },
+                { step: '8', title: 'External Validation', items: ['Validate in independent dataset', 'Assess geographic and temporal transportability', 'Report calibration and discrimination in validation data', 'Consider recalibration if needed', 'Plan for model updating over time'] }
+            ];
+
+            html += '<div id="ml-cpm-checklist">';
+            for (var cs = 0; cs < cpmSteps.length; cs++) {
+                var cstep = cpmSteps[cs];
+                html += '<div style="margin-bottom:0.8rem;border:1px solid var(--border);border-radius:6px;padding:0.8rem 1rem;">';
+                html += '<div style="font-weight:700;color:var(--accent);margin-bottom:0.4rem;">Step ' + cstep.step + ': ' + cstep.title + '</div>';
+                for (var ci = 0; ci < cstep.items.length; ci++) {
+                    html += '<label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.2rem 0;cursor:pointer;font-size:0.85rem;">';
+                    html += '<input type="checkbox" id="ml-cpm-' + cs + '-' + ci + '" onchange="MLPrediction.updateCPMProgress()" style="margin-top:3px;flex-shrink:0;">';
+                    html += '<span>' + cstep.items[ci] + '</span>';
+                    html += '</label>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+
+            html += '<div style="margin-top:0.5rem;">';
+            html += '<div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.3rem;">';
+            html += '<span id="ml-cpm-progress-text">0 items completed</span>';
+            html += '<span id="ml-cpm-progress-pct">0%</span>';
+            html += '</div>';
+            html += '<div style="height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;">';
+            html += '<div id="ml-cpm-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width 0.3s;"></div>';
+            html += '</div>';
+            html += '</div>';
+
+            html += '<div class="btn-group mt-2">';
+            html += '<button class="btn btn-secondary" onclick="MLPrediction.copyCPMChecklist()">Copy Checklist</button>';
+            html += '</div>';
+            html += '</div>';
+            return html;
+        }
+
     function render(container) {
         var html = App.createModuleLayout(
             'ML for Clinical Research',
             'Educational reference and decision tools for applying machine learning methods in clinical and epidemiological research.'
         );
 
-        // Learn & Reference section
-        html += '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
-        html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\')">&#128218; Learn &amp; Reference <span style="font-size:0.8em; color: var(--text-muted);">(click to expand)</span></div>';
-        html += '<div class="learn-body hidden">';
-
-        html += '<div style="margin-bottom:1.2rem;">';
-        html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Key Concepts</div>';
-        html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
-        html += '<li>Bias-variance tradeoff</li>';
-        html += '<li>Overfitting vs underfitting</li>';
-        html += '<li>Feature engineering</li>';
-        html += '<li>Cross-validation (k-fold, LOOCV, nested CV)</li>';
-        html += '<li>Hyperparameter tuning</li>';
-        html += '</ul>';
-        html += '</div>';
-
-        html += '<div style="margin-bottom:1.2rem;">';
-        html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Validation Hierarchy</div>';
-        html += '<div style="font-size:0.9rem;line-height:1.7;padding-left:0.5rem;">';
-        html += 'Internal (cross-validation) &rarr; Temporal validation &rarr; External (different population) &rarr; Clinical impact study.';
-        html += '<br><strong>Always split BEFORE any data exploration.</strong>';
-        html += '</div>';
-        html += '</div>';
-
-        html += '<div style="margin-bottom:1.2rem;">';
-        html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Performance Metrics</div>';
-        html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
-        html += '<li><strong>Discrimination:</strong> AUC-ROC, c-statistic</li>';
-        html += '<li><strong>Calibration:</strong> Hosmer-Lemeshow, calibration plots</li>';
-        html += '<li><strong>Net benefit:</strong> Decision curves</li>';
-        html += '<li><strong>Clinical utility:</strong> NRI, IDI</li>';
-        html += '</ul>';
-        html += '</div>';
-
-        html += '<div style="margin-bottom:1.2rem;">';
-        html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Common Pitfalls</div>';
-        html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
-        html += '<li>Data leakage (using test info during training)</li>';
-        html += '<li>Class imbalance &rarr; misleading accuracy</li>';
-        html += '<li>Overfitting to training data</li>';
-        html += '<li>Ignoring calibration</li>';
-        html += '<li>Not reporting confidence intervals</li>';
-        html += '</ul>';
-        html += '</div>';
-
-        html += '<div style="margin-bottom:1.2rem;">';
-        html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Model Development Workflow</div>';
-        html += '<div style="font-size:0.9rem;line-height:1.7;padding-left:0.5rem;">';
-        html += '1. Define clinical question &rarr; 2. Assess data quality &rarr; 3. Handle missing data &rarr; 4. Feature selection &rarr; 5. Model training &rarr; 6. Internal validation &rarr; 7. External validation &rarr; 8. Clinical impact study';
-        html += '<br><strong>Sample size:</strong> Use Riley et al. criteria. Minimum EPV of 10-20 for logistic regression; more for complex ML methods.';
-        html += '</div>';
-        html += '</div>';
-
-        html += '<div style="margin-bottom:1.2rem;">';
-        html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Explainability Methods</div>';
-        html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
-        html += '<li><strong>SHAP values:</strong> Shapley Additive Explanations -- consistent, locally accurate feature attributions</li>';
-        html += '<li><strong>LIME:</strong> Local Interpretable Model-agnostic Explanations -- local linear approximations</li>';
-        html += '<li><strong>Partial Dependence Plots:</strong> Show marginal effect of a feature on predicted outcome</li>';
-        html += '<li><strong>Attention Maps:</strong> For deep learning -- highlight input regions driving predictions</li>';
-        html += '<li><strong>Permutation Importance:</strong> Measure drop in performance when a feature is shuffled</li>';
-        html += '</ul>';
-        html += '</div>';
-
-        html += '<div style="margin-bottom:1.2rem;">';
-        html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">Fairness & Bias Assessment</div>';
-        html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.9rem;line-height:1.7;">';
-        html += '<li>Evaluate model performance across demographic subgroups (age, sex, race/ethnicity)</li>';
-        html += '<li>Report calibration separately for each subgroup</li>';
-        html += '<li>Assess algorithmic fairness metrics: equalized odds, demographic parity, predictive parity</li>';
-        html += '<li>Document training data demographics and representativeness</li>';
-        html += '</ul>';
-        html += '</div>';
-
-        html += '<div>';
-        html += '<div style="font-weight:700;margin-bottom:0.4rem;color:var(--accent);">References</div>';
-        html += '<ul style="margin:0;padding-left:1.5rem;font-size:0.85rem;line-height:1.7;">';
-        html += '<li>Collins GS et al. TRIPOD+AI, 2024</li>';
-        html += '<li>Steyerberg EW. Clinical Prediction Models, 2nd ed. Springer 2019</li>';
-        html += '<li>Rajkomar A et al. ML in Medicine, NEJM 2019</li>';
-        html += '<li>Riley RD et al. Calculating sample size for prediction models. BMJ 2020</li>';
-        html += '<li>Van Calster B et al. Calibration. Med Decis Making 2019</li>';
-        html += '<li>Pencina MJ et al. NRI/IDI. Stat Med 2008;27:157-172</li>';
-        html += '<li>Lundberg SM, Lee SI. SHAP. NeurIPS 2017</li>';
-        html += '</ul>';
-        html += '</div>';
-
-        html += '</div></div>';
-
-        /* === Card 1: ML Method Selector === */
-        html += '<div class="card">';
-        html += '<div class="card-title">ML Method Selector</div>';
-        html += '<div class="card-subtitle">Answer the questions below to get algorithm recommendations tailored to your research problem.</div>';
-
-        html += '<div class="form-row form-row--2">';
-        html += '<div class="form-group"><label class="form-label">Task Type</label>';
-        html += '<select class="form-select" id="ml-task">';
-        html += '<option value="classification">Classification (binary/multi-class)</option>';
-        html += '<option value="regression">Regression (continuous outcome)</option>';
-        html += '<option value="clustering">Clustering (unsupervised grouping)</option>';
-        html += '<option value="dimensionality">Dimensionality Reduction</option>';
-        html += '<option value="survival">Survival / Time-to-Event</option>';
-        html += '</select></div>';
-
-        html += '<div class="form-group"><label class="form-label">Dataset Size</label>';
-        html += '<select class="form-select" id="ml-datasize">';
-        html += '<option value="small">Small (&lt;500 samples)</option>';
-        html += '<option value="medium" selected>Medium (500 - 10,000)</option>';
-        html += '<option value="large">Large (&gt;10,000)</option>';
-        html += '</select></div>';
-        html += '</div>';
-
-        html += '<div class="form-row form-row--2">';
-        html += '<div class="form-group"><label class="form-label">Interpretability Needed</label>';
-        html += '<select class="form-select" id="ml-interp">';
-        html += '<option value="high">High (clinician must understand model)</option>';
-        html += '<option value="medium" selected>Medium (feature importance sufficient)</option>';
-        html += '<option value="low">Low (performance is priority)</option>';
-        html += '</select></div>';
-
-        html += '<div class="form-group"><label class="form-label">Feature Types</label>';
-        html += '<select class="form-select" id="ml-features">';
-        html += '<option value="continuous">Continuous</option>';
-        html += '<option value="categorical">Categorical</option>';
-        html += '<option value="mixed" selected>Mixed</option>';
-        html += '<option value="text">Text / Clinical Notes</option>';
-        html += '<option value="images">Images (radiology, pathology)</option>';
-        html += '</select></div>';
-        html += '</div>';
-
-        html += '<div class="btn-group mt-1">';
-        html += '<button class="btn btn-primary" onclick="MLPrediction.recommend()">Get Recommendations</button>';
-        html += '</div>';
-
-        html += '<div id="ml-recommendations" class="mt-2"></div>';
-        html += '</div>';
-
-        /* === Card 2: Algorithm Reference === */
-        html += '<div class="card">';
-        html += '<div class="card-title">Algorithm Reference</div>';
-        html += '<div class="card-subtitle">Comprehensive reference for machine learning algorithms commonly used in clinical research.</div>';
-
-        html += '<div class="table-container">';
-        html += '<table class="data-table">';
-        html += '<thead><tr><th>Algorithm</th><th>Interpretability</th><th>Description</th><th style="min-width:200px">Clinical Applications</th></tr></thead>';
-        html += '<tbody>';
-        for (var a = 0; a < algorithms.length; a++) {
-            var alg = algorithms[a];
-            var stars = '';
-            for (var si = 0; si < 5; si++) {
-                stars += si < alg.interpretability ? '&#9733;' : '&#9734;';
-            }
-            html += '<tr>';
-            html += '<td><strong>' + alg.name + '</strong></td>';
-            html += '<td style="white-space:nowrap;">' + stars + ' (' + alg.interpretability + '/5)</td>';
-            html += '<td style="font-size:0.85rem;">' + alg.desc + '</td>';
-            html += '<td style="font-size:0.85rem;">' + alg.applications + '</td>';
-            html += '</tr>';
-        }
-        html += '</tbody></table>';
-        html += '</div>';
-
-        /* Expandable detail cards for each algorithm */
-        html += '<div class="card-subtitle mt-2">Detailed Algorithm Information</div>';
-        for (var b = 0; b < algorithms.length; b++) {
-            var alg2 = algorithms[b];
-            html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
-            html += '<div onclick="MLPrediction.toggleAlgDetail(' + b + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
-            html += '<strong>' + alg2.name + '</strong>';
-            html += '<span id="ml-alg-arrow-' + b + '" style="transition:transform 0.2s;">&#9660;</span>';
-            html += '</div>';
-            html += '<div id="ml-alg-detail-' + b + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;">';
-            html += '<p><strong>Description:</strong> ' + alg2.desc + '</p>';
-            html += '<p><strong>Pros:</strong> ' + alg2.pros + '</p>';
-            html += '<p><strong>Cons:</strong> ' + alg2.cons + '</p>';
-            html += '<p><strong>Key Hyperparameters:</strong> ' + alg2.hyperparams + '</p>';
-            html += '<p><strong>Clinical Applications:</strong> ' + alg2.applications + '</p>';
-            html += '</div></div>';
-        }
-        html += '</div>';
-
-        /* === Card 3: Model Validation Guide === */
-        html += '<div class="card">';
-        html += '<div class="card-title">Model Validation Guide</div>';
-
-        html += '<div class="card-subtitle">Validation Strategies</div>';
-        for (var v = 0; v < validationStrategies.length; v++) {
-            var vs = validationStrategies[v];
-            html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
-            html += '<div onclick="MLPrediction.toggleValidation(' + v + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
-            html += '<strong>' + vs.name + '</strong>';
-            html += '<span id="ml-val-arrow-' + v + '" style="transition:transform 0.2s;">&#9660;</span>';
-            html += '</div>';
-            html += '<div id="ml-val-detail-' + v + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;">';
-            html += '<p>' + vs.desc + '</p>';
-            html += '<p><strong>When to use:</strong> ' + vs.when + '</p>';
-            html += '<p><strong>Pros:</strong> ' + vs.pros + '</p>';
-            html += '<p><strong>Cons:</strong> ' + vs.cons + '</p>';
-            html += '<p style="color:var(--accent);"><strong>Recommendation:</strong> ' + vs.recommendation + '</p>';
-            html += '</div></div>';
-        }
-
-        /* Classification metrics */
-        html += '<div class="card-subtitle mt-2">Classification Metrics</div>';
-        html += '<div class="table-container">';
-        html += '<table class="data-table">';
-        html += '<thead><tr><th>Metric</th><th>Range</th><th>Description</th><th>Notes</th></tr></thead>';
-        html += '<tbody>';
-        for (var cm = 0; cm < classificationMetrics.length; cm++) {
-            var m = classificationMetrics[cm];
-            html += '<tr><td><strong>' + m.name + '</strong></td><td style="white-space:nowrap;font-size:0.85rem;">' + m.range + '</td><td style="font-size:0.85rem;">' + m.desc + '</td><td style="font-size:0.85rem;">' + m.notes + '</td></tr>';
-        }
-        html += '</tbody></table></div>';
-
-        /* Regression metrics */
-        html += '<div class="card-subtitle mt-2">Regression Metrics</div>';
-        html += '<div class="table-container">';
-        html += '<table class="data-table">';
-        html += '<thead><tr><th>Metric</th><th>Range</th><th>Description</th><th>Notes</th></tr></thead>';
-        html += '<tbody>';
-        for (var rm = 0; rm < regressionMetrics.length; rm++) {
-            var mr = regressionMetrics[rm];
-            html += '<tr><td><strong>' + mr.name + '</strong></td><td style="white-space:nowrap;font-size:0.85rem;">' + mr.range + '</td><td style="font-size:0.85rem;">' + mr.desc + '</td><td style="font-size:0.85rem;">' + mr.notes + '</td></tr>';
-        }
-        html += '</tbody></table></div>';
-
-        /* Survival metrics */
-        html += '<div class="card-subtitle mt-2">Survival / Reclassification Metrics</div>';
-        html += '<div class="table-container">';
-        html += '<table class="data-table">';
-        html += '<thead><tr><th>Metric</th><th>Range</th><th>Description</th><th>Notes</th></tr></thead>';
-        html += '<tbody>';
-        for (var sm = 0; sm < survivalMetrics.length; sm++) {
-            var ms = survivalMetrics[sm];
-            html += '<tr><td><strong>' + ms.name + '</strong></td><td style="white-space:nowrap;font-size:0.85rem;">' + ms.range + '</td><td style="font-size:0.85rem;">' + ms.desc + '</td><td style="font-size:0.85rem;">' + ms.notes + '</td></tr>';
-        }
-        html += '</tbody></table></div>';
-        html += '</div>';
-
-        /* === Card 4: TRIPOD+AI Checklist === */
-        html += '<div class="card">';
-        html += '<div class="card-title">TRIPOD+AI Checklist</div>';
-        html += '<div class="card-subtitle">Checklist for reporting prediction model studies with AI/ML components. Based on TRIPOD with AI extensions.</div>';
-
-        /* Progress bar */
-        html += '<div style="margin-bottom:1rem;">';
-        html += '<div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.3rem;">';
-        html += '<span id="ml-tripod-progress-text">0 / ' + tripodItems.length + ' items completed</span>';
-        html += '<span id="ml-tripod-progress-pct">0%</span>';
-        html += '</div>';
-        html += '<div style="height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;">';
-        html += '<div id="ml-tripod-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width 0.3s;"></div>';
-        html += '</div>';
-        html += '</div>';
-
-        var lastTripodSection = '';
-        for (var t = 0; t < tripodItems.length; t++) {
-            var ti = tripodItems[t];
-            if (ti.section !== lastTripodSection) {
-                if (lastTripodSection !== '') html += '</div>';
-                html += '<div style="margin-bottom:0.5rem;">';
-                html += '<div style="font-weight:600;font-size:0.95rem;color:var(--accent);margin:0.8rem 0 0.4rem;border-bottom:1px solid var(--border);padding-bottom:0.2rem;">' + ti.section + '</div>';
-                lastTripodSection = ti.section;
-            }
-            var tKey = 'tripod_' + ti.num;
-            html += '<label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.35rem 0;cursor:pointer;font-size:0.9rem;">';
-            html += '<input type="checkbox" id="ml-tripod-' + tKey + '" onchange="MLPrediction.toggleTripod(\'' + ti.num + '\')" style="margin-top:3px;flex-shrink:0;">';
-            html += '<span><strong>' + ti.num + '.</strong> ' + ti.text + '</span>';
-            html += '</label>';
-        }
-        if (lastTripodSection !== '') html += '</div>';
-
-        html += '<div class="btn-group mt-2">';
-        html += '<button class="btn btn-secondary" onclick="MLPrediction.copyTripod()">Copy TRIPOD+AI Checklist</button>';
-        html += '<button class="btn btn-secondary" onclick="MLPrediction.resetTripod()">Reset</button>';
-        html += '</div>';
-        html += '</div>';
-
-        /* === Card 5: Common Pitfalls === */
-        html += '<div class="card">';
-        html += '<div class="card-title">Common Pitfalls in Clinical ML</div>';
-        html += '<div class="card-subtitle">Critical issues to avoid when applying machine learning to clinical research data.</div>';
-
-        for (var p = 0; p < pitfalls.length; p++) {
-            var pit = pitfalls[p];
-            html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
-            html += '<div onclick="MLPrediction.togglePitfall(' + p + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
-            html += '<strong style="color:var(--warning,#e67e22);">' + (p + 1) + '. ' + pit.title + '</strong>';
-            html += '<span id="ml-pit-arrow-' + p + '" style="transition:transform 0.2s;">&#9660;</span>';
-            html += '</div>';
-            html += '<div id="ml-pit-detail-' + p + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;">';
-            html += pit.content;
-            html += '</div></div>';
-        }
-        html += '</div>';
-
-        /* === Card 6: Model Validation Calculator === */
-        html += '<div class="card">';
-        html += '<div class="card-title">Model Validation Calculator</div>';
-        html += '<div class="card-subtitle">Compute cross-validation, bootstrap, and train/test split performance estimates for model evaluation.</div>';
-
-        html += '<div class="form-row form-row--2">';
-        html += '<div class="form-group"><label class="form-label">Validation Method</label>';
-        html += '<select class="form-select" id="ml-val-method">';
-        html += '<option value="kfold">k-Fold Cross-Validation</option>';
-        html += '<option value="bootstrap">Bootstrap (.632+)</option>';
-        html += '<option value="traintestsplit">Train/Test Split</option>';
-        html += '</select></div>';
-        html += '<div class="form-group"><label class="form-label">Total Sample Size (N)</label>';
-        html += '<input type="number" class="form-input" id="ml-val-n" value="500" min="10"></div>';
-        html += '</div>';
-
-        html += '<div class="form-row form-row--3">';
-        html += '<div class="form-group"><label class="form-label">Number of Events</label>';
-        html += '<input type="number" class="form-input" id="ml-val-events" value="75" min="1"></div>';
-        html += '<div class="form-group"><label class="form-label">Number of Predictors</label>';
-        html += '<input type="number" class="form-input" id="ml-val-predictors" value="10" min="1"></div>';
-        html += '<div class="form-group"><label class="form-label">k (folds) / B (bootstraps)</label>';
-        html += '<input type="number" class="form-input" id="ml-val-k" value="10" min="2" max="500"></div>';
-        html += '</div>';
-
-        html += '<div class="form-row form-row--2">';
-        html += '<div class="form-group"><label class="form-label">Apparent AUC (training)</label>';
-        html += '<input type="number" class="form-input" id="ml-val-auc" value="0.82" min="0.5" max="1" step="0.01"></div>';
-        html += '<div class="form-group"><label class="form-label">Train Fraction (for split)</label>';
-        html += '<input type="number" class="form-input" id="ml-val-trainfrac" value="0.7" min="0.5" max="0.9" step="0.05"></div>';
-        html += '</div>';
-
-        html += '<div class="btn-group mt-1">';
-        html += '<button class="btn btn-primary" onclick="MLPrediction.calcValidation()">Evaluate Validation Strategy</button>';
-        html += '</div>';
-        html += '<div id="ml-val-results" class="mt-2"></div>';
-        html += '</div>';
-
-        /* === Card 7: Feature Selection Guide === */
-        html += '<div class="card">';
-        html += '<div class="card-title">Feature Selection Guide</div>';
-        html += '<div class="card-subtitle">Compare feature selection methods and get recommendations based on your data characteristics.</div>';
-
-        var featureSelMethods = [
-            { name: 'Univariate Filtering', desc: 'Rank features independently using statistical tests (t-test, chi-squared, mutual information). Select top-k features.', pros: 'Fast; simple; scales to large feature sets; no model dependency.', cons: 'Ignores feature interactions; may miss jointly predictive features; threshold is arbitrary.', when: 'Initial screening of very high-dimensional data (genomics, EHR); as a pre-filter before wrapper methods.', rCode: 'library(caret)<br>nearZeroVar(data) # Remove near-zero variance<br># Chi-squared test for categorical features<br>chisq.test(table(feature, outcome))<br># For continuous: Wilcoxon or t-test per feature' },
-            { name: 'LASSO (L1 Regularization)', desc: 'Penalized regression that shrinks coefficients toward zero. Features with zero coefficients are eliminated.', pros: 'Simultaneous selection and estimation; handles correlated features; embeds in model training.', cons: 'Assumes linearity; unstable with highly correlated features; may select arbitrarily among correlated group.', when: 'Standard choice for clinical prediction models; moderate to high-dimensional data; when interpretability is needed.', rCode: 'library(glmnet)<br>cv_fit &lt;- cv.glmnet(X, y, family="binomial", alpha=1)<br>coef(cv_fit, s="lambda.min")' },
-            { name: 'Elastic Net', desc: 'Combines L1 (LASSO) and L2 (Ridge) penalties. Alpha parameter controls the mix.', pros: 'Handles correlated features better than LASSO alone; groups correlated features; flexible.', cons: 'Two hyperparameters to tune (alpha, lambda); slightly more complex than pure LASSO.', when: 'When features are correlated (common in clinical data); when LASSO is unstable across bootstrap samples.', rCode: 'library(glmnet)<br>cv_fit &lt;- cv.glmnet(X, y, family="binomial", alpha=0.5)<br>coef(cv_fit, s="lambda.min")' },
-            { name: 'Recursive Feature Elimination (RFE)', desc: 'Iteratively trains model, ranks features by importance, removes least important, and repeats.', pros: 'Considers feature interactions; wrapper method captures model-specific importance.', cons: 'Computationally expensive; risk of overfitting if not nested in CV; greedy algorithm.', when: 'Moderate number of features (<100); when feature interactions matter; with random forest or SVM.', rCode: 'library(caret)<br>ctrl &lt;- rfeControl(functions=rfFuncs, method="cv", number=10)<br>result &lt;- rfe(X, y, sizes=c(5,10,15,20), rfeControl=ctrl)' },
-            { name: 'Stability Selection', desc: 'Runs LASSO on random subsamples of data; selects features that appear frequently across subsamples.', pros: 'Controls false discovery rate; robust; identifies truly important features.', cons: 'Computationally intensive; conservative (may miss some true features).', when: 'When controlling false positives in feature selection is critical; high-dimensional settings; biomarker discovery.', rCode: 'library(stabs)<br>stab &lt;- stabsel(X, y, fitfun=glmnet.lasso, cutoff=0.75, PFER=1)' },
-            { name: 'Boruta (Random Forest Wrapper)', desc: 'Creates shadow features (shuffled copies) and compares real feature importance against shadows using random forest.', pros: 'Statistically principled; captures non-linear relationships and interactions; all-relevant selection.', cons: 'Slow for large datasets; depends on random forest assumptions; may be unstable with small samples.', when: 'When non-linear relationships expected; exploratory analysis; complementing LASSO-based methods.', rCode: 'library(Boruta)<br>boruta_result &lt;- Boruta(outcome ~ ., data=df, doTrace=2)<br>getSelectedAttributes(boruta_result)' }
-        ];
-
-        for (var fs = 0; fs < featureSelMethods.length; fs++) {
-            var fsm = featureSelMethods[fs];
-            html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
-            html += '<div onclick="MLPrediction.toggleFeatureSel(' + fs + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
-            html += '<strong>' + fsm.name + '</strong>';
-            html += '<span id="ml-fs-arrow-' + fs + '" style="transition:transform 0.2s;">&#9660;</span>';
-            html += '</div>';
-            html += '<div id="ml-fs-detail-' + fs + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;">';
-            html += '<p>' + fsm.desc + '</p>';
-            html += '<p><strong>Pros:</strong> ' + fsm.pros + '</p>';
-            html += '<p><strong>Cons:</strong> ' + fsm.cons + '</p>';
-            html += '<p><strong>When to use:</strong> ' + fsm.when + '</p>';
-            html += '<div style="margin-top:0.5rem;padding:0.5rem;background:var(--bg-elevated);border-radius:4px;font-family:var(--font-mono,monospace);font-size:0.8rem;line-height:1.6;">' + fsm.rCode + '</div>';
-            html += '</div></div>';
-        }
-        html += '</div>';
-
-        /* === Card 8: Model Comparison Metrics Table === */
-        html += '<div class="card">';
-        html += '<div class="card-title">Model Comparison Calculator</div>';
-        html += '<div class="card-subtitle">Enter metrics for multiple models to generate a comparison table. Supports AUC, Brier score, and calibration slope.</div>';
-
-        html += '<div id="ml-comp-models">';
-        html += '<div class="form-row form-row--3" style="margin-bottom:0.3rem;">';
-        html += '<div class="form-group"><label class="form-label">Model Name</label></div>';
-        html += '<div class="form-group"><label class="form-label">AUC (0.5-1.0)</label></div>';
-        html += '<div class="form-group"><label class="form-label">Brier Score (0-1)</label></div>';
-        html += '</div>';
-        for (var mi = 0; mi < 3; mi++) {
-            var mNames = ['Logistic Regression', 'Random Forest', 'XGBoost'];
-            var mAucs = ['0.78', '0.82', '0.84'];
-            var mBriers = ['0.18', '0.16', '0.15'];
-            html += '<div class="form-row form-row--3" style="margin-bottom:0.3rem;">';
-            html += '<div class="form-group"><input type="text" class="form-input" id="ml-comp-name-' + mi + '" value="' + mNames[mi] + '"></div>';
-            html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-auc-' + mi + '" value="' + mAucs[mi] + '" step="0.01" min="0" max="1"></div>';
-            html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-brier-' + mi + '" value="' + mBriers[mi] + '" step="0.01" min="0" max="1"></div>';
-            html += '</div>';
-        }
-        html += '</div>';
-
-        html += '<div class="form-row form-row--3" style="margin-bottom:0.3rem;">';
-        html += '<div class="form-group"><label class="form-label">Calibration Slope</label></div>';
-        html += '<div class="form-group"><label class="form-label">Sensitivity</label></div>';
-        html += '<div class="form-group"><label class="form-label">Specificity</label></div>';
-        html += '</div>';
-        for (var mj = 0; mj < 3; mj++) {
-            var mSlopes = ['0.95', '0.88', '0.85'];
-            var mSens = ['0.72', '0.78', '0.80'];
-            var mSpecs = ['0.74', '0.76', '0.78'];
-            html += '<div class="form-row form-row--3" style="margin-bottom:0.3rem;">';
-            html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-slope-' + mj + '" value="' + mSlopes[mj] + '" step="0.01" min="0" max="2"></div>';
-            html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-sens-' + mj + '" value="' + mSens[mj] + '" step="0.01" min="0" max="1"></div>';
-            html += '<div class="form-group"><input type="number" class="form-input" id="ml-comp-spec-' + mj + '" value="' + mSpecs[mj] + '" step="0.01" min="0" max="1"></div>';
-            html += '</div>';
-        }
-
-        html += '<div class="btn-group mt-1">';
-        html += '<button class="btn btn-primary" onclick="MLPrediction.compareModels()">Compare Models</button>';
-        html += '<button class="btn btn-secondary" onclick="MLPrediction.copyComparison()">Copy Table</button>';
-        html += '</div>';
-        html += '<div id="ml-comp-results" class="mt-2"></div>';
-        html += '</div>';
-
-        /* === Card 9: NRI / IDI Calculator === */
-        html += '<div class="card">';
-        html += '<div class="card-title">NRI &amp; IDI Calculator</div>';
-        html += '<div class="card-subtitle">Calculate Net Reclassification Improvement and Integrated Discrimination Improvement when comparing two models.</div>';
-
-        html += '<div class="card-subtitle" style="font-weight:600;margin-top:0.5rem;">Event Subjects</div>';
-        html += '<div class="form-row form-row--3">';
-        html += '<div class="form-group"><label class="form-label">Reclassified Up (events)</label>';
-        html += '<input type="number" class="form-input" id="ml-nri-event-up" value="25" min="0"></div>';
-        html += '<div class="form-group"><label class="form-label">Reclassified Down (events)</label>';
-        html += '<input type="number" class="form-input" id="ml-nri-event-down" value="10" min="0"></div>';
-        html += '<div class="form-group"><label class="form-label">Total Events</label>';
-        html += '<input type="number" class="form-input" id="ml-nri-total-events" value="100" min="1"></div>';
-        html += '</div>';
-
-        html += '<div class="card-subtitle" style="font-weight:600;">Non-Event Subjects</div>';
-        html += '<div class="form-row form-row--3">';
-        html += '<div class="form-group"><label class="form-label">Reclassified Up (non-events)</label>';
-        html += '<input type="number" class="form-input" id="ml-nri-nonevent-up" value="15" min="0"></div>';
-        html += '<div class="form-group"><label class="form-label">Reclassified Down (non-events)</label>';
-        html += '<input type="number" class="form-input" id="ml-nri-nonevent-down" value="30" min="0"></div>';
-        html += '<div class="form-group"><label class="form-label">Total Non-Events</label>';
-        html += '<input type="number" class="form-input" id="ml-nri-total-nonevents" value="400" min="1"></div>';
-        html += '</div>';
-
-        html += '<div class="card-subtitle" style="font-weight:600;">IDI Inputs</div>';
-        html += '<div class="form-row form-row--2">';
-        html += '<div class="form-group"><label class="form-label">Mean Predicted Prob (Old Model, Events)</label>';
-        html += '<input type="number" class="form-input" id="ml-idi-old-event" value="0.35" step="0.01" min="0" max="1"></div>';
-        html += '<div class="form-group"><label class="form-label">Mean Predicted Prob (New Model, Events)</label>';
-        html += '<input type="number" class="form-input" id="ml-idi-new-event" value="0.45" step="0.01" min="0" max="1"></div>';
-        html += '</div>';
-        html += '<div class="form-row form-row--2">';
-        html += '<div class="form-group"><label class="form-label">Mean Predicted Prob (Old Model, Non-Events)</label>';
-        html += '<input type="number" class="form-input" id="ml-idi-old-nonevent" value="0.12" step="0.01" min="0" max="1"></div>';
-        html += '<div class="form-group"><label class="form-label">Mean Predicted Prob (New Model, Non-Events)</label>';
-        html += '<input type="number" class="form-input" id="ml-idi-new-nonevent" value="0.10" step="0.01" min="0" max="1"></div>';
-        html += '</div>';
-
-        html += '<div class="btn-group mt-1">';
-        html += '<button class="btn btn-primary" onclick="MLPrediction.calcNRI()">Calculate NRI &amp; IDI</button>';
-        html += '</div>';
-        html += '<div id="ml-nri-results" class="mt-2"></div>';
-        html += '</div>';
-
-        /* === Card 10: Calibration Plot Explainer === */
-        html += '<div class="card">';
-        html += '<div class="card-title">Calibration Plot Explainer</div>';
-        html += '<div class="card-subtitle">Understand how to interpret calibration plots and common calibration issues in prediction models.</div>';
-
-        var calibTopics = [
-            { title: 'What is Calibration?', content: 'Calibration measures the agreement between predicted probabilities and observed outcomes. A well-calibrated model predicts 20% risk for a group where 20% of patients actually have the event.<br><br><strong>Why it matters:</strong> Clinical decisions based on predicted probabilities (e.g., "your 10-year stroke risk is 15%") require accurate calibration. A model with high AUC but poor calibration may rank patients correctly but give wrong absolute risk estimates.' },
-            { title: 'Calibration Plot Interpretation', content: '<strong>Perfect calibration:</strong> Points fall on the 45-degree diagonal line.<br><br><strong>Calibration-in-the-large (intercept):</strong> Measures whether the average predicted probability matches the overall event rate. Intercept = 0 means overall calibration is correct.<br><br><strong>Calibration slope:</strong><ul style="margin:0.5rem 0;padding-left:1.5rem;"><li>Slope = 1.0: Perfect calibration</li><li>Slope &lt; 1.0: Overfitting (predictions too extreme -- high predictions too high, low predictions too low)</li><li>Slope &gt; 1.0: Underfitting (predictions too conservative -- not spread out enough)</li></ul>' },
-            { title: 'Common Calibration Problems', content: '<strong>1. Systematic overestimation:</strong> All predicted probabilities are too high. The calibration curve falls below the diagonal. Causes: Higher event rate in development than validation population.<br><br><strong>2. Systematic underestimation:</strong> All predicted probabilities are too low. The curve falls above the diagonal.<br><br><strong>3. Overfitting:</strong> Slope &lt; 1. High-risk predictions are too high, low-risk predictions are too low. Causes: Too many predictors, small sample, no regularization.<br><br><strong>4. Poor calibration at extremes:</strong> Good calibration in middle risk groups but poor at very low or very high predicted probabilities.' },
-            { title: 'Recalibration Methods', content: '<strong>Logistic recalibration:</strong> Fit logit(observed) = a + b * logit(predicted). Adjusts intercept (a) and slope (b).<br><br><strong>Platt scaling:</strong> Post-hoc calibration using logistic regression on predicted scores. Common for SVMs and neural networks.<br><br><strong>Isotonic regression:</strong> Non-parametric calibration method. More flexible but requires larger validation sets.<br><br><strong>When to recalibrate:</strong> When applying a model to a new population with different event rate or risk factor distribution. Report both original and recalibrated performance.' },
-            { title: 'Hosmer-Lemeshow vs. Calibration Plots', content: '<strong>Hosmer-Lemeshow test:</strong><ul style="margin:0.5rem 0;padding-left:1.5rem;"><li>Groups patients into deciles of predicted risk</li><li>Compares observed vs expected events per group</li><li>p > 0.05 suggests adequate calibration</li><li><strong>Limitations:</strong> Sensitive to sample size, arbitrary grouping, low power in small samples</li></ul><strong>Calibration plots with loess smoother are preferred</strong> because they show the full calibration curve without arbitrary grouping. Report calibration slope and intercept as quantitative summary measures.' }
-        ];
-
-        for (var ct = 0; ct < calibTopics.length; ct++) {
-            var ctopic = calibTopics[ct];
-            html += '<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:0.5rem;overflow:hidden;">';
-            html += '<div onclick="MLPrediction.toggleCalib(' + ct + ')" style="padding:0.6rem 1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);">';
-            html += '<strong>' + ctopic.title + '</strong>';
-            html += '<span id="ml-calib-arrow-' + ct + '" style="transition:transform 0.2s;">&#9660;</span>';
-            html += '</div>';
-            html += '<div id="ml-calib-detail-' + ct + '" class="hidden" style="padding:0.8rem 1rem;font-size:0.9rem;line-height:1.7;">';
-            html += ctopic.content;
-            html += '</div></div>';
-        }
-        html += '</div>';
-
-        /* === Card 11: Clinical Prediction Model Development Checklist === */
-        html += '<div class="card">';
-        html += '<div class="card-title">Clinical Prediction Model Development Checklist</div>';
-        html += '<div class="card-subtitle">Step-by-step guide for developing and validating clinical prediction models following best practices.</div>';
-
-        var cpmSteps = [
-            { step: '1', title: 'Define the Clinical Problem', items: ['Specify the target population', 'Define the prediction time point (T0)', 'Define the outcome and time horizon', 'Determine intended clinical use (screening, diagnosis, prognosis)', 'Conduct a systematic review of existing models'] },
-            { step: '2', title: 'Study Design & Data', items: ['Choose appropriate study design (cohort preferred)', 'Calculate minimum sample size (Riley et al. criteria)', 'Ensure adequate events per variable (EPV >= 10-20)', 'Document data source and collection methods', 'Check data quality and completeness'] },
-            { step: '3', title: 'Candidate Predictors', items: ['Select predictors available at T0 in clinical practice', 'Limit number based on EPV considerations', 'Avoid predictors that are consequences of the outcome', 'Document how each predictor is measured', 'Consider clinical face validity'] },
-            { step: '4', title: 'Missing Data', items: ['Report missing data proportions per variable', 'Assess missing data mechanism (MCAR/MAR/MNAR)', 'Use multiple imputation (not complete case)', 'Include outcome in imputation model', 'Perform sensitivity analysis for missing data'] },
-            { step: '5', title: 'Model Development', items: ['Pre-specify the modeling strategy', 'Handle continuous predictors appropriately (no dichotomization)', 'Use penalized methods if p/n ratio is high', 'Avoid automated stepwise selection', 'Consider non-linear effects (restricted cubic splines)'] },
-            { step: '6', title: 'Internal Validation', items: ['Use bootstrap validation (200+ resamples) or cross-validation', 'Report optimism-corrected performance', 'Assess calibration (plot, slope, intercept)', 'Assess discrimination (C-statistic/AUC)', 'Report confidence intervals for all metrics'] },
-            { step: '7', title: 'Model Presentation', items: ['Present the full model (all coefficients)', 'Create a nomogram or scoring system', 'Provide example calculations', 'Develop a risk calculator or app', 'Explain how to use the model clinically'] },
-            { step: '8', title: 'External Validation', items: ['Validate in independent dataset', 'Assess geographic and temporal transportability', 'Report calibration and discrimination in validation data', 'Consider recalibration if needed', 'Plan for model updating over time'] }
-        ];
-
-        html += '<div id="ml-cpm-checklist">';
-        for (var cs = 0; cs < cpmSteps.length; cs++) {
-            var cstep = cpmSteps[cs];
-            html += '<div style="margin-bottom:0.8rem;border:1px solid var(--border);border-radius:6px;padding:0.8rem 1rem;">';
-            html += '<div style="font-weight:700;color:var(--accent);margin-bottom:0.4rem;">Step ' + cstep.step + ': ' + cstep.title + '</div>';
-            for (var ci = 0; ci < cstep.items.length; ci++) {
-                html += '<label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.2rem 0;cursor:pointer;font-size:0.85rem;">';
-                html += '<input type="checkbox" id="ml-cpm-' + cs + '-' + ci + '" onchange="MLPrediction.updateCPMProgress()" style="margin-top:3px;flex-shrink:0;">';
-                html += '<span>' + cstep.items[ci] + '</span>';
-                html += '</label>';
-            }
-            html += '</div>';
-        }
-        html += '</div>';
-
-        html += '<div style="margin-top:0.5rem;">';
-        html += '<div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.3rem;">';
-        html += '<span id="ml-cpm-progress-text">0 items completed</span>';
-        html += '<span id="ml-cpm-progress-pct">0%</span>';
-        html += '</div>';
-        html += '<div style="height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;">';
-        html += '<div id="ml-cpm-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width 0.3s;"></div>';
-        html += '</div>';
-        html += '</div>';
-
-        html += '<div class="btn-group mt-2">';
-        html += '<button class="btn btn-secondary" onclick="MLPrediction.copyCPMChecklist()">Copy Checklist</button>';
-        html += '</div>';
-        html += '</div>';
+        html += renderLearnAndReference();
+        html += renderMLMethodSelector();
+        html += renderAlgorithmReference();
+        html += renderModelValidationGuide();
+        html += renderTripodChecklist();
+        html += renderCommonPitfalls();
+        html += renderValidationCalculator();
+        html += renderFeatureSelection();
+        html += renderModelComparison();
+        html += renderNRIIDICalculator();
+        html += renderCalibrationExplainer();
+        html += renderCPMChecklist();
 
         App.setTrustedHTML(container, html);
         App.autoSaveInputs(container, MODULE_ID);
     }
+
 
     /* ------------------------------------------------------------------ */
     /*  Interaction handlers                                               */
