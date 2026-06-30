@@ -57,4 +57,30 @@ describe('Statistics Module', () => {
             expect(Statistics.gammaFunction(0.2)).toBeCloseTo(4.590843711998803, 10);
         });
     });
+
+    describe('chiSquaredPDF', () => {
+        test('returns 0 for x <= 0', () => {
+            expect(Statistics.chiSquaredPDF(0, 1)).toBe(0);
+            expect(Statistics.chiSquaredPDF(-1, 2)).toBe(0);
+            expect(Statistics.chiSquaredPDF(-10, 5)).toBe(0);
+        });
+
+        test('computes correct PDF values for positive x and valid df', () => {
+            // chiSquaredPDF(1, 1) = exp(-0.5) / sqrt(2*PI)
+            const expected_1_1 = Math.exp(-0.5) / Math.sqrt(2 * Math.PI);
+            expect(Statistics.chiSquaredPDF(1, 1)).toBeCloseTo(expected_1_1, 10);
+
+            // chiSquaredPDF(2, 2) = exp(-1) / 2
+            const expected_2_2 = Math.exp(-1) / 2;
+            expect(Statistics.chiSquaredPDF(2, 2)).toBeCloseTo(expected_2_2, 10);
+
+            // chiSquaredPDF(3, 3) = sqrt(3) * exp(-1.5) / sqrt(2*PI)
+            const expected_3_3 = (Math.sqrt(3) * Math.exp(-1.5)) / Math.sqrt(2 * Math.PI);
+            expect(Statistics.chiSquaredPDF(3, 3)).toBeCloseTo(expected_3_3, 10);
+
+            // chiSquaredPDF(4, 4) = exp(-2)
+            const expected_4_4 = Math.exp(-2);
+            expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(expected_4_4, 10);
+        });
+    });
 });
