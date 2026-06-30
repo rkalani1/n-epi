@@ -240,6 +240,10 @@ const Statistics = (() => {
     }
 
     function tPDF(t, df) {
+        if (isNaN(t) || isNaN(df)) return NaN;
+        if (df <= 0) return NaN;
+        if (df === Infinity) return normalPDF(t);
+        if (Math.abs(t) === Infinity) return 0;
         return Math.exp(logGamma((df + 1) / 2) - logGamma(df / 2)) /
             (Math.sqrt(df * PI) * Math.pow(1 + t * t / df, (df + 1) / 2));
     }

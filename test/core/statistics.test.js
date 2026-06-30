@@ -110,17 +110,104 @@ describe('Statistics Module', () => {
 
             // B(2, 3) = 1/12 -> logBeta(2, 3) = ln(1/12)
             expect(Statistics.logBeta(2, 3)).toBeCloseTo(Math.log(1 / 12), 10);
+
+            expect(Statistics.logBeta(1, 1)).toBeCloseTo(0, 10);
+            expect(Statistics.logBeta(2, 2)).toBeCloseTo(-Math.log(6), 10);
+            expect(Statistics.logBeta(3, 2)).toBeCloseTo(-Math.log(12), 10);
         });
 
         test('computes logBeta correctly for half-integers', () => {
             // B(0.5, 0.5) = PI -> logBeta(0.5, 0.5) = ln(PI)
             expect(Statistics.logBeta(0.5, 0.5)).toBeCloseTo(Math.log(Math.PI), 10);
+            expect(Statistics.logBeta(0.5, 1.5)).toBeCloseTo(Math.log(0.5 * Math.PI), 10);
         });
 
         test('is symmetric: logBeta(x, y) = logBeta(y, x)', () => {
             expect(Statistics.logBeta(2, 5)).toBeCloseTo(Statistics.logBeta(5, 2), 10);
             expect(Statistics.logBeta(0.2, 0.8)).toBeCloseTo(Statistics.logBeta(0.8, 0.2), 10);
             expect(Statistics.logBeta(3.14, 2.71)).toBeCloseTo(Statistics.logBeta(2.71, 3.14), 10);
+        });
+    });
+
+    describe('normalPDF', () => {
+        test('calculates standard normal density values', () => {
+            const standard = 1 / Math.sqrt(2 * Math.PI);
+
+            expect(Statistics.normalPDF(0)).toBeCloseTo(standard, 8);
+            expect(Statistics.normalPDF(1)).toBeCloseTo(standard * Math.exp(-0.5), 8);
+            expect(Statistics.normalPDF(-1)).toBeCloseTo(standard * Math.exp(-0.5), 8);
+            expect(Statistics.normalPDF(1.96)).toBeCloseTo(standard * Math.exp(-0.5 * 1.96 * 1.96), 8);
+            expect(Statistics.normalPDF(-1.96)).toBeCloseTo(standard * Math.exp(-0.5 * 1.96 * 1.96), 8);
+        });
+
+        test('supports nonstandard mean and standard deviation', () => {
+            expect(Statistics.normalPDF(60, 50, 10)).toBeCloseTo(Statistics.normalPDF(1) / 10, 8);
+            expect(Statistics.normalPDF(-9, -5, 2)).toBeCloseTo(Statistics.normalPDF(-2) / 2, 8);
+        });
+
+        test('handles extreme and invalid scale inputs', () => {
+            expect(Statistics.normalPDF(10)).toBeCloseTo(0, 10);
+            expect(Statistics.normalPDF(-10)).toBeCloseTo(0, 10);
+            expect(Statistics.normalPDF(0, 0, 0)).toBeNaN();
+            expect(Statistics.normalPDF(1, 0, 0)).toBeNaN();
+        });
+    });
+
+    describe('tPDF', () => {
+        test('calculates known Student t densities', () => {
+            const cases = [
+                { t: 0, df: 1, expected: 0.31830988618379075 },
+                { t: 0, df: 10, expected: 0.38910838396603115 },
+                { t: 1.96, df: 10, expected: 0.0650947506545504 },
+                { t: 2.5, df: 30, expected: 0.02105701922062158 },
+                { t: -1.5, df: 5, expected: 0.12451734464635511 },
+                { t: 0, df: 100, expected: 0.39794618693590594 }
+            ];
+
+            cases.forEach(({ t, df, expected }) => {
+                expect(Statistics.tPDF(t, df)).toBeCloseTo(expected, 6);
+            });
+        });
+
+        test('handles edge cases', () => {
+            expect(Statistics.tPDF(0, 0)).toBeNaN();
+            expect(Statistics.tPDF(0, -1)).toBeNaN();
+            expect(Statistics.tPDF(NaN, 1)).toBeNaN();
+            expect(Statistics.tPDF(0, NaN)).toBeNaN();
+            expect(Statistics.tPDF(Infinity, 1)).toBe(0);
+            expect(Statistics.tPDF(-Infinity, 1)).toBe(0);
+            expect(Statistics.tPDF(0, Infinity)).toBeCloseTo(1 / Math.sqrt(2 * Math.PI), 6);
+        });
+    });
+
+    describe('chiSquaredCDF', () => {
+        test('returns 0 when x is not positive', () => {
+            expect(Statistics.chiSquaredCDF(0, 1)).toBe(0);
+            expect(Statistics.chiSquaredCDF(-1, 5)).toBe(0);
+        });
+
+        test('matches standard chi-square quantile table values', () => {
+            expect(Statistics.chiSquaredCDF(3.841, 1)).toBeCloseTo(0.95, 2);
+            expect(Statistics.chiSquaredCDF(6.635, 1)).toBeCloseTo(0.99, 2);
+            expect(Statistics.chiSquaredCDF(5.991, 2)).toBeCloseTo(0.95, 2);
+            expect(Statistics.chiSquaredCDF(9.210, 2)).toBeCloseTo(0.99, 2);
+            expect(Statistics.chiSquaredCDF(11.070, 5)).toBeCloseTo(0.95, 2);
+            expect(Statistics.chiSquaredCDF(18.307, 10)).toBeCloseTo(0.95, 2);
+        });
+    });
+
+    describe('chiSquaredPDF', () => {
+        test('returns 0 for nonpositive x', () => {
+            expect(Statistics.chiSquaredPDF(0, 1)).toBe(0);
+            expect(Statistics.chiSquaredPDF(-1, 2)).toBe(0);
+            expect(Statistics.chiSquaredPDF(-10, 5)).toBe(0);
+        });
+
+        test('computes known positive density values', () => {
+            expect(Statistics.chiSquaredPDF(1, 1)).toBeCloseTo(Math.exp(-0.5) / Math.sqrt(2 * Math.PI), 10);
+            expect(Statistics.chiSquaredPDF(2, 2)).toBeCloseTo(Math.exp(-1) / 2, 10);
+            expect(Statistics.chiSquaredPDF(3, 3)).toBeCloseTo((Math.sqrt(3) * Math.exp(-1.5)) / Math.sqrt(2 * Math.PI), 10);
+            expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
 });
