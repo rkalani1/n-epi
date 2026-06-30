@@ -279,8 +279,11 @@ const App = (() => {
     // ============================================================
 
     function setTrustedHTML(element, trustedContent) {
-        // All callers only pass hardcoded/trusted template strings
-        element.innerHTML = trustedContent;
+        if (typeof DOMPurify !== 'undefined') {
+            element.innerHTML = DOMPurify.sanitize(trustedContent);
+        } else {
+            element.textContent = trustedContent;
+        }
     }
 
     // ============================================================
