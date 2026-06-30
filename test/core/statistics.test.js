@@ -37,6 +37,24 @@ describe('Statistics Module', () => {
             const gamma0_2 = 4.590843711998803;
             expect(Statistics.logGamma(0.2)).toBeCloseTo(Math.log(gamma0_2), 10);
         });
+
+        test('computes logGamma correctly for edge cases and large values', () => {
+            // Gamma(0) is undefined, limit goes to Infinity
+            expect(Statistics.logGamma(0)).toBe(Infinity);
+
+            // Gamma for negative integers is undefined (singularities)
+            expect(Number.isNaN(Statistics.logGamma(-1))).toBe(true);
+
+            // Gamma(-1.5) approx 2.3632718012073547 -> ln(|Gamma(-1.5)|) approx 0.860047015376481
+            expect(Statistics.logGamma(-1.5)).toBeCloseTo(0.860047015376481, 10);
+
+            // NaN should return NaN
+            expect(Number.isNaN(Statistics.logGamma(NaN))).toBe(true);
+
+            // Large positive value
+            // logGamma(171) = Math.log(170!) approx 706.5730622457874
+            expect(Statistics.logGamma(171)).toBeCloseTo(706.5730622457874, 10);
+        });
     });
 
     describe('gammaFunction', () => {
