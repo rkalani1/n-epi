@@ -676,11 +676,12 @@ const App = (() => {
                 if (currentIdx > 0) {
                     navigate(currentGroup.items[currentIdx - 1].id);
                 }
-            } else {
-                // Swipe left — next module in group
-                if (currentIdx < currentGroup.items.length - 1) {
-                    navigate(currentGroup.items[currentIdx + 1].id);
-                }
+                return;
+            }
+
+            // Swipe left — next module in group
+            if (currentIdx < currentGroup.items.length - 1) {
+                navigate(currentGroup.items[currentIdx + 1].id);
             }
         }
     }
