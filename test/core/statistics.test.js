@@ -57,4 +57,38 @@ describe('Statistics Module', () => {
             expect(Statistics.gammaFunction(0.2)).toBeCloseTo(4.590843711998803, 10);
         });
     });
+
+    describe('chiSquaredCDF', () => {
+        it('should return 0 when x is <= 0', () => {
+            expect(Statistics.chiSquaredCDF(0, 1)).toBe(0);
+            expect(Statistics.chiSquaredCDF(-1, 5)).toBe(0);
+        });
+
+        it('should calculate correct CDF for df=1', () => {
+            // chi-squared with df=1, x=3.841 is approx 0.95 (alpha=0.05)
+            const cdf = Statistics.chiSquaredCDF(3.841, 1);
+            expect(cdf).toBeCloseTo(0.95, 2);
+
+            // x=6.635 -> 0.99 (alpha=0.01)
+            expect(Statistics.chiSquaredCDF(6.635, 1)).toBeCloseTo(0.99, 2);
+        });
+
+        it('should calculate correct CDF for df=2', () => {
+            // x=5.991 -> 0.95
+            expect(Statistics.chiSquaredCDF(5.991, 2)).toBeCloseTo(0.95, 2);
+
+            // x=9.210 -> 0.99
+            expect(Statistics.chiSquaredCDF(9.210, 2)).toBeCloseTo(0.99, 2);
+        });
+
+        it('should calculate correct CDF for df=5', () => {
+            // x=11.070 -> 0.95
+            expect(Statistics.chiSquaredCDF(11.070, 5)).toBeCloseTo(0.95, 2);
+        });
+
+        it('should calculate correct CDF for df=10', () => {
+            // x=18.307 -> 0.95
+            expect(Statistics.chiSquaredCDF(18.307, 10)).toBeCloseTo(0.95, 2);
+        });
+    });
 });
