@@ -43,4 +43,24 @@ describe('Statistics Engine Tests', function() {
         });
 
     });
+
+    describe('regularizedIncompleteBeta Function', function() {
+        it('should return NaN when x < 0', function() {
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(-0.1, 2, 2)));
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(-1, 2, 2)));
+        });
+
+        it('should return NaN when x > 1', function() {
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(1.1, 2, 2)));
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(2, 2, 2)));
+        });
+
+        it('should return 0 when x === 0', function() {
+            assert.strictEqual(Statistics.regularizedIncompleteBeta(0, 2, 2), 0);
+        });
+
+        it('should return 1 when x === 1', function() {
+            assert.strictEqual(Statistics.regularizedIncompleteBeta(1, 2, 2), 1);
+        });
+    });
 });
