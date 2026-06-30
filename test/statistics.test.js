@@ -44,3 +44,40 @@ describe('Statistics Engine Tests', function() {
 
     });
 });
+
+    describe('tQuantile Distribution Function', function() {
+        it('should return -Infinity when p <= 0', function() {
+            assert.strictEqual(Statistics.tQuantile(0, 10), -Infinity);
+            assert.strictEqual(Statistics.tQuantile(-0.1, 10), -Infinity);
+        });
+
+        it('should return Infinity when p >= 1', function() {
+            assert.strictEqual(Statistics.tQuantile(1, 10), Infinity);
+            assert.strictEqual(Statistics.tQuantile(1.1, 10), Infinity);
+        });
+
+        it('should return 0 when p = 0.5', function() {
+            assert.ok(Math.abs(Statistics.tQuantile(0.5, 10)) < 1e-7);
+            assert.ok(Math.abs(Statistics.tQuantile(0.5, 1)) < 1e-7);
+        });
+
+        it('should handle Infinity df by falling back to normalQuantile', function() {
+            // normalQuantile(0.975) is approx 1.95996
+            assert.ok(Math.abs(Statistics.tQuantile(0.975, Infinity) - 1.95996398) < 1e-4);
+            assert.ok(Math.abs(Statistics.tQuantile(0.025, Infinity) - (-1.95996398)) < 1e-4);
+        });
+
+        it('should calculate specific values for tQuantile correctly', function() {
+            // From t-table: t-value for 95% confidence (two-tailed, p=0.975) and df=10 is approx 2.2281
+            assert.ok(Math.abs(Statistics.tQuantile(0.975, 10) - 2.2281) < 1e-3);
+
+            // df=1, p=0.975 is approx 12.7062
+            assert.ok(Math.abs(Statistics.tQuantile(0.975, 1) - 12.7062) < 1e-2);
+
+            // df=30, p=0.975 is approx 2.0423
+            assert.ok(Math.abs(Statistics.tQuantile(0.975, 30) - 2.0423) < 1e-3);
+
+            // symmetry check
+            assert.ok(Math.abs(Statistics.tQuantile(0.025, 10) - (-2.2281)) < 1e-3);
+        });
+    });
