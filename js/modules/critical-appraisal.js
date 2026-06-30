@@ -2636,20 +2636,18 @@
 
         var level = base.value === 'RCT' ? 4 : 2;
 
-        for (var i = 0; i < 5; i++) {
-            var sel = document.querySelector('input[name="ca-grade-down-' + i + '"]:checked');
-            if (sel) {
-                if (sel.value.indexOf('-1') > -1) level -= 1;
-                if (sel.value.indexOf('-2') > -1) level -= 2;
-            }
+        var downSels = document.querySelectorAll('input[name^="ca-grade-down-"]:checked');
+        for (var i = 0; i < downSels.length; i++) {
+            var sel = downSels[i];
+            if (sel.value.indexOf('-1') > -1) level -= 1;
+            if (sel.value.indexOf('-2') > -1) level -= 2;
         }
 
-        for (var j = 0; j < 3; j++) {
-            var selUp = document.querySelector('input[name="ca-grade-up-' + j + '"]:checked');
-            if (selUp) {
-                if (selUp.value.indexOf('+1') > -1) level += 1;
-                if (selUp.value.indexOf('+2') > -1) level += 2;
-            }
+        var upSels = document.querySelectorAll('input[name^="ca-grade-up-"]:checked');
+        for (var j = 0; j < upSels.length; j++) {
+            var selUp = upSels[j];
+            if (selUp.value.indexOf('+1') > -1) level += 1;
+            if (selUp.value.indexOf('+2') > -1) level += 2;
         }
 
         level = Math.max(1, Math.min(4, level));
