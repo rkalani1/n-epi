@@ -93,7 +93,7 @@ const App = (() => {
 
     // Flat list of all modules for search
     function getAllModules() {
-        var result = [];
+        let result = [];
         NAV.forEach(function (group) {
             group.items.forEach(function (item) {
                 result.push({
@@ -114,7 +114,7 @@ const App = (() => {
 
     function getFavorites() {
         try {
-            var data = localStorage.getItem('neuroepi_favorites');
+            let data = localStorage.getItem('neuroepi_favorites');
             return data ? JSON.parse(data) : [];
         } catch (e) {
             return [];
@@ -130,8 +130,8 @@ const App = (() => {
     }
 
     function toggleFavorite(moduleId) {
-        var favs = getFavorites();
-        var idx = favs.indexOf(moduleId);
+        let favs = getFavorites();
+        let idx = favs.indexOf(moduleId);
         if (idx > -1) {
             favs.splice(idx, 1);
         } else {
@@ -158,7 +158,7 @@ const App = (() => {
     function trackModuleVisit(moduleId) {
         if (moduleId === 'home') return;
         try {
-            var visits = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            let visits = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
             // Remove existing entry
             visits = visits.filter(function (v) { return v.id !== moduleId; });
             visits.unshift({ id: moduleId, timestamp: Date.now() });
@@ -181,11 +181,11 @@ const App = (() => {
     // CALCULATION HISTORY
     // ============================================================
 
-    var CALC_HISTORY_KEY = 'ne-calc-history';
-    var CALC_HISTORY_MAX = 20;
+    const CALC_HISTORY_KEY = 'ne-calc-history';
+    const CALC_HISTORY_MAX = 20;
 
     function addToHistory(moduleName, calcName, resultSummary) {
-        var history = getCalcHistory();
+        let history = getCalcHistory();
         history.unshift({
             module: moduleName,
             calc: calcName,
@@ -205,13 +205,13 @@ const App = (() => {
     function getCalcHistory() {
         try {
             // Read from Export's history (neuroepi_history) which modules write to
-            var exportData = localStorage.getItem('neuroepi_history');
-            var exportHistory = exportData ? JSON.parse(exportData) : [];
+            let exportData = localStorage.getItem('neuroepi_history');
+            let exportHistory = exportData ? JSON.parse(exportData) : [];
             // Also read from App's own key (ne-calc-history)
-            var appData = localStorage.getItem(CALC_HISTORY_KEY);
-            var appHistory = appData ? JSON.parse(appData) : [];
+            let appData = localStorage.getItem(CALC_HISTORY_KEY);
+            let appHistory = appData ? JSON.parse(appData) : [];
             // Merge: normalize Export entries to dashboard format
-            var merged = [];
+            let merged = [];
             exportHistory.forEach(function (e) {
                 merged.push({
                     module: e.moduleId || e.module || 'Unknown',
@@ -233,24 +233,24 @@ const App = (() => {
     }
 
     function formatRelativeTime(timestamp) {
-        var diff = Date.now() - timestamp;
-        var seconds = Math.floor(diff / 1000);
+        let diff = Date.now() - timestamp;
+        let seconds = Math.floor(diff / 1000);
         if (seconds < 60) return 'just now';
-        var minutes = Math.floor(seconds / 60);
+        let minutes = Math.floor(seconds / 60);
         if (minutes < 60) return minutes + 'm ago';
-        var hours = Math.floor(minutes / 60);
+        let hours = Math.floor(minutes / 60);
         if (hours < 24) return hours + 'h ago';
-        var days = Math.floor(hours / 24);
+        let days = Math.floor(hours / 24);
         if (days < 7) return days + 'd ago';
-        var weeks = Math.floor(days / 7);
+        let weeks = Math.floor(days / 7);
         return weeks + 'w ago';
     }
 
     // Find module ID from display name for navigation
     function findModuleIdByName(name) {
-        var allMods = getAllModules();
-        var lower = name.toLowerCase();
-        for (var i = 0; i < allMods.length; i++) {
+        let allMods = getAllModules();
+        let lower = name.toLowerCase();
+        for (let i = 0; i < allMods.length; i++) {
             if (allMods[i].label.toLowerCase() === lower || allMods[i].id === lower) {
                 return allMods[i].id;
             }
@@ -288,11 +288,11 @@ const App = (() => {
     // ============================================================
 
     function renderSidebar() {
-        var sidebar = document.getElementById('sidebar');
-        var favs = getFavorites();
-        var allMods = getAllModules();
+        let sidebar = document.getElementById('sidebar');
+        let favs = getFavorites();
+        let allMods = getAllModules();
 
-        var html = '<div class="sidebar-header">'
+        let html = '<div class="sidebar-header">'
             + '<div class="sidebar-logo" onclick="App.navigate(\'home\')" style="cursor:pointer;">'
             + '<div>'
             + '</div></div>'
@@ -308,8 +308,8 @@ const App = (() => {
             html += '<div class="sidebar-group sidebar-favorites-group">'
                 + '<div class="sidebar-group-title"><span style="margin-right:4px;">&#9733;</span> FAVORITES</div>';
             favs.forEach(function (favId) {
-                var mod = null;
-                for (var i = 0; i < allMods.length; i++) {
+                let mod = null;
+                for (let i = 0; i < allMods.length; i++) {
                     if (allMods[i].id === favId) { mod = allMods[i]; break; }
                 }
                 if (mod) {
@@ -327,7 +327,7 @@ const App = (() => {
             html += '<div class="sidebar-group">'
                 + '<div class="sidebar-group-title">' + group.title + '</div>';
             group.items.forEach(function (item) {
-                var starClass = isFavorite(item.id) ? ' active' : '';
+                let starClass = isFavorite(item.id) ? ' active' : '';
                 html += '<div class="sidebar-link" data-module="' + item.id + '" onclick="App.navigate(\'' + item.id + '\')">'
                     + '<span class="sidebar-link-icon">' + item.icon + '</span>'
                     + '<span>' + item.label + '</span>'
@@ -352,8 +352,8 @@ const App = (() => {
     }
 
     function renderMobileNav() {
-        var nav = document.getElementById('mobile-nav');
-        var html = '<div class="mobile-nav-items">';
+        let nav = document.getElementById('mobile-nav');
+        let html = '<div class="mobile-nav-items">';
         MOBILE_NAV.forEach(function (item) {
             html += '<button class="mobile-nav-item" data-module="' + item.id + '" onclick="App.navigate(\'' + item.id + '\')">'
                 + '<span class="mobile-nav-item-icon">' + item.icon + '</span>'
@@ -369,14 +369,14 @@ const App = (() => {
 
     function initCommandPalette() {
         // Create command palette overlay element
-        var overlay = document.createElement('div');
+        let overlay = document.createElement('div');
         overlay.id = 'command-palette-overlay';
         overlay.className = 'cmd-palette-overlay';
         overlay.onclick = function (e) {
             if (e.target === overlay) closeCommandPalette();
         };
 
-        var dialog = document.createElement('div');
+        let dialog = document.createElement('div');
         dialog.className = 'cmd-palette-dialog';
 
         setTrustedHTML(dialog,
@@ -391,7 +391,7 @@ const App = (() => {
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
 
-        var input = document.getElementById('cmd-palette-input');
+        let input = document.getElementById('cmd-palette-input');
         input.addEventListener('input', function () {
             renderCommandPaletteResults(input.value);
         });
@@ -401,29 +401,29 @@ const App = (() => {
     }
 
     function openCommandPalette() {
-        var overlay = document.getElementById('command-palette-overlay');
+        let overlay = document.getElementById('command-palette-overlay');
         if (!overlay) return;
         overlay.classList.add('visible');
         commandPaletteOpen = true;
-        var input = document.getElementById('cmd-palette-input');
+        let input = document.getElementById('cmd-palette-input');
         input.value = '';
         renderCommandPaletteResults('');
         setTimeout(function () { input.focus(); }, 50);
     }
 
     function closeCommandPalette() {
-        var overlay = document.getElementById('command-palette-overlay');
+        let overlay = document.getElementById('command-palette-overlay');
         if (!overlay) return;
         overlay.classList.remove('visible');
         commandPaletteOpen = false;
     }
 
     function renderCommandPaletteResults(query) {
-        var resultsEl = document.getElementById('cmd-palette-results');
+        let resultsEl = document.getElementById('cmd-palette-results');
         if (!resultsEl) return;
-        var allMods = getAllModules();
-        var q = query.toLowerCase().trim();
-        var filtered = allMods;
+        let allMods = getAllModules();
+        let q = query.toLowerCase().trim();
+        let filtered = allMods;
         if (q) {
             filtered = allMods.filter(function (m) {
                 return m.label.toLowerCase().indexOf(q) > -1
@@ -433,13 +433,13 @@ const App = (() => {
             });
         }
 
-        var favs = getFavorites();
-        var html = '';
+        let favs = getFavorites();
+        let html = '';
         if (filtered.length === 0) {
             html = '<div class="cmd-palette-empty">No modules found</div>';
         } else {
             filtered.forEach(function (mod, idx) {
-                var favIcon = favs.indexOf(mod.id) > -1 ? ' &#9733;' : '';
+                let favIcon = favs.indexOf(mod.id) > -1 ? ' &#9733;' : '';
                 html += '<div class="cmd-palette-item' + (idx === 0 ? ' selected' : '') + '" data-module="' + mod.id + '" data-index="' + idx + '">'
                     + '<div class="cmd-palette-item-left">'
                     + '<span class="cmd-palette-item-icon">' + mod.icon + '</span>'
@@ -457,7 +457,7 @@ const App = (() => {
         // Add click listeners
         resultsEl.querySelectorAll('.cmd-palette-item').forEach(function (el) {
             el.addEventListener('click', function () {
-                var mid = el.dataset.module;
+                let mid = el.dataset.module;
                 closeCommandPalette();
                 navigate(mid);
             });
@@ -471,31 +471,31 @@ const App = (() => {
     }
 
     function handleCommandPaletteKeydown(e) {
-        var resultsEl = document.getElementById('cmd-palette-results');
+        let resultsEl = document.getElementById('cmd-palette-results');
         if (!resultsEl) return;
-        var items = resultsEl.querySelectorAll('.cmd-palette-item');
+        let items = resultsEl.querySelectorAll('.cmd-palette-item');
         if (items.length === 0) return;
-        var selectedIdx = -1;
+        let selectedIdx = -1;
         items.forEach(function (item, i) {
             if (item.classList.contains('selected')) selectedIdx = i;
         });
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            var next = (selectedIdx + 1) % items.length;
+            let next = (selectedIdx + 1) % items.length;
             items.forEach(function (item) { item.classList.remove('selected'); });
             items[next].classList.add('selected');
             items[next].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            var prev = selectedIdx <= 0 ? items.length - 1 : selectedIdx - 1;
+            let prev = selectedIdx <= 0 ? items.length - 1 : selectedIdx - 1;
             items.forEach(function (item) { item.classList.remove('selected'); });
             items[prev].classList.add('selected');
             items[prev].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'Enter') {
             e.preventDefault();
             if (selectedIdx > -1 && items[selectedIdx]) {
-                var mid = items[selectedIdx].dataset.module;
+                let mid = items[selectedIdx].dataset.module;
                 closeCommandPalette();
                 navigate(mid);
             }
@@ -508,8 +508,8 @@ const App = (() => {
 
     function handleGlobalKeydown(e) {
         // Ignore shortcuts when typing in inputs (except Escape and Cmd+K)
-        var tag = e.target.tagName;
-        var isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
+        let tag = e.target.tagName;
+        let isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
 
         // Cmd+K / Ctrl+K — Command Palette
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -552,10 +552,10 @@ const App = (() => {
 
         // 1-7 — Quick switch nav groups
         if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-            var num = parseInt(e.key, 10);
+            let num = parseInt(e.key, 10);
             if (num >= 1 && num <= 7 && num <= NAV.length) {
                 e.preventDefault();
-                var firstItem = NAV[num - 1].items[0];
+                let firstItem = NAV[num - 1].items[0];
                 if (firstItem) navigate(firstItem.id);
                 return;
             }
@@ -599,17 +599,17 @@ const App = (() => {
 
     function showShortcutsModal() {
         closeCommandPalette();
-        var existing = document.getElementById('shortcuts-modal-overlay');
+        let existing = document.getElementById('shortcuts-modal-overlay');
         if (existing) existing.remove();
 
-        var overlay = document.createElement('div');
+        let overlay = document.createElement('div');
         overlay.id = 'shortcuts-modal-overlay';
         overlay.className = 'shortcuts-modal-overlay visible';
         overlay.onclick = function (e) {
             if (e.target === overlay) closeShortcutsModal();
         };
 
-        var dialog = document.createElement('div');
+        let dialog = document.createElement('div');
         dialog.className = 'shortcuts-modal-dialog';
         setTrustedHTML(dialog, getShortcutsHTML());
 
@@ -619,7 +619,7 @@ const App = (() => {
     }
 
     function closeShortcutsModal() {
-        var overlay = document.getElementById('shortcuts-modal-overlay');
+        let overlay = document.getElementById('shortcuts-modal-overlay');
         if (overlay) overlay.remove();
         shortcutsModalOpen = false;
     }
@@ -629,11 +629,11 @@ const App = (() => {
     // ============================================================
 
     function initSwipeGestures() {
-        var touchStartX = 0;
-        var touchStartY = 0;
-        var touchEndX = 0;
-        var touchEndY = 0;
-        var mainContent = document.querySelector('.main-content');
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        let mainContent = document.querySelector('.main-content');
         if (!mainContent) return;
 
         mainContent.addEventListener('touchstart', function (e) {
@@ -648,18 +648,18 @@ const App = (() => {
         }, { passive: true });
 
         function handleSwipe() {
-            var diffX = touchEndX - touchStartX;
-            var diffY = touchEndY - touchStartY;
+            let diffX = touchEndX - touchStartX;
+            let diffY = touchEndY - touchStartY;
 
             // Only horizontal swipes (threshold: 80px horizontal, max 60px vertical)
             if (Math.abs(diffX) < 80 || Math.abs(diffY) > 60) return;
 
             // Find current module's position in its group
             if (!currentModule || currentModule === 'home') return;
-            var currentGroup = null;
-            var currentIdx = -1;
-            for (var g = 0; g < NAV.length; g++) {
-                for (var i = 0; i < NAV[g].items.length; i++) {
+            let currentGroup = null;
+            let currentIdx = -1;
+            for (let g = 0; g < NAV.length; g++) {
+                for (let i = 0; i < NAV[g].items.length; i++) {
                     if (NAV[g].items[i].id === currentModule) {
                         currentGroup = NAV[g];
                         currentIdx = i;
@@ -692,10 +692,10 @@ const App = (() => {
 
     function getBreadcrumbHTML(moduleId) {
         if (moduleId === 'home') return '';
-        var mod = null;
-        var category = '';
-        for (var g = 0; g < NAV.length; g++) {
-            for (var i = 0; i < NAV[g].items.length; i++) {
+        let mod = null;
+        let category = '';
+        for (let g = 0; g < NAV.length; g++) {
+            for (let i = 0; i < NAV[g].items.length; i++) {
                 if (NAV[g].items[i].id === moduleId) {
                     mod = NAV[g].items[i];
                     category = NAV[g].title;
@@ -706,11 +706,11 @@ const App = (() => {
         }
         if (!mod) return '';
         // Find first item in category for the category link
-        var catGroup = null;
-        for (var g2 = 0; g2 < NAV.length; g2++) {
+        let catGroup = null;
+        for (let g2 = 0; g2 < NAV.length; g2++) {
             if (NAV[g2].title === category) { catGroup = NAV[g2]; break; }
         }
-        var catFirstId = catGroup ? catGroup.items[0].id : moduleId;
+        let catFirstId = catGroup ? catGroup.items[0].id : moduleId;
         return '<nav class="breadcrumb" aria-label="Breadcrumb">'
             + '<span class="breadcrumb-item breadcrumb-link" onclick="App.navigate(\'home\')" title="Home">&#8962;</span>'
             + '<span class="breadcrumb-sep">&#8250;</span>'
@@ -726,7 +726,7 @@ const App = (() => {
 
     function getModuleFooterHTML(moduleId) {
         if (moduleId === 'home') return '';
-        var shareUrl = window.location.origin + window.location.pathname + '#' + moduleId;
+        let shareUrl = window.location.origin + window.location.pathname + '#' + moduleId;
         return '<div class="module-footer">'
             + '<div class="module-footer-left">'
             + '<span class="module-footer-updated">Last updated: February 2025</span>'
@@ -741,14 +741,14 @@ const App = (() => {
     }
 
     function shareModule(moduleId) {
-        var url = window.location.origin + window.location.pathname + '#' + moduleId;
+        let url = window.location.origin + window.location.pathname + '#' + moduleId;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(url).then(function () {
                 Export.showToast('Link copied to clipboard');
             });
         } else {
             // Fallback
-            var ta = document.createElement('textarea');
+            let ta = document.createElement('textarea');
             ta.value = url;
             ta.style.position = 'fixed';
             ta.style.opacity = '0';
@@ -765,14 +765,14 @@ const App = (() => {
     // ============================================================
 
     function renderDashboard(container) {
-        var allMods = getAllModules();
-        var recentVisits = getRecentModules();
-        var favs = getFavorites();
+        let allMods = getAllModules();
+        let recentVisits = getRecentModules();
+        let favs = getFavorites();
 
         // Count total modules
-        var totalModules = allMods.length;
+        let totalModules = allMods.length;
 
-        var html = '<div class="dashboard">';
+        let html = '<div class="dashboard">';
 
         // Hero section
         html += '<div class="dashboard-hero">'
@@ -810,8 +810,8 @@ const App = (() => {
                 + '<h2 class="dashboard-section-title">&#9733; Your Favorites</h2>'
                 + '<div class="dashboard-module-grid">';
             favs.forEach(function (favId) {
-                var mod = null;
-                for (var i = 0; i < allMods.length; i++) {
+                let mod = null;
+                for (let i = 0; i < allMods.length; i++) {
                     if (allMods[i].id === favId) { mod = allMods[i]; break; }
                 }
                 if (mod) {
@@ -830,11 +830,11 @@ const App = (() => {
             html += '<div class="dashboard-section">'
                 + '<h2 class="dashboard-section-title">&#128340; Recently Visited</h2>'
                 + '<div class="dashboard-module-grid">';
-            var shown = 0;
+            let shown = 0;
             recentVisits.forEach(function (visit) {
                 if (shown >= 6) return;
-                var mod = null;
-                for (var i = 0; i < allMods.length; i++) {
+                let mod = null;
+                for (let i = 0; i < allMods.length; i++) {
                     if (allMods[i].id === visit.id) { mod = allMods[i]; break; }
                 }
                 if (mod) {
@@ -850,25 +850,25 @@ const App = (() => {
         }
 
         // Recent Calculations
-        var calcHistory = getCalcHistory();
+        let calcHistory = getCalcHistory();
         if (calcHistory.length > 0) {
             html += '<div class="dashboard-section">'
                 + '<h2 class="dashboard-section-title">&#128202; Recent Calculations</h2>'
                 + '<div class="dashboard-recent-calcs">';
-            var calcCount = Math.min(calcHistory.length, 5);
-            for (var ci = 0; ci < calcCount; ci++) {
-                var entry = calcHistory[ci];
+            let calcCount = Math.min(calcHistory.length, 5);
+            for (let ci = 0; ci < calcCount; ci++) {
+                let entry = calcHistory[ci];
                 // Resolve module ID to friendly name and navigation ID
-                var resolvedId = findModuleIdByName(entry.module) || entry.module;
-                var resolvedLabel = entry.module;
-                for (var mi = 0; mi < allMods.length; mi++) {
+                let resolvedId = findModuleIdByName(entry.module) || entry.module;
+                let resolvedLabel = entry.module;
+                for (let mi = 0; mi < allMods.length; mi++) {
                     if (allMods[mi].id === entry.module || allMods[mi].id === resolvedId) {
                         resolvedLabel = allMods[mi].label;
                         resolvedId = allMods[mi].id;
                         break;
                     }
                 }
-                var clickAttr = resolvedId ? ' onclick="App.navigate(\'' + resolvedId + '\')" style="cursor:pointer;"' : '';
+                let clickAttr = resolvedId ? ' onclick="App.navigate(\'' + resolvedId + '\')" style="cursor:pointer;"' : '';
                 html += '<div class="dashboard-calc-entry card"' + clickAttr + '>'
                     + '<div style="display:flex;justify-content:space-between;align-items:center;">'
                     + '<div>'
@@ -885,13 +885,13 @@ const App = (() => {
         }
 
         // Popular modules / Quick links
-        var popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
+        let popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
         html += '<div class="dashboard-section">'
             + '<h2 class="dashboard-section-title">&#9889; Popular Modules</h2>'
             + '<div class="dashboard-module-grid">';
         popularIds.forEach(function (pid) {
-            var mod = null;
-            for (var i = 0; i < allMods.length; i++) {
+            let mod = null;
+            for (let i = 0; i < allMods.length; i++) {
                 if (allMods[i].id === pid) { mod = allMods[i]; break; }
             }
             if (mod) {
@@ -943,7 +943,7 @@ const App = (() => {
     // ============================================================
 
     function initTheme() {
-        var saved = localStorage.getItem('neuroepi_theme');
+        let saved = localStorage.getItem('neuroepi_theme');
         if (saved === 'light') {
             document.documentElement.setAttribute('data-theme', 'light');
             updateThemeIcon('light');
@@ -951,8 +951,8 @@ const App = (() => {
     }
 
     function toggleTheme() {
-        var current = document.documentElement.getAttribute('data-theme');
-        var next = current === 'light' ? 'dark' : 'light';
+        let current = document.documentElement.getAttribute('data-theme');
+        let next = current === 'light' ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('neuroepi_theme', next);
         updateThemeIcon(next);
@@ -962,7 +962,7 @@ const App = (() => {
     }
 
     function updateThemeIcon(theme) {
-        var icon = document.getElementById('theme-icon');
+        let icon = document.getElementById('theme-icon');
         if (icon) icon.textContent = theme === 'light' ? '\u2600' : '\u263E';
     }
 
@@ -976,7 +976,7 @@ const App = (() => {
     }
 
     function handleRoute() {
-        var hash = window.location.hash.slice(1) || 'home';
+        let hash = window.location.hash.slice(1) || 'home';
         navigate(hash, false);
     }
 
@@ -998,11 +998,11 @@ const App = (() => {
         });
 
         document.getElementById('sidebar').classList.remove('open');
-        var overlay = document.getElementById('sidebar-overlay');
+        let overlay = document.getElementById('sidebar-overlay');
         if (overlay) overlay.classList.remove('visible');
 
         currentModule = moduleId;
-        var content = document.getElementById('module-content');
+        let content = document.getElementById('module-content');
 
         // Dashboard / home view
         if (moduleId === 'home') {
@@ -1018,25 +1018,25 @@ const App = (() => {
             content.classList.add('animate-in');
 
             // Add breadcrumb
-            var breadcrumbDiv = document.createElement('div');
+            let breadcrumbDiv = document.createElement('div');
             setTrustedHTML(breadcrumbDiv, getBreadcrumbHTML(moduleId));
             content.appendChild(breadcrumbDiv);
 
             // Module content wrapper
-            var moduleWrap = document.createElement('div');
+            let moduleWrap = document.createElement('div');
             moduleWrap.className = 'module-content-wrap';
             content.appendChild(moduleWrap);
             try {
                 modules[moduleId].render(moduleWrap);
             } catch (err) {
                 console.error('Module render error [' + moduleId + ']:', err);
-                var errDiv = document.createElement('div');
+                let errDiv = document.createElement('div');
                 errDiv.className = 'result-panel';
                 errDiv.style.cssText = 'border-left:4px solid var(--danger);padding:1.5rem;';
-                var errTitle = document.createElement('div');
+                let errTitle = document.createElement('div');
                 errTitle.style.cssText = 'font-weight:700;color:var(--danger);margin-bottom:0.5rem;';
                 errTitle.textContent = 'Module Error';
-                var errMsg = document.createElement('div');
+                let errMsg = document.createElement('div');
                 errMsg.style.cssText = 'font-size:0.9rem;color:var(--text-secondary);';
                 errMsg.textContent = 'The ' + moduleId + ' module encountered an error: ' + (err.message || 'Unknown error') + '. Try refreshing the page.';
                 errDiv.appendChild(errTitle);
@@ -1045,35 +1045,35 @@ const App = (() => {
             }
 
             // Add module footer
-            var footerDiv = document.createElement('div');
+            let footerDiv = document.createElement('div');
             setTrustedHTML(footerDiv, getModuleFooterHTML(moduleId));
             content.appendChild(footerDiv);
 
             setTimeout(function () { content.classList.remove('animate-in'); }, 200);
         } else {
-            var header = document.createElement('div');
+            let header = document.createElement('div');
             header.className = 'module-header';
-            var h1 = document.createElement('h1');
+            let h1 = document.createElement('h1');
             h1.textContent = moduleId.replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-            var p = document.createElement('p');
+            let p = document.createElement('p');
             p.textContent = 'Loading module...';
             header.appendChild(h1);
             header.appendChild(p);
             content.textContent = '';
 
             // Add breadcrumb
-            var breadcrumbDiv2 = document.createElement('div');
+            let breadcrumbDiv2 = document.createElement('div');
             setTrustedHTML(breadcrumbDiv2, getBreadcrumbHTML(moduleId));
             content.appendChild(breadcrumbDiv2);
 
             content.appendChild(header);
         }
 
-        var savedInputs = Export.loadState('inputs_' + moduleId);
+        let savedInputs = Export.loadState('inputs_' + moduleId);
         if (savedInputs) {
             setTimeout(function () {
                 Object.entries(savedInputs).forEach(function (entry) {
-                    var input = content.querySelector('[name="' + entry[0] + '"]');
+                    let input = content.querySelector('[name="' + entry[0] + '"]');
                     if (input) input.value = entry[1];
                 });
             }, 50);
@@ -1094,20 +1094,20 @@ const App = (() => {
 
     function openSidebar() {
         document.getElementById('sidebar').classList.add('open');
-        var overlay = document.getElementById('sidebar-overlay');
+        let overlay = document.getElementById('sidebar-overlay');
         if (overlay) overlay.classList.add('visible');
     }
 
     function closeSidebar() {
         document.getElementById('sidebar').classList.remove('open');
-        var overlay = document.getElementById('sidebar-overlay');
+        let overlay = document.getElementById('sidebar-overlay');
         if (overlay) overlay.classList.remove('visible');
     }
 
     function autoSaveInputs(container, moduleId) {
         container.addEventListener('input', function (e) {
             if (e.target.name) {
-                var inputs = {};
+                let inputs = {};
                 container.querySelectorAll('[name]').forEach(function (el) {
                     inputs[el.name] = el.value;
                 });
