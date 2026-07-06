@@ -709,8 +709,14 @@
         allPoints.push({ fpr: 1, tpr: 1, threshold: null });
         allPoints.sort(function(a, b) { return a.fpr - b.fpr; });
 
-        var sens = validPoints.map(function(p) { return p.sens; });
-        var spec = validPoints.map(function(p) { return p.spec; });
+        var len = validPoints.length;
+        var sens = new Array(len);
+        var spec = new Array(len);
+        for (var i = 0; i < len; i++) {
+            var p = validPoints[i];
+            sens[i] = p.sens;
+            spec[i] = p.spec;
+        }
         var aucResult = Statistics.aucTrapezoidal(sens, spec);
 
         var bestJ = -1;
