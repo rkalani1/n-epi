@@ -210,4 +210,69 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+
+    describe('logRankTest', () => {
+        test('returns null if there are not exactly 2 unique groups', () => {
+            const times = [10, 20, 30];
+            const events = [1, 1, 1];
+            expect(Statistics.logRankTest(times, events, [1, 1, 1])).toBeNull();
+            expect(Statistics.logRankTest(times, events, [1, 2, 3])).toBeNull();
+        });
+
+        test('calculates statistics correctly for exactly 2 groups with events', () => {
+            const times = [10, 20, 30, 40, 50, 60, 70, 80];
+            const events = [1, 1, 0, 1, 1, 0, 1, 0];
+            const groups = [1, 1, 1, 1, 2, 2, 2, 2];
+
+            const result = Statistics.logRankTest(times, events, groups);
+
+            expect(result).not.toBeNull();
+            expect(result.chi2).toBeCloseTo(5.347771891555002, 5);
+            expect(result.pValue).toBeCloseTo(0.020748769062276073, 5);
+            expect(result.hr).toBeCloseTo(17.41946107240046, 5);
+            expect(result.seLnHR).toBeCloseTo(1.2357003835198483, 5);
+            expect(result.hrCI.lower).toBeCloseTo(1.5459827377020119, 5);
+            expect(result.hrCI.upper).toBeCloseTo(196.2749108724929, 5);
+        });
+
+        test('calculates statistics correctly for tied times', () => {
+            const times = [10, 10, 20, 20];
+            const events = [1, 1, 1, 0];
+            const groups = [1, 2, 1, 2];
+
+            const result = Statistics.logRankTest(times, events, groups);
+
+            expect(result).not.toBeNull();
+            expect(result.chi2).toBeCloseTo(0.4285714285714286, 5);
+            expect(result.pValue).toBeCloseTo(0.5126907602619233, 5);
+            expect(result.O1).toBe(2);
+            expect(result.E1).toBeCloseTo(1.5, 5);
+            expect(result.V).toBeCloseTo(0.5833333333333333, 5);
+            expect(result.hr).toBeCloseTo(2.356418442383661, 5);
+            expect(result.seLnHR).toBeCloseTo(1.3093073414159544, 5);
+            expect(result.hrCI.lower).toBeCloseTo(0.18103726611055798, 5);
+            expect(result.hrCI.upper).toBeCloseTo(30.671629078925907, 5);
+        });
+
+        test('handles cases with no events gracefully', () => {
+            const times = [10, 20, 30, 40];
+            const events = [0, 0, 0, 0];
+            const groups = [1, 1, 2, 2];
+
+            const result = Statistics.logRankTest(times, events, groups);
+
+            expect(result).not.toBeNull();
+            expect(Number.isNaN(result.chi2)).toBe(true);
+            expect(Number.isNaN(result.pValue)).toBe(true);
+            expect(result.O1).toBe(0);
+            expect(result.E1).toBe(0);
+            expect(result.V).toBe(0);
+            expect(Number.isNaN(result.hr)).toBe(true);
+            expect(result.seLnHR).toBe(Infinity);
+            expect(Number.isNaN(result.hrCI.lower)).toBe(true);
+            expect(Number.isNaN(result.hrCI.upper)).toBe(true);
+        });
+    });
+
 });
