@@ -7,6 +7,26 @@
     'use strict';
 
     const MODULE_ID = 'trial-database';
+
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function escapeJS(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r');
+    }
     var activeFilters = new Set();
     var compareMode = false;
     var selectedTrials = new Set();
@@ -274,65 +294,69 @@
         var html = '';
         trials.forEach(function(trial) {
             var isSelected = selectedTrials.has(trial.name);
-            html += '<div class="trial-card' + (isSelected ? ' expanded' : '') + '" id="trial-' + trial.name.replace(/\s/g, '-') + '" onclick="TrialDB.toggleTrial(\'' + trial.name.replace(/'/g, "\\'") + '\')">';
+            var safeName = escapeHTML(trial.name);
+            var safeNameForJS = escapeHTML(escapeJS(trial.name));
+            var safeNameForID = escapeHTML(trial.name.replace(/\s/g, '-'));
+
+            html += '<div class="trial-card' + (isSelected ? ' expanded' : '') + '" id="trial-' + safeNameForID + '" onclick="TrialDB.toggleTrial(\'' + safeNameForJS + '\')">';
 
             if (compareMode) {
-                html += '<div style="float:right"><input type="checkbox" ' + (isSelected ? 'checked' : '') + ' onclick="event.stopPropagation();TrialDB.toggleSelect(\'' + trial.name.replace(/'/g, "\\'") + '\')"></div>';
+                html += '<div style="float:right"><input type="checkbox" ' + (isSelected ? 'checked' : '') + ' onclick="event.stopPropagation();TrialDB.toggleSelect(\'' + safeNameForJS + '\')"></div>';
             }
 
             html += '<div class="trial-card-header">'
-                + '<div class="trial-card-name">' + resultIcon(trial) + ' ' + trial.name + (trial.year ? ' (' + trial.year + ')' : '')
+                + '<div class="trial-card-name">' + resultIcon(trial) + ' ' + safeName + (trial.year ? ' (' + escapeHTML(trial.year) + ')' : '')
                 + (trial.landmark ? ' <span style="color:var(--accent);font-size:0.7rem;vertical-align:super">\u2605</span>' : '')
                 + '</div>'
-                + '<div class="trial-card-year">N=' + (trial.n || '?') + '</div></div>';
+                + '<div class="trial-card-year">N=' + escapeHTML(trial.n || '?') + '</div></div>';
 
-            html += '<div class="trial-card-desc">' + (trial.intervention || '') + ' vs ' + (trial.comparator || '') + '</div>';
+            html += '<div class="trial-card-desc">' + escapeHTML(trial.intervention || '') + ' vs ' + escapeHTML(trial.comparator || '') + '</div>';
 
             if (trial.tags) {
                 html += '<div class="trial-card-tags">';
                 trial.tags.forEach(function(tag) {
-                    html += '<span class="trial-tag">' + tag + '</span>';
+                    html += '<span class="trial-tag">' + escapeHTML(tag) + '</span>';
                 });
                 html += '</div>';
             }
 
             // Expanded detail
             html += '<div class="trial-detail">';
-            if (trial.fullTitle) html += '<div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px"><em>' + trial.fullTitle + '</em></div>';
+            if (trial.fullTitle) html += '<div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px"><em>' + escapeHTML(trial.fullTitle) + '</em></div>';
             html += '<div class="table-scroll-wrap"><table class="data-table" style="font-size:0.8rem">';
             if (trial.journal) {
-                html += '<tr><td style="width:130px;font-weight:500">Journal</td><td>' + trial.journal;
-                if (trial.pmid) html += ' <a href="https://pubmed.ncbi.nlm.nih.gov/' + trial.pmid + '/" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--accent)">[PubMed]</a>';
-                if (trial.doi) html += ' <a href="https://doi.org/' + trial.doi + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--accent)">[DOI]</a>';
+                html += '<tr><td style="width:130px;font-weight:500">Journal</td><td>' + escapeHTML(trial.journal);
+                if (trial.pmid) html += ' <a href="https://pubmed.ncbi.nlm.nih.gov/' + escapeHTML(trial.pmid) + '/" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--accent)">[PubMed]</a>';
+                if (trial.doi) html += ' <a href="https://doi.org/' + escapeHTML(trial.doi) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--accent)">[DOI]</a>';
                 html += '</td></tr>';
             }
-            if (trial.design) html += '<tr><td style="font-weight:500">Design</td><td>' + trial.design + '</td></tr>';
-            if (trial.phase) html += '<tr><td style="font-weight:500">Phase</td><td>' + trial.phase + '</td></tr>';
-            if (trial.blinding) html += '<tr><td style="font-weight:500">Blinding</td><td>' + trial.blinding + '</td></tr>';
-            if (trial.population) html += '<tr><td style="font-weight:500">Population</td><td>' + trial.population + '</td></tr>';
-            if (trial.fundingSource) html += '<tr><td style="font-weight:500">Funding</td><td>' + trial.fundingSource + '</td></tr>';
+            if (trial.design) html += '<tr><td style="font-weight:500">Design</td><td>' + escapeHTML(trial.design) + '</td></tr>';
+            if (trial.phase) html += '<tr><td style="font-weight:500">Phase</td><td>' + escapeHTML(trial.phase) + '</td></tr>';
+            if (trial.blinding) html += '<tr><td style="font-weight:500">Blinding</td><td>' + escapeHTML(trial.blinding) + '</td></tr>';
+            if (trial.population) html += '<tr><td style="font-weight:500">Population</td><td>' + escapeHTML(trial.population) + '</td></tr>';
+            if (trial.fundingSource) html += '<tr><td style="font-weight:500">Funding</td><td>' + escapeHTML(trial.fundingSource) + '</td></tr>';
             if (trial.primaryOutcome) {
-                html += '<tr><td style="font-weight:500">Primary Outcome</td><td>' + trial.primaryOutcome.measure + '</td></tr>';
+                html += '<tr><td style="font-weight:500">Primary Outcome</td><td>' + escapeHTML(trial.primaryOutcome.measure) + '</td></tr>';
                 html += '<tr><td style="font-weight:500">Result</td><td style="color:' + (inferResult(trial) === 'positive' ? 'var(--success)' : inferResult(trial) === 'negative' ? 'var(--danger)' : 'var(--accent)') + ';font-weight:600">'
-                    + trial.primaryOutcome.result
-                    + (trial.primaryOutcome.ci ? ' ' + trial.primaryOutcome.ci : '')
-                    + (trial.primaryOutcome.pValue ? ', ' + trial.primaryOutcome.pValue : '')
+                    + escapeHTML(trial.primaryOutcome.result)
+                    + (trial.primaryOutcome.ci ? ' ' + escapeHTML(trial.primaryOutcome.ci) : '')
+                    + (trial.primaryOutcome.pValue ? ', ' + escapeHTML(trial.primaryOutcome.pValue) : '')
                     + '</td></tr>';
             }
             if (trial.keySecondary && trial.keySecondary.length > 0) {
-                html += '<tr><td style="font-weight:500">Key Secondary</td><td>' + trial.keySecondary.join('; ') + '</td></tr>';
+                html += '<tr><td style="font-weight:500">Key Secondary</td><td>' + escapeHTML(trial.keySecondary.join('; ')) + '</td></tr>';
             }
-            if (trial.significance) html += '<tr><td style="font-weight:500">Significance</td><td>' + trial.significance + '</td></tr>';
+            if (trial.significance) html += '<tr><td style="font-weight:500">Significance</td><td>' + escapeHTML(trial.significance) + '</td></tr>';
             html += '</table></div>';
 
             html += '<div class="btn-group mt-1">'
-                + '<button class="btn btn-xs btn-secondary" onclick="event.stopPropagation();TrialDB.copyCitation(\'' + trial.name.replace(/'/g, "\\'") + '\')">Copy Citation</button>'
-                + '<button class="btn btn-xs btn-secondary" onclick="event.stopPropagation();TrialDB.copyDetails(\'' + trial.name.replace(/'/g, "\\'") + '\')">Copy Details</button>';
+                + '<button class="btn btn-xs btn-secondary" onclick="event.stopPropagation();TrialDB.copyCitation(\'' + safeNameForJS + '\')">Copy Citation</button>'
+                + '<button class="btn btn-xs btn-secondary" onclick="event.stopPropagation();TrialDB.copyDetails(\'' + safeNameForJS + '\')">Copy Details</button>';
             if (trial.pmid) {
-                html += '<a class="btn btn-xs btn-ghost" href="https://pubmed.ncbi.nlm.nih.gov/' + trial.pmid + '/" target="_blank" rel="noopener" onclick="event.stopPropagation()">PubMed \u2197</a>';
+                html += '<a class="btn btn-xs btn-ghost" href="https://pubmed.ncbi.nlm.nih.gov/' + escapeHTML(trial.pmid) + '/" target="_blank" rel="noopener" onclick="event.stopPropagation()">PubMed \u2197</a>';
             }
             if (trial.doi) {
-                html += '<a class="btn btn-xs btn-ghost" href="https://doi.org/' + trial.doi + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">DOI \u2197</a>';
+                html += '<a class="btn btn-xs btn-ghost" href="https://doi.org/' + escapeHTML(trial.doi) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">DOI \u2197</a>';
             }
             html += '</div>';
             html += '</div>'; // trial-detail
@@ -408,7 +432,7 @@
 
     function toggleTrial(name) {
         if (compareMode) return;
-        var card = document.querySelector('[id="trial-' + name.replace(/\s/g, '-') + '"]');
+        var card = document.getElementById('trial-' + name.replace(/\s/g, '-'));
         if (card) card.classList.toggle('expanded');
     }
 
@@ -445,18 +469,18 @@
 
         var html = '<div style="overflow-x:auto"><table class="data-table">';
         html += '<thead><tr><th>Property</th>';
-        trials.forEach(function(t) { html += '<th>' + t.name + '</th>'; });
+        trials.forEach(function(t) { html += '<th>' + escapeHTML(t.name) + '</th>'; });
         html += '</tr></thead><tbody>';
 
         var rows = [
-            { label: 'Year', fn: function(t) { return t.year || '-'; } },
-            { label: 'N', fn: function(t) { return t.n || '-'; } },
-            { label: 'Design', fn: function(t) { return t.design || '-'; } },
-            { label: 'Population', fn: function(t) { return t.population || '-'; } },
-            { label: 'Intervention', fn: function(t) { return t.intervention || '-'; } },
-            { label: 'Comparator', fn: function(t) { return t.comparator || '-'; } },
-            { label: 'Blinding', fn: function(t) { return t.blinding || '-'; } },
-            { label: 'Funding', fn: function(t) { return t.fundingSource || '-'; } }
+            { label: 'Year', fn: function(t) { return escapeHTML(t.year || '-'); } },
+            { label: 'N', fn: function(t) { return escapeHTML(t.n || '-'); } },
+            { label: 'Design', fn: function(t) { return escapeHTML(t.design || '-'); } },
+            { label: 'Population', fn: function(t) { return escapeHTML(t.population || '-'); } },
+            { label: 'Intervention', fn: function(t) { return escapeHTML(t.intervention || '-'); } },
+            { label: 'Comparator', fn: function(t) { return escapeHTML(t.comparator || '-'); } },
+            { label: 'Blinding', fn: function(t) { return escapeHTML(t.blinding || '-'); } },
+            { label: 'Funding', fn: function(t) { return escapeHTML(t.fundingSource || '-'); } }
         ];
 
         rows.forEach(function(row) {
@@ -470,9 +494,9 @@
         trials.forEach(function(t) {
             if (t.primaryOutcome) {
                 var color = inferResult(t) === 'positive' ? 'var(--success)' : inferResult(t) === 'negative' ? 'var(--danger)' : 'var(--accent)';
-                html += '<td>' + t.primaryOutcome.measure + ': <span style="color:' + color + ';font-weight:600">'
-                    + t.primaryOutcome.result + '</span>'
-                    + (t.primaryOutcome.pValue ? ' (' + t.primaryOutcome.pValue + ')' : '') + '</td>';
+                html += '<td>' + escapeHTML(t.primaryOutcome.measure) + ': <span style="color:' + color + ';font-weight:600">'
+                    + escapeHTML(t.primaryOutcome.result) + '</span>'
+                    + (t.primaryOutcome.pValue ? ' (' + escapeHTML(t.primaryOutcome.pValue) + ')' : '') + '</td>';
             } else {
                 html += '<td>-</td>';
             }
@@ -480,7 +504,7 @@
         html += '</tr>';
 
         html += '<tr><td style="font-weight:500">Significance</td>';
-        trials.forEach(function(t) { html += '<td>' + (t.significance || '-') + '</td>'; });
+        trials.forEach(function(t) { html += '<td>' + escapeHTML(t.significance || '-') + '</td>'; });
         html += '</tr>';
 
         html += '</tbody></table></div>';
@@ -596,7 +620,7 @@
             // Generate citation paragraph
             var text = generateCitationParagraph(trials);
             html = '<div class="result-panel"><div style="font-family:var(--font-sans);line-height:1.6;padding:12px;background:var(--bg-base);border-radius:8px;font-size:0.9rem">'
-                + text + '</div>'
+                + escapeHTML(text) + '</div>'
                 + '<div class="btn-group mt-2"><button class="btn btn-xs btn-secondary" onclick="TrialDB.copyCitationText()">Copy to Clipboard</button></div></div>';
         } else if (format === 'evidence') {
             // Evidence summary table
@@ -605,9 +629,9 @@
             trials.forEach(function(t) {
                 var dir = inferResult(t);
                 var dirText = dir === 'positive' ? '\u2705 Positive' : dir === 'negative' ? '\u274C Negative' : '\u2796 Neutral';
-                html += '<tr><td style="font-weight:500">' + t.name + '</td><td>' + (t.year || '-') + '</td><td>' + (t.n || '-') + '</td>'
-                    + '<td>' + (t.intervention || '-') + '</td>'
-                    + '<td>' + (t.primaryOutcome ? t.primaryOutcome.result + (t.primaryOutcome.pValue ? ' (' + t.primaryOutcome.pValue + ')' : '') : '-') + '</td>'
+                html += '<tr><td style="font-weight:500">' + escapeHTML(t.name) + '</td><td>' + escapeHTML(t.year || '-') + '</td><td>' + escapeHTML(t.n || '-') + '</td>'
+                    + '<td>' + escapeHTML(t.intervention || '-') + '</td>'
+                    + '<td>' + (t.primaryOutcome ? escapeHTML(t.primaryOutcome.result) + (t.primaryOutcome.pValue ? ' (' + escapeHTML(t.primaryOutcome.pValue) + ')' : '') : '-') + '</td>'
                     + '<td>' + dirText + '</td></tr>';
             });
             html += '</tbody></table></div>'
@@ -617,12 +641,12 @@
             html = '<div class="result-panel"><ol style="font-size:0.85rem;line-height:1.8;padding-left:24px">';
             trials.sort(function(a, b) { return (a.year || 0) - (b.year || 0); });
             trials.forEach(function(t) {
-                html += '<li>' + t.name;
-                if (t.fullTitle) html += ' (' + t.fullTitle + ')';
-                html += '. <em>' + (t.journal || 'Journal') + '</em>';
-                html += '. ' + (t.year || '');
-                if (t.pmid) html += '. PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/' + t.pmid + '/" target="_blank" rel="noopener" style="color:var(--accent)">' + t.pmid + '</a>';
-                if (t.doi) html += '. DOI: <a href="https://doi.org/' + t.doi + '" target="_blank" rel="noopener" style="color:var(--accent)">' + t.doi + '</a>';
+                html += '<li>' + escapeHTML(t.name);
+                if (t.fullTitle) html += ' (' + escapeHTML(t.fullTitle) + ')';
+                html += '. <em>' + escapeHTML(t.journal || 'Journal') + '</em>';
+                html += '. ' + escapeHTML(t.year || '');
+                if (t.pmid) html += '. PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/' + escapeHTML(t.pmid) + '/" target="_blank" rel="noopener" style="color:var(--accent)">' + escapeHTML(t.pmid) + '</a>';
+                if (t.doi) html += '. DOI: <a href="https://doi.org/' + escapeHTML(t.doi) + '" target="_blank" rel="noopener" style="color:var(--accent)">' + escapeHTML(t.doi) + '</a>';
                 html += '.</li>';
             });
             html += '</ol>'
