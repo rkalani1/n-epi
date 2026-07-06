@@ -219,12 +219,18 @@
                     }
                 }
 
+                const hasPositiveData = (val) => {
+                    if (!val) return false;
+                    const negativeValues = ['0', 'no', 'false', 'na', ''];
+                    return !negativeValues.includes(val);
+                };
+
                 // Prostate checks (only for females)
                 const prostateCols = Object.keys(row).filter(k => k.includes('prostate'));
                 if (isFemale && prostateCols.length > 0) {
                     prostateCols.forEach(col => {
                         const val = row[col].toLowerCase().trim();
-                        if (val && val !== '0' && val !== 'no' && val !== 'false' && val !== 'na' && val !== '') {
+                        if (hasPositiveData(val)) {
                             issues.push(`Line ${lineNum}: [Consistency] Female gender with data in ${col}.`);
                         }
                     });
@@ -235,7 +241,7 @@
                 if (isMale && gynCols.length > 0) {
                     gynCols.forEach(col => {
                         const val = row[col].toLowerCase().trim();
-                        if (val && val !== '0' && val !== 'no' && val !== 'false' && val !== 'na' && val !== '') {
+                        if (hasPositiveData(val)) {
                             issues.push(`Line ${lineNum}: [Consistency] Male gender with data in ${col}.`);
                         }
                     });
