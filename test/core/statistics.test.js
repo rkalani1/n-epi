@@ -153,6 +153,39 @@ describe('Statistics Module', () => {
         });
     });
 
+    describe('tQuantile', () => {
+        test('matches standard t-distribution quantile table values', () => {
+            // df = 1
+            expect(Statistics.tQuantile(0.95, 1)).toBeCloseTo(6.313751514675035, 5);
+
+            // df = 5
+            expect(Statistics.tQuantile(0.5, 5)).toBeCloseTo(0, 5);
+            expect(Statistics.tQuantile(0.95, 5)).toBeCloseTo(2.0150483733330693, 5);
+
+            // df = 10
+            expect(Statistics.tQuantile(0.025, 10)).toBeCloseTo(-2.2281388519862753, 5);
+            expect(Statistics.tQuantile(0.975, 10)).toBeCloseTo(2.228138851986274, 5);
+
+            // df = 30
+            expect(Statistics.tQuantile(0.975, 30)).toBeCloseTo(2.042272456301238, 5);
+            expect(Statistics.tQuantile(0.025, 30)).toBeCloseTo(-2.042272456301238, 5);
+        });
+
+        test('handles probabilities at or beyond boundaries', () => {
+            expect(Statistics.tQuantile(0, 10)).toBe(-Infinity);
+            expect(Statistics.tQuantile(-0.1, 10)).toBe(-Infinity);
+            expect(Statistics.tQuantile(1, 10)).toBe(Infinity);
+            expect(Statistics.tQuantile(1.1, 10)).toBe(Infinity);
+        });
+
+        test('handles infinite degrees of freedom (converges to normal distribution)', () => {
+            // Should match normalQuantile
+            expect(Statistics.tQuantile(0.975, Infinity)).toBeCloseTo(1.959963984540054, 5);
+            expect(Statistics.tQuantile(0.025, Infinity)).toBeCloseTo(-1.959963984540054, 5);
+            expect(Statistics.tQuantile(0.5, Infinity)).toBeCloseTo(0, 5);
+        });
+    });
+
     describe('tPDF', () => {
         test('calculates known Student t densities', () => {
             const cases = [
