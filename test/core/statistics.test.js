@@ -210,4 +210,20 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('fCDF', () => {
+        test('returns 0 when x is not positive', () => {
+            expect(Statistics.fCDF(0, 1, 1)).toBe(0);
+            expect(Statistics.fCDF(-1, 5, 10)).toBe(0);
+        });
+
+        test('matches standard F-distribution values', () => {
+            // These test values are matched with scipy.stats.f.cdf
+            expect(Statistics.fCDF(4.9646, 1, 10)).toBeCloseTo(0.95, 4);
+            expect(Statistics.fCDF(4.1028, 2, 10)).toBeCloseTo(0.95, 4);
+            expect(Statistics.fCDF(2.7109, 5, 20)).toBeCloseTo(0.95, 4);
+            expect(Statistics.fCDF(10.044, 2, 2)).toBeCloseTo(0.909, 3);
+            expect(Statistics.fCDF(3.4928, 3, 20)).toBeCloseTo(0.965, 3);
+        });
+    });
 });
