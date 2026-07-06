@@ -709,8 +709,12 @@
         allPoints.push({ fpr: 1, tpr: 1, threshold: null });
         allPoints.sort(function(a, b) { return a.fpr - b.fpr; });
 
-        var sens = validPoints.map(function(p) { return p.sens; });
-        var spec = validPoints.map(function(p) { return p.spec; });
+        var sens = new Array(validPoints.length);
+        var spec = new Array(validPoints.length);
+        for (var i = 0, len = validPoints.length; i < len; i++) {
+            sens[i] = validPoints[i].sens;
+            spec[i] = validPoints[i].spec;
+        }
         var aucResult = Statistics.aucTrapezoidal(sens, spec);
 
         var bestJ = -1;
@@ -878,8 +882,21 @@
             return;
         }
 
-        var auc1 = Statistics.aucTrapezoidal(v1.map(function(p) { return p.sens; }), v1.map(function(p) { return p.spec; }));
-        var auc2 = Statistics.aucTrapezoidal(v2.map(function(p) { return p.sens; }), v2.map(function(p) { return p.spec; }));
+        var sens1 = new Array(v1.length);
+        var spec1 = new Array(v1.length);
+        for (var j = 0, len1 = v1.length; j < len1; j++) {
+            sens1[j] = v1[j].sens;
+            spec1[j] = v1[j].spec;
+        }
+        var sens2 = new Array(v2.length);
+        var spec2 = new Array(v2.length);
+        for (var k = 0, len2 = v2.length; k < len2; k++) {
+            sens2[k] = v2[k].sens;
+            spec2[k] = v2[k].spec;
+        }
+
+        var auc1 = Statistics.aucTrapezoidal(sens1, spec1);
+        var auc2 = Statistics.aucTrapezoidal(sens2, spec2);
 
         var aucDiff = auc1.auc - auc2.auc;
         // Approximate comparison using independent SEs (note: DeLong requires paired data)
