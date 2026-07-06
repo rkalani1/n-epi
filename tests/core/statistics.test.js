@@ -45,3 +45,35 @@ describe('Statistics.regularizedLowerIncompleteGamma', () => {
         expect(result).toBeCloseTo(0.9999546000702375, 6);
     });
 });
+
+describe('Statistics.binomialPMF', () => {
+    let Statistics;
+
+    beforeEach(() => {
+        Statistics = window.Statistics;
+    });
+
+    test('should return 0 when k < 0', () => {
+        expect(Statistics.binomialPMF(-1, 10, 0.5)).toBe(0);
+    });
+
+    test('should return 0 when k > n', () => {
+        expect(Statistics.binomialPMF(11, 10, 0.5)).toBe(0);
+    });
+
+    test('should return correct PMF for k = 0', () => {
+        // P(X=0) for n=10, p=0.5 is 0.5^10
+        expect(Statistics.binomialPMF(0, 10, 0.5)).toBeCloseTo(Math.pow(0.5, 10), 6);
+    });
+
+    test('should return correct PMF for k = n', () => {
+        // P(X=10) for n=10, p=0.5 is 0.5^10
+        expect(Statistics.binomialPMF(10, 10, 0.5)).toBeCloseTo(Math.pow(0.5, 10), 6);
+    });
+
+    test('should return correct PMF for standard values', () => {
+        // P(X=5) for n=10, p=0.5
+        // (10 choose 5) * 0.5^5 * 0.5^5 = 252 * 0.5^10 = 0.24609375
+        expect(Statistics.binomialPMF(5, 10, 0.5)).toBeCloseTo(0.24609375, 6);
+    });
+});
