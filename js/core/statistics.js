@@ -1366,12 +1366,17 @@ const Statistics = (() => {
             let survival = 1;
             let greenwood = 0;
 
-            const uniqueTimes = [...new Set(gData.map(d => d.time))].sort((a, b) => a - b);
+            let i = 0;
+            while (i < gData.length) {
+                const t = gData[i].time;
+                let nEvents = 0;
+                let nCensored = 0;
 
-            uniqueTimes.forEach(t => {
-                const atTime = gData.filter(d => d.time === t);
-                const nEvents = atTime.filter(d => d.event === 1).length;
-                const nCensored = atTime.filter(d => d.event === 0).length;
+                while (i < gData.length && gData[i].time === t) {
+                    if (gData[i].event === 1) nEvents++;
+                    else if (gData[i].event === 0) nCensored++;
+                    i++;
+                }
 
                 if (nEvents > 0) {
                     survival *= (1 - nEvents / nRisk);
@@ -1394,7 +1399,7 @@ const Statistics = (() => {
 
                 table.push({ time: t, nRisk, events: nEvents, censored: nCensored, survival, se, ciLower, ciUpper });
                 nRisk -= (nEvents + nCensored);
-            });
+            }
 
             // Median survival
             let median = null, medianCI = null;
