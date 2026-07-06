@@ -689,10 +689,16 @@
             + '<th>Subgroup</th><th>k</th><th>Pooled ' + selectedMeasure + '</th><th>95% CI</th>'
             + '<th>I' + String.fromCharCode(178) + '</th><th>' + String.fromCharCode(964) + String.fromCharCode(178) + '</th><th>p</th></tr></thead><tbody>';
 
+        var groupIndices = {};
+        groups.forEach(function(g, i) {
+            if (!groupIndices[g]) groupIndices[g] = [];
+            groupIndices[g].push(i);
+        });
+
         var subgroupKeys = Object.keys(subResult.subgroups);
         subgroupKeys.forEach(function(key) {
             var sg = subResult.subgroups[key];
-            var nStudies = prep.effects.filter(function(_, i) { return groups[i] === key; }).length;
+            var nStudies = groupIndices[key] ? groupIndices[key].length : 0;
             var est = isLog ? Math.exp(sg.pooled).toFixed(3) : sg.pooled.toFixed(3);
             var lo = isLog ? Math.exp(sg.ci.lower).toFixed(3) : sg.ci.lower.toFixed(3);
             var hi = isLog ? Math.exp(sg.ci.upper).toFixed(3) : sg.ci.upper.toFixed(3);
@@ -740,8 +746,7 @@
             subgroupKeys.forEach(function(key, ki) {
                 var canvas = document.getElementById('ma-subforest-' + ki);
                 if (!canvas) return;
-                var idx = [];
-                groups.forEach(function(g, i) { if (g === key) idx.push(i); });
+                var idx = groupIndices[key] || [];
 
                 var studies = idx.map(function(i) {
                     return {
