@@ -210,4 +210,52 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('mcNemarTest', () => {
+        test('calculates exact McNemar test correctly', () => {
+            const result = Statistics.mcNemarTest(10, 2, true);
+            expect(result.method).toBe('exact');
+            expect(result.statistic).toBeNull();
+            // p-value should be approx 0.03857 for 10 vs 2
+            expect(result.pValue).toBeCloseTo(0.038574, 4);
+        });
+
+        test('calculates asymptotic McNemar test correctly', () => {
+            const result = Statistics.mcNemarTest(10, 2, false);
+            expect(result.method).toBe('asymptotic');
+            expect(result.df).toBe(1);
+            // chi2 = (10-2)^2 / 12 = 64/12 = 5.333
+            expect(result.chi2).toBeCloseTo(5.3333, 4);
+            // p-value should be approx 0.02092
+            expect(result.pValue).toBeCloseTo(0.020921, 4);
+        });
+
+        test('handles exact test with tied frequencies', () => {
+            const result = Statistics.mcNemarTest(5, 5, true);
+            expect(result.method).toBe('exact');
+            expect(result.pValue).toBe(1);
+        });
+
+        test('handles asymptotic test with tied frequencies', () => {
+            const result = Statistics.mcNemarTest(5, 5, false);
+            expect(result.method).toBe('asymptotic');
+            expect(result.chi2).toBe(0);
+            expect(result.pValue).toBe(1);
+        });
+
+        test('handles zero cells in exact test', () => {
+            const result = Statistics.mcNemarTest(10, 0, true);
+            expect(result.method).toBe('exact');
+            // pValue is sum of PMF(0) * 2 = 2 * (1/1024) = 0.001953125
+            expect(result.pValue).toBeCloseTo(0.001953125, 4);
+        });
+
+        test('handles zero cells in asymptotic test', () => {
+            const result = Statistics.mcNemarTest(10, 0, false);
+            expect(result.method).toBe('asymptotic');
+            expect(result.chi2).toBeCloseTo(10, 4);
+            // pValue = 1 - chiSquaredCDF(10, 1) approx 0.0015654
+            expect(result.pValue).toBeCloseTo(0.0015654, 4);
+        });
+    });
 });
