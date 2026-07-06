@@ -19,6 +19,10 @@
         return isSensitiveColumn(columnName) ? '[redacted]' : '[value]';
     }
 
+    function isMissingValue(val) {
+        return val === undefined || val === null || val.trim() === '' || val.toLowerCase() === 'na' || val.toLowerCase() === 'nan';
+    }
+
     function render(container) {
         var html = App.createModuleLayout(
             'Biobank Data Cleaning',
@@ -147,7 +151,7 @@
             // Missing value count
             headers.forEach(h => {
                 const val = row[h];
-                if (val === undefined || val === null || val.trim() === '' || val.toLowerCase() === 'na' || val.toLowerCase() === 'nan') {
+                if (isMissingValue(val)) {
                     missingCounts[h]++;
                 }
             });
