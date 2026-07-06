@@ -244,9 +244,10 @@
 
         // Sort
         filtered.sort(function(a, b) {
-            if (sortField === 'year') return sortDir === 'asc' ? (a.year || 0) - (b.year || 0) : (b.year || 0) - (a.year || 0);
-            if (sortField === 'name') return sortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
-            if (sortField === 'n') return sortDir === 'asc' ? (a.n || 0) - (b.n || 0) : (b.n || 0) - (a.n || 0);
+            var modifier = sortDir === 'asc' ? 1 : -1;
+            if (sortField === 'year') return ((a.year || 0) - (b.year || 0)) * modifier;
+            if (sortField === 'name') return a.name.localeCompare(b.name) * modifier;
+            if (sortField === 'n') return ((a.n || 0) - (b.n || 0)) * modifier;
             return 0;
         });
 
