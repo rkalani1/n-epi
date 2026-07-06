@@ -276,7 +276,12 @@
             var p2 = parseFloat(document.getElementById('pa-p2').value);
             var n = parseInt(document.getElementById('pa-n').value);
             var alpha = parseFloat(document.getElementById('pa-alpha').value);
-            if (isNaN(p1) || isNaN(p2) || isNaN(n) || p1 <= 0 || p1 >= 1 || p2 <= 0 || p2 >= 1 || n < 5) {
+
+            const hasMissingInputs = isNaN(p1) || isNaN(p2) || isNaN(n);
+            const hasInvalidProportions = p1 <= 0 || p1 >= 1 || p2 <= 0 || p2 >= 1;
+            const hasInsufficientSample = n < 5;
+
+            if (hasMissingInputs || hasInvalidProportions || hasInsufficientSample) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -288,7 +293,12 @@
             var sd = parseFloat(document.getElementById('pa-sd').value);
             var nM = parseInt(document.getElementById('pa-n-means').value);
             var alphaM = parseFloat(document.getElementById('pa-alpha-means').value);
-            if (isNaN(delta) || isNaN(sd) || isNaN(nM) || sd <= 0 || nM < 5) {
+
+            const hasMissingInputs = isNaN(delta) || isNaN(sd) || isNaN(nM);
+            const hasInvalidVariance = sd <= 0;
+            const hasInsufficientSample = nM < 5;
+
+            if (hasMissingInputs || hasInvalidVariance || hasInsufficientSample) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -299,7 +309,12 @@
             var hr = parseFloat(document.getElementById('pa-hr').value);
             var events = parseInt(document.getElementById('pa-events').value);
             var alphaS = parseFloat(document.getElementById('pa-alpha-surv').value);
-            if (isNaN(hr) || isNaN(events) || hr <= 0 || events < 5) {
+
+            const hasMissingInputs = isNaN(hr) || isNaN(events);
+            const hasInvalidHazardRatio = hr <= 0;
+            const hasInsufficientEvents = events < 5;
+
+            if (hasMissingInputs || hasInvalidHazardRatio || hasInsufficientEvents) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -454,7 +469,11 @@
             var nPG = parseInt(document.getElementById('pa-mde-n').value);
             var alpha = parseFloat(document.getElementById('pa-mde-alpha').value);
 
-            if (isNaN(p1) || isNaN(nPG) || p1 <= 0 || p1 >= 1 || nPG < 10) {
+            const hasMissingInputs = isNaN(p1) || isNaN(nPG);
+            const hasInvalidProportions = p1 <= 0 || p1 >= 1;
+            const hasInsufficientSample = nPG < 10;
+
+            if (hasMissingInputs || hasInvalidProportions || hasInsufficientSample) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -492,7 +511,11 @@
             var nPGm = parseInt(document.getElementById('pa-mde-n-means').value);
             var alphaM = parseFloat(document.getElementById('pa-mde-alpha-means').value);
 
-            if (isNaN(sd) || isNaN(nPGm) || sd <= 0 || nPGm < 10) {
+            const hasMissingInputs = isNaN(sd) || isNaN(nPGm);
+            const hasInvalidVariance = sd <= 0;
+            const hasInsufficientSample = nPGm < 10;
+
+            if (hasMissingInputs || hasInvalidVariance || hasInsufficientSample) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -527,7 +550,10 @@
             var events = parseInt(document.getElementById('pa-mde-events').value);
             var alphaS = parseFloat(document.getElementById('pa-mde-alpha-surv').value);
 
-            if (isNaN(events) || events < 10) {
+            const hasMissingInputs = isNaN(events);
+            const hasInsufficientEvents = events < 10;
+
+            if (hasMissingInputs || hasInsufficientEvents) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -580,7 +606,11 @@
             var p2 = parseFloat(p2El.value);
             var nPG = parseInt(nEl.value);
             var scAlpha = parseFloat(alphaEl.value);
-            if (isNaN(p1) || isNaN(p2) || isNaN(nPG) || nPG <= 0) continue;
+
+            const hasMissingInputs = isNaN(p1) || isNaN(p2) || isNaN(nPG);
+            const hasInsufficientSample = nPG <= 0;
+
+            if (hasMissingInputs || hasInsufficientSample) continue;
 
             var power = Statistics.powerTwoProportions(p1, p2, nPG, scAlpha);
             var powerEl = document.getElementById('pa-sc' + i + '-power');
