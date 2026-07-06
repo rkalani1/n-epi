@@ -210,4 +210,35 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('poissonCDF', () => {
+        test('returns 0 when k is less than 0', () => {
+            expect(Statistics.poissonCDF(-1, 2)).toBe(0);
+            expect(Statistics.poissonCDF(-10, 5)).toBe(0);
+        });
+
+        test('computes known values for lambda=2', () => {
+            // calculated using Math.exp(-2) * sum(2^i / i!) for i=0 to k
+            expect(Statistics.poissonCDF(0, 2)).toBeCloseTo(0.1353352832366127, 8);
+            expect(Statistics.poissonCDF(1, 2)).toBeCloseTo(0.4060058497098381, 8);
+            expect(Statistics.poissonCDF(2, 2)).toBeCloseTo(0.6766764161830634, 8);
+            expect(Statistics.poissonCDF(3, 2)).toBeCloseTo(0.8571234604985470, 8);
+        });
+
+        test('handles fractional k the same as floor(k)', () => {
+            const kFloor = Statistics.poissonCDF(2, 2);
+            expect(Statistics.poissonCDF(2.5, 2)).toBeCloseTo(kFloor, 8);
+            expect(Statistics.poissonCDF(2.9, 2)).toBeCloseTo(kFloor, 8);
+        });
+
+        test('approaches 1 for very large k', () => {
+            expect(Statistics.poissonCDF(20, 2)).toBeCloseTo(1, 8);
+            expect(Statistics.poissonCDF(100, 10)).toBeCloseTo(1, 8);
+        });
+
+        test('computes known values for different lambda', () => {
+            expect(Statistics.poissonCDF(0, 1)).toBeCloseTo(0.36787944117144233, 8); // e^-1
+            expect(Statistics.poissonCDF(1, 1)).toBeCloseTo(0.7357588823428847, 8); // 2 * e^-1
+        });
+    });
 });
