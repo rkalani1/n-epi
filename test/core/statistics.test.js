@@ -210,4 +210,89 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('diagnosticAccuracy', () => {
+        test('calculates correct statistics for standard input', () => {
+            // tp = 40, fp = 10, fn = 20, tn = 80
+            const result = Statistics.diagnosticAccuracy(40, 10, 20, 80);
+
+            // sensitivity: 40 / 60 = 2/3
+            expect(result.sensitivity.value).toBeCloseTo(2 / 3, 5);
+            expect(result.sensitivity.ci.lower).toBeDefined();
+            expect(result.sensitivity.ci.upper).toBeDefined();
+
+            // specificity: 80 / 90 = 8/9
+            expect(result.specificity.value).toBeCloseTo(8 / 9, 5);
+            expect(result.specificity.ci.lower).toBeDefined();
+            expect(result.specificity.ci.upper).toBeDefined();
+
+            // ppv: 40 / 50 = 0.8
+            expect(result.ppv.value).toBeCloseTo(0.8, 5);
+            expect(result.ppv.ci.lower).toBeDefined();
+            expect(result.ppv.ci.upper).toBeDefined();
+
+            // npv: 80 / 100 = 0.8
+            expect(result.npv.value).toBeCloseTo(0.8, 5);
+            expect(result.npv.ci.lower).toBeDefined();
+            expect(result.npv.ci.upper).toBeDefined();
+
+            // plr: (2/3) / (1/9) = 6
+            expect(result.plr).toBeCloseTo(6, 5);
+
+            // nlr: (1/3) / (8/9) = 3/8 = 0.375
+            expect(result.nlr).toBeCloseTo(0.375, 5);
+
+            // dor: (40*80) / (10*20) = 3200/200 = 16
+            expect(result.dor).toBeCloseTo(16, 5);
+
+            // accuracy: 120 / 150 = 0.8
+            expect(result.accuracy).toBeCloseTo(0.8, 5);
+
+            // prevalence: 60 / 150 = 0.4
+            expect(result.prevalence).toBeCloseTo(0.4, 5);
+
+            // youdenJ: 2/3 + 8/9 - 1 = 5/9
+            expect(result.youdenJ).toBeCloseTo(5 / 9, 5);
+        });
+
+        test('handles perfect test edge cases (zero fp and fn)', () => {
+            const result = Statistics.diagnosticAccuracy(50, 0, 0, 50);
+
+            expect(result.sensitivity.value).toBeCloseTo(1, 5);
+            expect(result.specificity.value).toBeCloseTo(1, 5);
+            expect(result.ppv.value).toBeCloseTo(1, 5);
+            expect(result.npv.value).toBeCloseTo(1, 5);
+
+            // plr = 1 / 0 = Infinity
+            expect(result.plr).toBe(Infinity);
+            // nlr = 0 / 1 = 0
+            expect(result.nlr).toBeCloseTo(0, 5);
+            // dor = (50*50) / (0*0) = Infinity
+            expect(result.dor).toBe(Infinity);
+
+            expect(result.accuracy).toBeCloseTo(1, 5);
+            expect(result.prevalence).toBeCloseTo(0.5, 5);
+            expect(result.youdenJ).toBeCloseTo(1, 5);
+        });
+
+        test('handles completely wrong test edge cases (zero tp and tn)', () => {
+            const result = Statistics.diagnosticAccuracy(0, 50, 50, 0);
+
+            expect(result.sensitivity.value).toBeCloseTo(0, 5);
+            expect(result.specificity.value).toBeCloseTo(0, 5);
+            expect(result.ppv.value).toBeCloseTo(0, 5);
+            expect(result.npv.value).toBeCloseTo(0, 5);
+
+            // plr = 0 / 1 = 0
+            expect(result.plr).toBeCloseTo(0, 5);
+            // nlr = 1 / 0 = Infinity
+            expect(result.nlr).toBe(Infinity);
+            // dor = (0*0) / (50*50) = 0
+            expect(result.dor).toBeCloseTo(0, 5);
+
+            expect(result.accuracy).toBeCloseTo(0, 5);
+            expect(result.prevalence).toBeCloseTo(0.5, 5);
+            expect(result.youdenJ).toBeCloseTo(-1, 5);
+        });
+    });
 });
