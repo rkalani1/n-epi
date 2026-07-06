@@ -210,4 +210,81 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('logRankTest', () => {
+        test('returns null if there are not exactly 2 unique groups', () => {
+            // 1 group
+            expect(Statistics.logRankTest([10], [1], ['A'])).toBeNull();
+
+            // 3 groups
+            expect(Statistics.logRankTest(
+                [10, 20, 30],
+                [1, 1, 1],
+                ['A', 'B', 'C']
+            )).toBeNull();
+        });
+
+        test('computes correct statistics for a typical dataset', () => {
+            const times = [10, 20, 30, 40, 50, 15, 25, 35, 45, 55];
+            const events = [1, 1, 0, 1, 0, 1, 0, 1, 0, 1];
+            const groups = ['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'];
+
+            const result = Statistics.logRankTest(times, events, groups);
+
+            expect(result).not.toBeNull();
+
+            // From our reference run
+            expect(result.O1).toBe(3);
+            expect(result.E1).toBeCloseTo(2.3444444, 5);
+            expect(result.V).toBeCloseTo(1.2369135, 5);
+            expect(result.chi2).toBeCloseTo(0.347439, 5);
+            expect(result.pValue).toBeCloseTo(0.55556, 4);
+            expect(result.hr).toBeCloseTo(1.69892, 4);
+            expect(result.seLnHR).toBeCloseTo(0.899146, 5);
+            expect(result.hrCI.lower).toBeCloseTo(0.29162, 4);
+            expect(result.hrCI.upper).toBeCloseTo(9.89755, 4);
+        });
+
+        test('handles dataset with no events (all censored)', () => {
+            const times = [10, 20, 15, 25];
+            const events = [0, 0, 0, 0]; // all censored
+            const groups = ['A', 'A', 'B', 'B'];
+
+            const result = Statistics.logRankTest(times, events, groups);
+
+            // If there are no events, O1=0, E1=0, V=0.
+            // chi2 will be 0/0 -> NaN or 0 if handled. In JS Math.pow(0,2)/0 is NaN.
+            expect(result).not.toBeNull();
+            expect(result.O1).toBe(0);
+            expect(result.E1).toBe(0);
+            expect(result.V).toBe(0);
+            expect(Number.isNaN(result.chi2)).toBe(true);
+        });
+
+        test('handles tied event times across groups', () => {
+            const times = [10, 10, 20, 20];
+            const events = [1, 1, 0, 1];
+            const groups = ['A', 'B', 'A', 'B'];
+
+            const result = Statistics.logRankTest(times, events, groups);
+
+            expect(result).not.toBeNull();
+            // Expected checks for tied events
+            // at t=10, 4 at risk (2 in A, 2 in B), 2 died (1 in A, 1 in B)
+            // e1 = nRisk[0] * totalEvents / totalRisk = 2 * 2 / 4 = 1
+            // v = 2*2*2*(4-2) / (4*4*3) = 16 / 48 = 1/3 (0.333...)
+
+            // at t=20, 2 at risk (1 in A, 1 in B), 1 died (0 in A, 1 in B)
+            // e1 = 1 * 1 / 2 = 0.5
+            // v = 1*1*1*(2-1) / (2*2*1) = 1/4 = 0.25
+
+            // Total O1 = 1 + 0 = 1
+            // Total E1 = 1 + 0.5 = 1.5
+            // Total V = 0.3333 + 0.25 = 0.583333...
+
+            expect(result.O1).toBe(1);
+            expect(result.E1).toBeCloseTo(1.5, 4);
+            expect(result.V).toBeCloseTo(0.58333, 4);
+        });
+});
 });
