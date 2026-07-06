@@ -1518,9 +1518,12 @@ const Statistics = (() => {
     // AUC by trapezoidal rule
     function aucTrapezoidal(sensitivities, specificities) {
         // Points should be sorted by 1-specificity
-        const fpr = specificities.map(s => 1 - s);
-        const points = fpr.map((f, i) => ({ fpr: f, tpr: sensitivities[i] }))
-            .sort((a, b) => a.fpr - b.fpr);
+        const len = specificities.length;
+        const points = new Array(len);
+        for (let i = 0; i < len; i++) {
+            points[i] = { fpr: 1 - specificities[i], tpr: sensitivities[i] };
+        }
+        points.sort((a, b) => a.fpr - b.fpr);
 
         let auc = 0;
         for (let i = 1; i < points.length; i++) {
