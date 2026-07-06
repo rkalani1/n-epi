@@ -1434,16 +1434,46 @@ const Statistics = (() => {
 
         let O1 = 0, E1 = 0, V = 0;
 
+        const groupStats = uniqueGroups.map(g => {
+            const data = [];
+            for (let i = 0; i < times.length; i++) {
+                if (groups[i] === g) {
+                    data.push({ t: times[i], e: events[i] });
+                }
+            }
+            data.sort((a, b) => a.t - b.t);
+            return data;
+        });
+
+        const groupPointers = [0, 0];
+        const currentAtRisk = [groupStats[0].length, groupStats[1].length];
+
         allTimes.forEach(t => {
-            const nRisk = [];
-            const nEvents = [];
-            uniqueGroups.forEach(g => {
-                const gIdx = times.map((_, i) => i).filter(i => groups[i] === g);
-                const atRisk = gIdx.filter(i => times[i] >= t).length;
-                const died = gIdx.filter(i => times[i] === t && events[i] === 1).length;
-                nRisk.push(atRisk);
-                nEvents.push(died);
-            });
+            const nRisk = [0, 0];
+            const nEvents = [0, 0];
+
+            for (let gIndex = 0; gIndex < 2; gIndex++) {
+                let p = groupPointers[gIndex];
+                const data = groupStats[gIndex];
+
+                while (p < data.length && data[p].t < t) {
+                    p++;
+                    currentAtRisk[gIndex]--;
+                }
+                groupPointers[gIndex] = p;
+
+                nRisk[gIndex] = currentAtRisk[gIndex];
+
+                let died = 0;
+                let tempP = p;
+                while (tempP < data.length && data[tempP].t === t) {
+                    if (data[tempP].e === 1) {
+                        died++;
+                    }
+                    tempP++;
+                }
+                nEvents[gIndex] = died;
+            }
 
             const totalRisk = nRisk[0] + nRisk[1];
             const totalEvents = nEvents[0] + nEvents[1];
