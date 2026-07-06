@@ -276,7 +276,12 @@
             var p2 = parseFloat(document.getElementById('pa-p2').value);
             var n = parseInt(document.getElementById('pa-n').value);
             var alpha = parseFloat(document.getElementById('pa-alpha').value);
-            if (isNaN(p1) || isNaN(p2) || isNaN(n) || p1 <= 0 || p1 >= 1 || p2 <= 0 || p2 >= 1 || n < 5) {
+
+            var hasMissingValues = isNaN(p1) || isNaN(p2) || isNaN(n);
+            var hasInvalidProportions = p1 <= 0 || p1 >= 1 || p2 <= 0 || p2 >= 1;
+            var hasInvalidSampleSize = n < 5;
+
+            if (hasMissingValues || hasInvalidProportions || hasInvalidSampleSize) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -288,7 +293,12 @@
             var sd = parseFloat(document.getElementById('pa-sd').value);
             var nM = parseInt(document.getElementById('pa-n-means').value);
             var alphaM = parseFloat(document.getElementById('pa-alpha-means').value);
-            if (isNaN(delta) || isNaN(sd) || isNaN(nM) || sd <= 0 || nM < 5) {
+
+            var hasMissingValues = isNaN(delta) || isNaN(sd) || isNaN(nM);
+            var hasInvalidVariance = sd <= 0;
+            var hasInvalidSampleSize = nM < 5;
+
+            if (hasMissingValues || hasInvalidVariance || hasInvalidSampleSize) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -299,7 +309,12 @@
             var hr = parseFloat(document.getElementById('pa-hr').value);
             var events = parseInt(document.getElementById('pa-events').value);
             var alphaS = parseFloat(document.getElementById('pa-alpha-surv').value);
-            if (isNaN(hr) || isNaN(events) || hr <= 0 || events < 5) {
+
+            var hasMissingValues = isNaN(hr) || isNaN(events);
+            var hasInvalidHazardRatio = hr <= 0;
+            var hasInvalidEvents = events < 5;
+
+            if (hasMissingValues || hasInvalidHazardRatio || hasInvalidEvents) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
