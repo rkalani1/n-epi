@@ -210,4 +210,172 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('kaplanMeier', () => {
+        test('computes survival correctly for a single group (no explicit group array)', () => {
+            const times = [1, 2, 2, 3, 4, 5];
+            const events = [1, 1, 0, 1, 0, 1]; // 1=event, 0=censored
+
+            const results = Statistics.kaplanMeier(times, events);
+
+            // Should have a single group '0' by default
+            expect(results).toHaveProperty('0');
+            const group0 = results['0'];
+
+            expect(group0.n).toBe(6);
+            expect(group0.median).toBe(3);
+            expect(group0.medianCI).toEqual({ lower: 2, upper: null });
+
+            const table = group0.table;
+            expect(table.length).toBe(6); // t=0,1,2,3,4,5
+
+            // t=0
+            expect(table[0]).toMatchObject({ time: 0, nRisk: 6, events: 0, censored: 0, survival: 1 });
+
+            // t=1: 1 event, survival = 1 * (5/6) = 0.8333...
+            expect(table[1].time).toBe(1);
+            expect(table[1].nRisk).toBe(6);
+            expect(table[1].events).toBe(1);
+            expect(table[1].censored).toBe(0);
+            expect(table[1].survival).toBeCloseTo(5/6, 5);
+
+            // t=2: 1 event, 1 censored, survival = (5/6) * (4/5) = 0.6666...
+            // Note: nRisk at t=2 is 5 because 1 person failed at t=1
+            expect(table[2].time).toBe(2);
+            expect(table[2].nRisk).toBe(5);
+            expect(table[2].events).toBe(1);
+            expect(table[2].censored).toBe(1);
+            expect(table[2].survival).toBeCloseTo((5/6) * (4/5), 5); // 0.6666...
+
+            // t=3: 1 event, 0 censored
+            // nRisk at t=3 is 5 - 2 = 3
+            expect(table[3].time).toBe(3);
+            expect(table[3].nRisk).toBe(3);
+            expect(table[3].events).toBe(1);
+            expect(table[3].censored).toBe(0);
+            expect(table[3].survival).toBeCloseTo((5/6) * (4/5) * (2/3), 5); // 0.4444...
+
+            // t=4: 0 event, 1 censored
+            // nRisk at t=4 is 3 - 1 = 2
+            expect(table[4].time).toBe(4);
+            expect(table[4].nRisk).toBe(2);
+            expect(table[4].events).toBe(0);
+            expect(table[4].censored).toBe(1);
+            expect(table[4].survival).toBeCloseTo((5/6) * (4/5) * (2/3), 5); // unchanged
+
+            // t=5: 1 event, 0 censored
+            // nRisk at t=5 is 2 - 1 = 1
+            expect(table[5].time).toBe(5);
+            expect(table[5].nRisk).toBe(1);
+            expect(table[5].events).toBe(1);
+            expect(table[5].censored).toBe(0);
+            expect(table[5].survival).toBe(0);
+        });
+
+        test('computes survival correctly for multiple groups', () => {
+            const times = [1, 2, 3, 2, 4, 5];
+            const events = [1, 1, 0, 1, 0, 1];
+            const groups = ['A', 'A', 'A', 'B', 'B', 'B'];
+
+            const results = Statistics.kaplanMeier(times, events, groups);
+
+            // Should have groups 'A' and 'B'
+            expect(results).toHaveProperty('A');
+            expect(results).toHaveProperty('B');
+
+            const groupA = results['A'];
+            const groupB = results['B'];
+
+            expect(groupA.n).toBe(3);
+            expect(groupB.n).toBe(3);
+
+            // Group A has data (1, event), (2, event), (3, censored)
+            const tableA = groupA.table;
+            expect(tableA.length).toBe(4); // t=0,1,2,3
+            expect(tableA[1].time).toBe(1);
+            expect(tableA[1].nRisk).toBe(3);
+            expect(tableA[1].events).toBe(1);
+            expect(tableA[1].survival).toBeCloseTo(2/3, 5); // 0.6666...
+
+            expect(tableA[2].time).toBe(2);
+            expect(tableA[2].nRisk).toBe(2);
+            expect(tableA[2].events).toBe(1);
+            expect(tableA[2].survival).toBeCloseTo((2/3) * (1/2), 5); // 0.3333...
+
+            expect(tableA[3].time).toBe(3);
+            expect(tableA[3].nRisk).toBe(1);
+            expect(tableA[3].censored).toBe(1);
+            expect(tableA[3].survival).toBeCloseTo(1/3, 5); // unchanged
+
+            expect(groupA.median).toBe(2);
+
+            // Group B has data (2, event), (4, censored), (5, event)
+            const tableB = groupB.table;
+            expect(tableB.length).toBe(4); // t=0,2,4,5
+            expect(tableB[1].time).toBe(2);
+            expect(tableB[1].nRisk).toBe(3);
+            expect(tableB[1].events).toBe(1);
+            expect(tableB[1].survival).toBeCloseTo(2/3, 5);
+
+            expect(tableB[2].time).toBe(4);
+            expect(tableB[2].nRisk).toBe(2);
+            expect(tableB[2].events).toBe(0);
+            expect(tableB[2].censored).toBe(1);
+            expect(tableB[2].survival).toBeCloseTo(2/3, 5); // unchanged
+
+            expect(tableB[3].time).toBe(5);
+            expect(tableB[3].nRisk).toBe(1);
+            expect(tableB[3].events).toBe(1);
+            expect(tableB[3].survival).toBe(0);
+
+            expect(groupB.median).toBe(5);
+        });
+
+        test('computes standard error (Greenwood) and confidence intervals', () => {
+            const times = [1, 2, 3];
+            const events = [1, 1, 0];
+            const results = Statistics.kaplanMeier(times, events);
+
+            const group0 = results['0'];
+            const table = group0.table;
+
+            // t=1: 1 event, n=3.
+            // survival = (2/3)
+            // greenwood = 1 / (3 * 2) = 1/6
+            // se = (2/3) * sqrt(1/6)
+            expect(table[1].time).toBe(1);
+            expect(table[1].survival).toBeCloseTo(2/3, 5);
+            expect(table[1].se).toBeCloseTo((2/3) * Math.sqrt(1/6), 5);
+
+            // log-log CI
+            // survival = 2/3
+            // loglog = Math.log(-Math.log(2/3))
+            // seLogLog = Math.sqrt(1/6) / Math.abs(Math.log(2/3))
+            // z = normalQuantile(0.975) approx 1.95996
+            const loglog1 = Math.log(-Math.log(2/3));
+            const seLogLog1 = Math.sqrt(1/6) / Math.abs(Math.log(2/3));
+            const z = Statistics.normalQuantile(0.975);
+            const ciLower1 = Math.exp(-Math.exp(loglog1 + z * seLogLog1));
+            const ciUpper1 = Math.exp(-Math.exp(loglog1 - z * seLogLog1));
+
+            expect(table[1].ciLower).toBeCloseTo(ciLower1, 5);
+            expect(table[1].ciUpper).toBeCloseTo(ciUpper1, 5);
+
+            // t=2: 1 event, nRisk=2.
+            // survival = (2/3) * (1/2) = 1/3
+            // greenwood = 1/6 + 1 / (2 * 1) = 1/6 + 1/2 = 4/6 = 2/3
+            // se = (1/3) * sqrt(2/3)
+            expect(table[2].time).toBe(2);
+            expect(table[2].survival).toBeCloseTo(1/3, 5);
+            expect(table[2].se).toBeCloseTo((1/3) * Math.sqrt(2/3), 5);
+
+            const loglog2 = Math.log(-Math.log(1/3));
+            const seLogLog2 = Math.sqrt(2/3) / Math.abs(Math.log(1/3));
+            const ciLower2 = Math.exp(-Math.exp(loglog2 + z * seLogLog2));
+            const ciUpper2 = Math.exp(-Math.exp(loglog2 - z * seLogLog2));
+
+            expect(table[2].ciLower).toBeCloseTo(ciLower2, 5);
+            expect(table[2].ciUpper).toBeCloseTo(ciUpper2, 5);
+        });
+    });
 });
