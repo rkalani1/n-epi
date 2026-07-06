@@ -48,6 +48,22 @@ describe('Statistics Engine Tests', function() {
             assert.ok(Math.abs(Statistics.tCDF(-1, 1) - 0.25) < 1e-7);
         });
 
+        it('should calculate values matching standard t-distribution tables correctly', function() {
+            // df=10, t=2.2281 -> ~0.975 (one-tailed)
+            assert.ok(Math.abs(Statistics.tCDF(2.2281, 10) - 0.975) < 1e-4);
+            // df=10, t=-2.2281 -> ~0.025 (one-tailed)
+            assert.ok(Math.abs(Statistics.tCDF(-2.2281, 10) - 0.025) < 1e-4);
+
+            // df=5, t=2.0150 -> ~0.95
+            assert.ok(Math.abs(Statistics.tCDF(2.0150, 5) - 0.95) < 1e-4);
+
+            // df=2, t=4.3027 -> ~0.975
+            assert.ok(Math.abs(Statistics.tCDF(4.3027, 2) - 0.975) < 1e-4);
+
+            // df=30, t=2.0423 -> ~0.975
+            assert.ok(Math.abs(Statistics.tCDF(2.0423, 30) - 0.975) < 1e-4);
+        });
+
         it('should handle Infinity degrees of freedom by falling back to normalCDF', function() {
             // normalCDF(1.96) is approx 0.9750021
             assert.ok(Math.abs(Statistics.tCDF(1.96, Infinity) - 0.9750021) < 1e-4);
