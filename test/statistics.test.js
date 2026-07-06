@@ -97,6 +97,36 @@ describe('Statistics Engine Tests', function() {
             assert.strictEqual(Statistics.regularizedIncompleteBeta(1, 2, 2), 1);
         });
     });
+
+    describe('fQuantile Distribution Function', function() {
+        it('should return 0 when p <= 0', function() {
+            assert.strictEqual(Statistics.fQuantile(0, 5, 10), 0);
+            assert.strictEqual(Statistics.fQuantile(-0.1, 5, 10), 0);
+        });
+
+        it('should return Infinity when p >= 1', function() {
+            assert.strictEqual(Statistics.fQuantile(1, 5, 10), Infinity);
+            assert.strictEqual(Statistics.fQuantile(1.1, 5, 10), Infinity);
+        });
+
+        it('should return 1 when p = 0.5 and df1 = df2', function() {
+            assert.ok(Math.abs(Statistics.fQuantile(0.5, 10, 10) - 1) < 1e-4);
+        });
+
+        it('should calculate specific known values for fQuantile correctly', function() {
+            // From F-table: F(0.95, 5, 10) is approx 3.3258
+            assert.ok(Math.abs(Statistics.fQuantile(0.95, 5, 10) - 3.3258) < 1e-3);
+
+            // F(0.975, 5, 10) is approx 4.2361
+            assert.ok(Math.abs(Statistics.fQuantile(0.975, 5, 10) - 4.2361) < 1e-3);
+
+            // F(0.95, 10, 5) is approx 4.7351
+            assert.ok(Math.abs(Statistics.fQuantile(0.95, 10, 5) - 4.7351) < 1e-3);
+
+            // F(0.99, 1, 1) is approx 4052
+            assert.ok(Math.abs(Statistics.fQuantile(0.99, 1, 1) - 4052.18) < 1);
+        });
+    });
 });
 
     describe('tQuantile Distribution Function', function() {
