@@ -210,4 +210,27 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('chiSquaredTest2x2', () => {
+        test('calculates chi-squared test with no effect (all cells equal)', () => {
+            const result = Statistics.chiSquaredTest2x2(10, 10, 10, 10);
+            expect(result.chi2).toBe(0);
+            expect(result.df).toBe(1);
+            expect(result.pValue).toBe(1);
+        });
+
+        test('calculates chi-squared test without Yates correction', () => {
+            const result = Statistics.chiSquaredTest2x2(15, 5, 5, 15);
+            expect(result.chi2).toBeCloseTo(10, 5);
+            expect(result.df).toBe(1);
+            expect(result.pValue).toBeCloseTo(0.0015654, 5);
+        });
+
+        test('calculates chi-squared test with Yates correction', () => {
+            const result = Statistics.chiSquaredTest2x2(15, 5, 5, 15, true);
+            expect(result.chi2).toBeCloseTo(8.1, 5);
+            expect(result.df).toBe(1);
+            expect(result.pValue).toBeCloseTo(0.0044265, 5);
+        });
+    });
 });
