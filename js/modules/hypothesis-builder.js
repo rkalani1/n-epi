@@ -450,7 +450,8 @@
         var outcomeType = document.getElementById('hb-outcome-type').value;
         var direction = document.getElementById('hb-direction').value;
 
-        if (!population || !intervention || !comparison || !outcome) {
+        var hasMissingFields = !population || !intervention || !comparison || !outcome;
+        if (hasMissingFields) {
             Export.showToast('Please fill in all PICO/PECO fields', 'error');
             return;
         }
@@ -569,7 +570,8 @@
         var o = document.getElementById('hb-picot-o').value.trim();
         var t = document.getElementById('hb-picot-t').value.trim();
 
-        if (!p || !i || !c || !o || !t) {
+        var hasMissingFields = !p || !i || !c || !o || !t;
+        if (hasMissingFields) {
             Export.showToast('Please fill in all five PICOT fields', 'error');
             return;
         }
