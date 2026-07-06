@@ -1144,7 +1144,11 @@
         var orB = parseFloat(document.getElementById('rh-reri-b').value);
         var orAB = parseFloat(document.getElementById('rh-reri-ab').value);
 
-        if (isNaN(orA) || isNaN(orB) || isNaN(orAB) || orA <= 0 || orB <= 0 || orAB <= 0) {
+        const isInvalidOrA = isNaN(orA) || orA <= 0;
+        const isInvalidOrB = isNaN(orB) || orB <= 0;
+        const isInvalidOrAB = isNaN(orAB) || orAB <= 0;
+
+        if (isInvalidOrA || isInvalidOrB || isInvalidOrAB) {
             Export.showToast('Enter valid positive OR/RR values', 'error');
             return;
         }
