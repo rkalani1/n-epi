@@ -210,4 +210,49 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('metaAnalysisFixedEffect', () => {
+        test('calculates fixed-effect meta-analysis with provided variances (calculates weights internally)', () => {
+            const effects = [0.1, 0.2, 0.3];
+            const variances = [0.01, 0.04, 0.09];
+            // weights = [100, 25, 11.1111...]
+            // sumW = 136.1111...
+            // sumWY = 100*0.1 + 25*0.2 + 11.1111*0.3 = 10 + 5 + 3.3333 = 18.3333...
+            // pooled = 18.3333 / 136.1111 = 0.1346938...
+
+            const result = Statistics.metaAnalysisFixedEffect(effects, variances);
+
+            expect(result.pooled).toBeCloseTo(0.13469, 4);
+            expect(result.se).toBeCloseTo(0.08571, 4);
+            expect(result.ci.lower).toBeCloseTo(-0.03330, 4);
+            expect(result.ci.upper).toBeCloseTo(0.30269, 4);
+            expect(result.z).toBeCloseTo(1.5714, 4);
+            expect(result.pValue).toBeCloseTo(0.11608, 4);
+
+            expect(result.weights).toHaveLength(3);
+            expect(result.weights[0]).toBeCloseTo(100, 4);
+            expect(result.weights[1]).toBeCloseTo(25, 4);
+            expect(result.weights[2]).toBeCloseTo(11.1111, 4);
+        });
+
+        test('calculates fixed-effect meta-analysis with explicitly provided weights', () => {
+            const effects = [0.1, 0.2, 0.3];
+            const variances = [0.01, 0.04, 0.09]; // Not used if weights provided
+            const customWeights = [50, 50, 50];
+            // sumW = 150
+            // sumWY = 5 + 10 + 15 = 30
+            // pooled = 30 / 150 = 0.2
+            // se = sqrt(1 / 150) = 0.081649...
+            // z = 0.2 / 0.081649 = 2.44948...
+            // pValue = 2 * (1 - normalCDF(2.44948)) = 0.01430...
+
+            const result = Statistics.metaAnalysisFixedEffect(effects, variances, customWeights);
+
+            expect(result.pooled).toBeCloseTo(0.2, 4);
+            expect(result.se).toBeCloseTo(0.08165, 4);
+            expect(result.z).toBeCloseTo(2.44948, 4);
+            expect(result.pValue).toBeCloseTo(0.0143, 4);
+            expect(result.weights).toEqual(customWeights);
+        });
+    });
 });
