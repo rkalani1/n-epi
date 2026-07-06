@@ -19,6 +19,12 @@
         return isSensitiveColumn(columnName) ? '[redacted]' : '[value]';
     }
 
+    function hasConditionData(val) {
+        if (!val) return false;
+        const falsyValues = ['0', 'no', 'false', 'na', ''];
+        return !falsyValues.includes(val.toLowerCase().trim());
+    }
+
     function render(container) {
         var html = App.createModuleLayout(
             'Biobank Data Cleaning',
@@ -223,8 +229,8 @@
                 const prostateCols = Object.keys(row).filter(k => k.includes('prostate'));
                 if (isFemale && prostateCols.length > 0) {
                     prostateCols.forEach(col => {
-                        const val = row[col].toLowerCase().trim();
-                        if (val && val !== '0' && val !== 'no' && val !== 'false' && val !== 'na' && val !== '') {
+                        const val = row[col];
+                        if (hasConditionData(val)) {
                             issues.push(`Line ${lineNum}: [Consistency] Female gender with data in ${col}.`);
                         }
                     });
@@ -234,8 +240,8 @@
                 const gynCols = Object.keys(row).filter(k => k.includes('ovarian') || k.includes('uterine') || k.includes('cervical'));
                 if (isMale && gynCols.length > 0) {
                     gynCols.forEach(col => {
-                        const val = row[col].toLowerCase().trim();
-                        if (val && val !== '0' && val !== 'no' && val !== 'false' && val !== 'na' && val !== '') {
+                        const val = row[col];
+                        if (hasConditionData(val)) {
                             issues.push(`Line ${lineNum}: [Consistency] Male gender with data in ${col}.`);
                         }
                     });
