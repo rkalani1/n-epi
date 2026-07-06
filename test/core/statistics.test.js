@@ -210,4 +210,39 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('fisherExact', () => {
+        test('calculates correct p-values for balanced 2x2 table', () => {
+            const result = Statistics.fisherExact(10, 10, 10, 10);
+            expect(result.pValue).toBeCloseTo(1.0, 4);
+        });
+
+        test('calculates correct p-values for highly unbalanced 2x2 table', () => {
+            const result = Statistics.fisherExact(2, 14, 15, 3);
+            expect(result.pValue).toBeCloseTo(0.000086035, 6);
+        });
+
+        test('handles tables with zeros', () => {
+            const result = Statistics.fisherExact(0, 5, 5, 0);
+            // Hypergeometric distribution bounds minA=0, maxA=5
+            // This is the most extreme configuration
+            expect(result.pValue).toBeCloseTo(0.0079365, 5); // 2 / 252
+        });
+
+        test('calculates correct probabilities for simple known case', () => {
+            // Case where a=1, b=9, c=11, d=3 -> n=24, r1=10, c1=12
+            // P(X=1) = choose(10, 1) * choose(14, 11) / choose(24, 12)
+            // = 10 * 364 / 2704156 = 0.001346
+            const result = Statistics.fisherExact(1, 9, 11, 3);
+            expect(result.pValue).toBeCloseTo(0.002759, 5); // Two-tailed p-value
+        });
+
+        test('caps pValue at 1.0', () => {
+            // Symmetrical data usually results in exact 1.0 but precision issues could go above
+            const result = Statistics.fisherExact(5, 5, 5, 5);
+            expect(result.pValue).toBeLessThanOrEqual(1.0);
+            expect(result.pValue).toBeCloseTo(1.0, 4);
+        });
+    });
+
 });
