@@ -210,4 +210,51 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('wilsonCI', () => {
+        test('calculates correct Wilson score interval for typical inputs', () => {
+            // Test case: p = 0.5, n = 100, z = 1.959963984540054 (approx 1.96)
+            // Using standard normal quantile for 95% CI (two-tailed 0.975)
+            const z = Statistics.normalQuantile(0.975);
+            const ci = Statistics.wilsonCI(0.5, 100, z);
+
+            // Expected values manually computed or verified
+            expect(ci.lower).toBeCloseTo(0.40383, 5);
+            expect(ci.upper).toBeCloseTo(0.59617, 5);
+        });
+
+        test('bounds lower interval at 0 for extreme low proportions', () => {
+            // p = 0, n = 10, z = 1.96
+            const ci = Statistics.wilsonCI(0, 10, 1.96);
+            expect(ci.lower).toBe(0);
+            // Upper bound should be approx 0.2775
+            expect(ci.upper).toBeCloseTo(0.2775, 4);
+        });
+
+        test('bounds upper interval at 1 for extreme high proportions', () => {
+            // p = 1, n = 10, z = 1.96
+            const ci = Statistics.wilsonCI(1, 10, 1.96);
+            expect(ci.upper).toBe(1);
+            // Lower bound should be approx 0.7225
+            expect(ci.lower).toBeCloseTo(0.7225, 4);
+        });
+
+        test('respects custom z-scores', () => {
+            // For a 99% CI, z ~ 2.576
+            const ci = Statistics.wilsonCI(0.5, 100, 2.576);
+
+            // Expected wider interval than 95% CI
+            expect(ci.lower).toBeCloseTo(0.3753, 4);
+            expect(ci.upper).toBeCloseTo(0.6247, 4);
+        });
+
+        test('uses default z-score when not provided', () => {
+            const ciDefault = Statistics.wilsonCI(0.5, 100);
+            const z = Statistics.normalQuantile(0.975);
+            const ciExplicit = Statistics.wilsonCI(0.5, 100, z);
+
+            expect(ciDefault.lower).toBeCloseTo(ciExplicit.lower, 8);
+            expect(ciDefault.upper).toBeCloseTo(ciExplicit.upper, 8);
+        });
+    });
 });
