@@ -276,7 +276,9 @@
             var p2 = parseFloat(document.getElementById('pa-p2').value);
             var n = parseInt(document.getElementById('pa-n').value);
             var alpha = parseFloat(document.getElementById('pa-alpha').value);
-            if (isNaN(p1) || isNaN(p2) || isNaN(n) || p1 <= 0 || p1 >= 1 || p2 <= 0 || p2 >= 1 || n < 5) {
+            var isInvalidProportion = isNaN(p1) || isNaN(p2) || p1 <= 0 || p1 >= 1 || p2 <= 0 || p2 >= 1;
+            var isInvalidSampleSize = isNaN(n) || n < 5;
+            if (isInvalidProportion || isInvalidSampleSize) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -288,7 +290,9 @@
             var sd = parseFloat(document.getElementById('pa-sd').value);
             var nM = parseInt(document.getElementById('pa-n-means').value);
             var alphaM = parseFloat(document.getElementById('pa-alpha-means').value);
-            if (isNaN(delta) || isNaN(sd) || isNaN(nM) || sd <= 0 || nM < 5) {
+            var isInvalidEffect = isNaN(delta) || isNaN(sd) || sd <= 0;
+            var isInvalidSampleSize = isNaN(nM) || nM < 5;
+            if (isInvalidEffect || isInvalidSampleSize) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -299,7 +303,9 @@
             var hr = parseFloat(document.getElementById('pa-hr').value);
             var events = parseInt(document.getElementById('pa-events').value);
             var alphaS = parseFloat(document.getElementById('pa-alpha-surv').value);
-            if (isNaN(hr) || isNaN(events) || hr <= 0 || events < 5) {
+            var isInvalidEffect = isNaN(hr) || hr <= 0;
+            var isInvalidEvents = isNaN(events) || events < 5;
+            if (isInvalidEffect || isInvalidEvents) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -454,7 +460,10 @@
             var nPG = parseInt(document.getElementById('pa-mde-n').value);
             var alpha = parseFloat(document.getElementById('pa-mde-alpha').value);
 
-            if (isNaN(p1) || isNaN(nPG) || p1 <= 0 || p1 >= 1 || nPG < 10) {
+            var isInvalidProportion = isNaN(p1) || p1 <= 0 || p1 >= 1;
+            var isInvalidSampleSize = isNaN(nPG) || nPG < 10;
+
+            if (isInvalidProportion || isInvalidSampleSize) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -492,7 +501,10 @@
             var nPGm = parseInt(document.getElementById('pa-mde-n-means').value);
             var alphaM = parseFloat(document.getElementById('pa-mde-alpha-means').value);
 
-            if (isNaN(sd) || isNaN(nPGm) || sd <= 0 || nPGm < 10) {
+            var isInvalidEffect = isNaN(sd) || sd <= 0;
+            var isInvalidSampleSize = isNaN(nPGm) || nPGm < 10;
+
+            if (isInvalidEffect || isInvalidSampleSize) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -527,7 +539,9 @@
             var events = parseInt(document.getElementById('pa-mde-events').value);
             var alphaS = parseFloat(document.getElementById('pa-mde-alpha-surv').value);
 
-            if (isNaN(events) || events < 10) {
+            var isInvalidEvents = isNaN(events) || events < 10;
+
+            if (isInvalidEvents) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -580,7 +594,9 @@
             var p2 = parseFloat(p2El.value);
             var nPG = parseInt(nEl.value);
             var scAlpha = parseFloat(alphaEl.value);
-            if (isNaN(p1) || isNaN(p2) || isNaN(nPG) || nPG <= 0) continue;
+            var isInvalidProportion = isNaN(p1) || isNaN(p2);
+            var isInvalidSampleSize = isNaN(nPG) || nPG <= 0;
+            if (isInvalidProportion || isInvalidSampleSize) continue;
 
             var power = Statistics.powerTwoProportions(p1, p2, nPG, scAlpha);
             var powerEl = document.getElementById('pa-sc' + i + '-power');
