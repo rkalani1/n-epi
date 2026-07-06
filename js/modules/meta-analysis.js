@@ -9,26 +9,26 @@
 (function() {
     'use strict';
 
-    var MODULE_ID = 'meta-analysis';
+    let MODULE_ID = 'meta-analysis';
 
     // ============================================================
     // STATE
     // ============================================================
-    var studyData = [];
-    var inputMode = 'effect'; // 'effect' or 'binary'
-    var selectedMeasure = 'OR';
-    var useHKSJ = false;
-    var lastResults = null;
-    var activeTab = 'main'; // 'main', 'subgroup', 'metareg', 'grade', 'prisma', 'pubbias'
+    let studyData = [];
+    let inputMode = 'effect'; // 'effect' or 'binary'
+    let selectedMeasure = 'OR';
+    let useHKSJ = false;
+    let lastResults = null;
+    let activeTab = 'main'; // 'main', 'subgroup', 'metareg', 'grade', 'prisma', 'pubbias'
 
     // Subgroup state
-    var subgroupVariable = '';
+    let subgroupVariable = '';
 
     // GRADE state
-    var gradeOutcomes = [];
+    let gradeOutcomes = [];
 
     // PRISMA state
-    var prismaNumbers = {
+    let prismaNumbers = {
         identified: '', duplicates: '', screened: '', excludedScreen: '',
         fullText: '', excludedFT: '', includedQual: '', includedQuant: ''
     };
@@ -36,7 +36,7 @@
     // ============================================================
     // EXAMPLE DATA — Endovascular thrombectomy (EVT) trials
     // ============================================================
-    var EVT_EXAMPLE = [
+    let EVT_EXAMPLE = [
         { name: 'MR CLEAN (2015)',    logEffect: 0.4700, se: 0.2100, subgroup: 'Europe' },
         { name: 'ESCAPE (2015)',      logEffect: 0.9555, se: 0.2510, subgroup: 'North America' },
         { name: 'EXTEND-IA (2015)',   logEffect: 1.1314, se: 0.4130, subgroup: 'Oceania' },
@@ -44,7 +44,7 @@
         { name: 'REVASCAT (2015)',    logEffect: 0.5481, se: 0.2780, subgroup: 'Europe' }
     ];
 
-    var EVT_BINARY_EXAMPLE = [
+    let EVT_BINARY_EXAMPLE = [
         { name: 'MR CLEAN (2015)',    e1: 76,  n1: 233, e2: 51,  n2: 267, subgroup: 'Europe' },
         { name: 'ESCAPE (2015)',      e1: 87,  n1: 165, e2: 43,  n2: 150, subgroup: 'North America' },
         { name: 'EXTEND-IA (2015)',   e1: 25,  n1: 35,  e2: 14,  n2: 35,  subgroup: 'Oceania' },
@@ -56,7 +56,7 @@
     // RENDER
     // ============================================================
     function render(container) {
-        var html = App.createModuleLayout(
+        let html = App.createModuleLayout(
             'Meta-Analysis',
             'Combine results from multiple studies with fixed-effect (IV) or DerSimonian-Laird random-effects models. Generate publication-quality forest and funnel plots.'
         );
@@ -227,9 +227,9 @@
     // DATA TABLE
     // ============================================================
     function renderDataTable() {
-        var el = document.getElementById('ma-data-table');
+        let el = document.getElementById('ma-data-table');
         if (!el) return;
-        var html = '';
+        let html = '';
 
         if (inputMode === 'effect') {
             html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr>'
@@ -324,7 +324,7 @@
     // ============================================================
     function loadExample() {
         selectedMeasure = 'OR';
-        var measureSel = document.getElementById('ma-measure');
+        let measureSel = document.getElementById('ma-measure');
         if (measureSel) measureSel.value = 'OR';
 
         if (inputMode === 'effect') {
@@ -352,19 +352,19 @@
     }
 
     function parseTSV(text) {
-        var lines = text.trim().split('\n');
+        let lines = text.trim().split('\n');
         if (lines.length < 1) return;
 
         // Detect whether first line is a header
-        var startIdx = 0;
-        var firstCols = lines[0].split('\t');
+        let startIdx = 0;
+        let firstCols = lines[0].split('\t');
         if (firstCols.length >= 2 && isNaN(parseFloat(firstCols[1]))) {
             startIdx = 1; // skip header
         }
 
         studyData = [];
-        for (var i = startIdx; i < lines.length; i++) {
-            var cols = lines[i].split('\t');
+        for (let i = startIdx; i < lines.length; i++) {
+            let cols = lines[i].split('\t');
             if (cols.length < 2) continue;
 
             if (inputMode === 'effect') {
@@ -395,23 +395,23 @@
     // COMPUTE EFFECTS FROM INPUT
     // ============================================================
     function prepareEffects() {
-        var effects = [];
-        var variances = [];
-        var names = [];
-        var seArr = [];
-        var subgroups = [];
-        var isLogScale = (selectedMeasure === 'OR' || selectedMeasure === 'RR' || selectedMeasure === 'HR');
+        let effects = [];
+        let variances = [];
+        let names = [];
+        let seArr = [];
+        let subgroups = [];
+        let isLogScale = (selectedMeasure === 'OR' || selectedMeasure === 'RR' || selectedMeasure === 'HR');
 
         if (inputMode === 'effect') {
-            for (var i = 0; i < studyData.length; i++) {
-                var s = studyData[i];
-                var eff = parseFloat(s.logEffect);
+            for (let i = 0; i < studyData.length; i++) {
+                let s = studyData[i];
+                let eff = parseFloat(s.logEffect);
                 if (isNaN(eff)) continue;
 
-                var se = parseFloat(s.se);
+                let se = parseFloat(s.se);
                 if (isNaN(se) || se <= 0) {
-                    var lo = parseFloat(s.ciLower);
-                    var hi = parseFloat(s.ciUpper);
+                    let lo = parseFloat(s.ciLower);
+                    let hi = parseFloat(s.ciUpper);
                     if (!isNaN(lo) && !isNaN(hi)) {
                         if (isLogScale) {
                             se = (Math.log(hi) - Math.log(lo)) / (2 * 1.96);
@@ -429,33 +429,33 @@
                 subgroups.push(s.subgroup || '');
             }
         } else {
-            for (var j = 0; j < studyData.length; j++) {
-                var d = studyData[j];
-                var e1 = parseInt(d.e1);
-                var n1 = parseInt(d.n1);
-                var e2 = parseInt(d.e2);
-                var n2 = parseInt(d.n2);
+            for (let j = 0; j < studyData.length; j++) {
+                let d = studyData[j];
+                let e1 = parseInt(d.e1);
+                let n1 = parseInt(d.n1);
+                let e2 = parseInt(d.e2);
+                let n2 = parseInt(d.n2);
                 if (isNaN(e1) || isNaN(n1) || isNaN(e2) || isNaN(n2)) continue;
                 if (n1 <= 0 || n2 <= 0) continue;
 
-                var a = e1, b = n1 - e1, c = e2, dv = n2 - e2;
-                var cc = 0;
+                let a = e1, b = n1 - e1, c = e2, dv = n2 - e2;
+                let cc = 0;
                 if (a === 0 || b === 0 || c === 0 || dv === 0) cc = 0.5;
 
-                var eff2, se2;
+                let eff2, se2;
                 if (selectedMeasure === 'OR') {
-                    var orVal = ((a + cc) * (dv + cc)) / ((b + cc) * (c + cc));
+                    let orVal = ((a + cc) * (dv + cc)) / ((b + cc) * (c + cc));
                     eff2 = Math.log(orVal);
                     se2 = 1 / (a + cc) + 1 / (b + cc) + 1 / (c + cc) + 1 / (dv + cc);
                 } else if (selectedMeasure === 'RR') {
-                    var rrVal = ((a + cc) / (n1 + 2 * cc)) / ((c + cc) / (n2 + 2 * cc));
+                    let rrVal = ((a + cc) / (n1 + 2 * cc)) / ((c + cc) / (n2 + 2 * cc));
                     eff2 = Math.log(rrVal);
                     se2 = 1 / (a + cc) - 1 / (n1 + 2 * cc) + 1 / (c + cc) - 1 / (n2 + 2 * cc);
                 } else if (selectedMeasure === 'RD') {
                     eff2 = a / n1 - c / n2;
                     se2 = (a * b) / (n1 * n1 * n1) + (c * dv) / (n2 * n2 * n2);
                 } else {
-                    var orV2 = ((a + cc) * (dv + cc)) / ((b + cc) * (c + cc));
+                    let orV2 = ((a + cc) * (dv + cc)) / ((b + cc) * (c + cc));
                     eff2 = Math.log(orV2);
                     se2 = 1 / (a + cc) + 1 / (b + cc) + 1 / (c + cc) + 1 / (dv + cc);
                 }
@@ -475,24 +475,24 @@
     // RUN ANALYSIS
     // ============================================================
     function runAnalysis() {
-        var prep = prepareEffects();
+        let prep = prepareEffects();
         if (prep.effects.length < 2) {
             Export.showToast('Need at least 2 studies with valid data', 'error');
             return;
         }
 
-        var k = prep.effects.length;
-        var isLog = prep.isLogScale;
+        let k = prep.effects.length;
+        let isLog = prep.isLogScale;
 
-        var fe = Statistics.metaAnalysisFixedEffect(prep.effects, prep.variances);
-        var re = Statistics.metaAnalysisRandomEffects(prep.effects, prep.variances, { hksj: useHKSJ });
-        var egger = k >= 3 ? Statistics.eggerTest(prep.effects, prep.se) : null;
-        var loo = Statistics.leaveOneOut(prep.effects, prep.variances);
-        var cum = Statistics.cumulativeMA(prep.effects, prep.variances, prep.names);
+        let fe = Statistics.metaAnalysisFixedEffect(prep.effects, prep.variances);
+        let re = Statistics.metaAnalysisRandomEffects(prep.effects, prep.variances, { hksj: useHKSJ });
+        let egger = k >= 3 ? Statistics.eggerTest(prep.effects, prep.se) : null;
+        let loo = Statistics.leaveOneOut(prep.effects, prep.variances);
+        let cum = Statistics.cumulativeMA(prep.effects, prep.variances, prep.names);
 
-        var reWeights = re.weights;
+        let reWeights = re.weights;
 
-        var forestStudies = prep.names.map(function(name, i) {
+        let forestStudies = prep.names.map(function(name, i) {
             return {
                 name: name,
                 estimate: prep.effects[i],
@@ -504,9 +504,9 @@
             };
         });
 
-        var i2val = re.I2 * 100;
-        var i2interp = i2val < 25 ? 'low' : (i2val < 50 ? 'moderate' : (i2val < 75 ? 'substantial' : 'considerable'));
-        var hetSig = re.pHet < 0.10 ? 'significant' : 'not significant';
+        let i2val = re.I2 * 100;
+        let i2interp = i2val < 25 ? 'low' : (i2val < 50 ? 'moderate' : (i2val < 75 ? 'substantial' : 'considerable'));
+        let hetSig = re.pHet < 0.10 ? 'significant' : 'not significant';
 
         lastResults = {
             fe: fe, re: re, egger: egger, loo: loo, cum: cum,
@@ -514,19 +514,19 @@
             i2interp: i2interp, hetSig: hetSig
         };
 
-        var resultEl = document.getElementById('ma-results');
-        var html = '<div class="result-panel animate-in mt-3">';
+        let resultEl = document.getElementById('ma-results');
+        let html = '<div class="result-panel animate-in mt-3">';
 
         // Summary
         html += '<div class="card-title">Summary Results (' + k + ' studies)</div>';
         html += '<div class="result-grid">';
 
-        var reEst = isLog ? Math.exp(re.pooled).toFixed(3) : re.pooled.toFixed(3);
-        var reLo = isLog ? Math.exp(re.ci.lower).toFixed(3) : re.ci.lower.toFixed(3);
-        var reHi = isLog ? Math.exp(re.ci.upper).toFixed(3) : re.ci.upper.toFixed(3);
-        var feEst = isLog ? Math.exp(fe.pooled).toFixed(3) : fe.pooled.toFixed(3);
-        var feLo = isLog ? Math.exp(fe.ci.lower).toFixed(3) : fe.ci.lower.toFixed(3);
-        var feHi = isLog ? Math.exp(fe.ci.upper).toFixed(3) : fe.ci.upper.toFixed(3);
+        let reEst = isLog ? Math.exp(re.pooled).toFixed(3) : re.pooled.toFixed(3);
+        let reLo = isLog ? Math.exp(re.ci.lower).toFixed(3) : re.ci.lower.toFixed(3);
+        let reHi = isLog ? Math.exp(re.ci.upper).toFixed(3) : re.ci.upper.toFixed(3);
+        let feEst = isLog ? Math.exp(fe.pooled).toFixed(3) : fe.pooled.toFixed(3);
+        let feLo = isLog ? Math.exp(fe.ci.lower).toFixed(3) : fe.ci.lower.toFixed(3);
+        let feHi = isLog ? Math.exp(fe.ci.upper).toFixed(3) : fe.ci.upper.toFixed(3);
 
         html += '<div class="result-item"><div class="result-item-value">' + reEst + '</div>'
             + '<div class="result-item-label">RE Pooled ' + selectedMeasure + '</div></div>';
@@ -557,8 +557,8 @@
             + '<div class="result-item-label">' + String.fromCharCode(964) + String.fromCharCode(178) + ' (DL)</div></div>';
 
         if (re.predInterval) {
-            var piLo = isLog ? Math.exp(re.predInterval.lower).toFixed(3) : re.predInterval.lower.toFixed(3);
-            var piHi = isLog ? Math.exp(re.predInterval.upper).toFixed(3) : re.predInterval.upper.toFixed(3);
+            let piLo = isLog ? Math.exp(re.predInterval.lower).toFixed(3) : re.predInterval.lower.toFixed(3);
+            let piHi = isLog ? Math.exp(re.predInterval.upper).toFixed(3) : re.predInterval.upper.toFixed(3);
             html += '<div class="result-item"><div class="result-item-value">[' + piLo + ', ' + piHi + ']</div>'
                 + '<div class="result-item-label">Prediction Interval</div></div>';
         }
@@ -591,9 +591,9 @@
             + '<th>Excluded Study</th><th>Pooled ' + selectedMeasure + '</th><th>95% CI</th>'
             + '<th>I' + String.fromCharCode(178) + '</th><th>' + String.fromCharCode(964) + String.fromCharCode(178) + '</th></tr></thead><tbody>';
         loo.forEach(function(r) {
-            var est = isLog ? Math.exp(r.pooled).toFixed(3) : r.pooled.toFixed(3);
-            var lo = isLog ? Math.exp(r.ci.lower).toFixed(3) : r.ci.lower.toFixed(3);
-            var hi = isLog ? Math.exp(r.ci.upper).toFixed(3) : r.ci.upper.toFixed(3);
+            let est = isLog ? Math.exp(r.pooled).toFixed(3) : r.pooled.toFixed(3);
+            let lo = isLog ? Math.exp(r.ci.lower).toFixed(3) : r.ci.lower.toFixed(3);
+            let hi = isLog ? Math.exp(r.ci.upper).toFixed(3) : r.ci.upper.toFixed(3);
             html += '<tr><td>' + prep.names[r.excluded] + '</td>'
                 + '<td class="num">' + est + '</td>'
                 + '<td class="num">[' + lo + ', ' + hi + ']</td>'
@@ -608,9 +608,9 @@
             + '<th># Studies</th><th>Added Study</th><th>Cumulative ' + selectedMeasure + '</th><th>95% CI</th>'
             + '<th>I' + String.fromCharCode(178) + '</th></tr></thead><tbody>';
         cum.forEach(function(r) {
-            var est = isLog ? Math.exp(r.pooled).toFixed(3) : r.pooled.toFixed(3);
-            var lo = isLog ? Math.exp(r.ci.lower).toFixed(3) : r.ci.lower.toFixed(3);
-            var hi = isLog ? Math.exp(r.ci.upper).toFixed(3) : r.ci.upper.toFixed(3);
+            let est = isLog ? Math.exp(r.pooled).toFixed(3) : r.pooled.toFixed(3);
+            let lo = isLog ? Math.exp(r.ci.lower).toFixed(3) : r.ci.lower.toFixed(3);
+            let hi = isLog ? Math.exp(r.ci.upper).toFixed(3) : r.ci.upper.toFixed(3);
             html += '<tr><td>' + r.nStudies + '</td>'
                 + '<td>' + r.label + '</td>'
                 + '<td class="num">' + est + '</td>'
@@ -620,7 +620,7 @@
         html += '</tbody></table></div>';
 
         // Results text
-        var resultsText = generateResultsText(prep, fe, re, egger, isLog);
+        let resultsText = generateResultsText(prep, fe, re, egger, isLog);
         html += '<div class="card-title mt-3">Results Text for Manuscript</div>';
         html += '<div class="text-output" id="ma-results-text">' + resultsText + '</div>';
 
@@ -643,28 +643,28 @@
     // SUBGROUP ANALYSIS
     // ============================================================
     function runSubgroupAnalysis() {
-        var prep = prepareEffects();
+        let prep = prepareEffects();
         if (prep.effects.length < 2) {
             Export.showToast('Need at least 2 studies with valid data', 'error');
             return;
         }
 
-        var varEl = document.getElementById('ma-subgroup-var');
+        let varEl = document.getElementById('ma-subgroup-var');
         subgroupVariable = varEl ? varEl.value : 'Subgroup';
 
         // Check that we have subgroup data
-        var hasSubgroups = prep.subgroups.some(function(s) { return s && s.trim() !== ''; });
+        let hasSubgroups = prep.subgroups.some(function(s) { return s && s.trim() !== ''; });
         if (!hasSubgroups) {
             Export.showToast('No subgroup labels found. Please fill in the Subgroup column in the data table.', 'error');
             return;
         }
 
-        var groups = prep.subgroups.map(function(s) { return s && s.trim() !== '' ? s.trim() : 'Unspecified'; });
-        var subResult = Statistics.subgroupAnalysis(prep.effects, prep.variances, groups);
-        var isLog = prep.isLogScale;
+        let groups = prep.subgroups.map(function(s) { return s && s.trim() !== '' ? s.trim() : 'Unspecified'; });
+        let subResult = Statistics.subgroupAnalysis(prep.effects, prep.variances, groups);
+        let isLog = prep.isLogScale;
 
-        var resultEl = document.getElementById('ma-subgroup-results');
-        var html = '<div class="result-panel animate-in mt-3">';
+        let resultEl = document.getElementById('ma-subgroup-results');
+        let html = '<div class="result-panel animate-in mt-3">';
 
         html += '<div class="card-title">Subgroup Analysis: ' + escAttr(subgroupVariable) + '</div>';
 
@@ -689,13 +689,13 @@
             + '<th>Subgroup</th><th>k</th><th>Pooled ' + selectedMeasure + '</th><th>95% CI</th>'
             + '<th>I' + String.fromCharCode(178) + '</th><th>' + String.fromCharCode(964) + String.fromCharCode(178) + '</th><th>p</th></tr></thead><tbody>';
 
-        var subgroupKeys = Object.keys(subResult.subgroups);
+        let subgroupKeys = Object.keys(subResult.subgroups);
         subgroupKeys.forEach(function(key) {
-            var sg = subResult.subgroups[key];
-            var nStudies = prep.effects.filter(function(_, i) { return groups[i] === key; }).length;
-            var est = isLog ? Math.exp(sg.pooled).toFixed(3) : sg.pooled.toFixed(3);
-            var lo = isLog ? Math.exp(sg.ci.lower).toFixed(3) : sg.ci.lower.toFixed(3);
-            var hi = isLog ? Math.exp(sg.ci.upper).toFixed(3) : sg.ci.upper.toFixed(3);
+            let sg = subResult.subgroups[key];
+            let nStudies = prep.effects.filter(function(_, i) { return groups[i] === key; }).length;
+            let est = isLog ? Math.exp(sg.pooled).toFixed(3) : sg.pooled.toFixed(3);
+            let lo = isLog ? Math.exp(sg.ci.lower).toFixed(3) : sg.ci.lower.toFixed(3);
+            let hi = isLog ? Math.exp(sg.ci.upper).toFixed(3) : sg.ci.upper.toFixed(3);
 
             html += '<tr>'
                 + '<td><strong>' + escAttr(key) + '</strong></td>'
@@ -709,9 +709,9 @@
         });
 
         // Overall
-        var overEst = isLog ? Math.exp(subResult.overall.pooled).toFixed(3) : subResult.overall.pooled.toFixed(3);
-        var overLo = isLog ? Math.exp(subResult.overall.ci.lower).toFixed(3) : subResult.overall.ci.lower.toFixed(3);
-        var overHi = isLog ? Math.exp(subResult.overall.ci.upper).toFixed(3) : subResult.overall.ci.upper.toFixed(3);
+        let overEst = isLog ? Math.exp(subResult.overall.pooled).toFixed(3) : subResult.overall.pooled.toFixed(3);
+        let overLo = isLog ? Math.exp(subResult.overall.ci.lower).toFixed(3) : subResult.overall.ci.lower.toFixed(3);
+        let overHi = isLog ? Math.exp(subResult.overall.ci.upper).toFixed(3) : subResult.overall.ci.upper.toFixed(3);
         html += '<tr style="border-top:2px solid var(--border);font-weight:600;">'
             + '<td>Overall</td><td class="num">' + prep.effects.length + '</td>'
             + '<td class="num">' + overEst + '</td>'
@@ -738,12 +738,12 @@
         // Draw subgroup forest plots
         setTimeout(function() {
             subgroupKeys.forEach(function(key, ki) {
-                var canvas = document.getElementById('ma-subforest-' + ki);
+                let canvas = document.getElementById('ma-subforest-' + ki);
                 if (!canvas) return;
-                var idx = [];
+                let idx = [];
                 groups.forEach(function(g, i) { if (g === key) idx.push(i); });
 
-                var studies = idx.map(function(i) {
+                let studies = idx.map(function(i) {
                     return {
                         name: prep.names[i],
                         estimate: prep.effects[i],
@@ -755,7 +755,7 @@
                     };
                 });
 
-                var sg = subResult.subgroups[key];
+                let sg = subResult.subgroups[key];
                 Charts.ForestPlot(canvas, {
                     studies: studies,
                     summary: {
@@ -774,7 +774,7 @@
     }
 
     function copySubgroupResults() {
-        var el = document.getElementById('ma-subgroup-results');
+        let el = document.getElementById('ma-subgroup-results');
         if (el) Export.copyText(el.textContent);
     }
 
@@ -782,25 +782,25 @@
     // PUBLICATION BIAS (enhanced)
     // ============================================================
     function runPublicationBias() {
-        var prep = prepareEffects();
+        let prep = prepareEffects();
         if (prep.effects.length < 3) {
             Export.showToast('Need at least 3 studies for publication bias tests', 'error');
             return;
         }
 
-        var k = prep.effects.length;
-        var isLog = prep.isLogScale;
-        var re = Statistics.metaAnalysisRandomEffects(prep.effects, prep.variances, { hksj: useHKSJ });
-        var egger = Statistics.eggerTest(prep.effects, prep.se);
+        let k = prep.effects.length;
+        let isLog = prep.isLogScale;
+        let re = Statistics.metaAnalysisRandomEffects(prep.effects, prep.variances, { hksj: useHKSJ });
+        let egger = Statistics.eggerTest(prep.effects, prep.se);
 
         // Begg's rank correlation (Kendall's tau)
-        var begg = computeBeggTest(prep.effects, prep.se);
+        let begg = computeBeggTest(prep.effects, prep.se);
 
         // Trim and fill
-        var tf = Statistics.trimAndFill(prep.effects, prep.variances);
+        let tf = Statistics.trimAndFill(prep.effects, prep.variances);
 
-        var resultEl = document.getElementById('ma-pubbias-results');
-        var html = '<div class="result-panel animate-in mt-3">';
+        let resultEl = document.getElementById('ma-pubbias-results');
+        let html = '<div class="result-panel animate-in mt-3">';
 
         // Egger's test (enhanced display)
         html += '<div class="card-title">Egger\'s Regression Test</div>';
@@ -815,7 +815,7 @@
             + '<div class="result-item-label">p-value</div></div>';
         html += '</div>';
 
-        var eggerInterp = egger.pValue < 0.10
+        let eggerInterp = egger.pValue < 0.10
             ? '<span style="color:var(--warning);">Statistically significant funnel plot asymmetry detected (p ' + Statistics.formatPValue(egger.pValue) + '), suggesting potential publication bias or small-study effects.</span>'
             : '<span style="color:var(--success);">No statistically significant asymmetry detected (p ' + Statistics.formatPValue(egger.pValue) + ').</span>';
         html += '<div class="text-secondary" style="font-size:0.85rem;margin-top:4px;">' + eggerInterp + '</div>';
@@ -831,7 +831,7 @@
             + '<div class="result-item-label">p-value (2-sided)</div></div>';
         html += '</div>';
 
-        var beggInterp = begg.pValue < 0.10
+        let beggInterp = begg.pValue < 0.10
             ? '<span style="color:var(--warning);">Significant rank correlation detected, consistent with publication bias.</span>'
             : '<span style="color:var(--success);">No significant rank correlation detected.</span>';
         html += '<div class="text-secondary" style="font-size:0.85rem;margin-top:4px;">' + beggInterp
@@ -843,10 +843,10 @@
         html += '<div class="result-item"><div class="result-item-value">' + tf.k0 + '</div>'
             + '<div class="result-item-label">Imputed Studies</div></div>';
 
-        var origEst = isLog ? Math.exp(tf.original.pooled).toFixed(3) : tf.original.pooled.toFixed(3);
-        var adjEst = isLog ? Math.exp(tf.adjusted.pooled).toFixed(3) : tf.adjusted.pooled.toFixed(3);
-        var adjLo = isLog ? Math.exp(tf.adjusted.ci.lower).toFixed(3) : tf.adjusted.ci.lower.toFixed(3);
-        var adjHi = isLog ? Math.exp(tf.adjusted.ci.upper).toFixed(3) : tf.adjusted.ci.upper.toFixed(3);
+        let origEst = isLog ? Math.exp(tf.original.pooled).toFixed(3) : tf.original.pooled.toFixed(3);
+        let adjEst = isLog ? Math.exp(tf.adjusted.pooled).toFixed(3) : tf.adjusted.pooled.toFixed(3);
+        let adjLo = isLog ? Math.exp(tf.adjusted.ci.lower).toFixed(3) : tf.adjusted.ci.lower.toFixed(3);
+        let adjHi = isLog ? Math.exp(tf.adjusted.ci.upper).toFixed(3) : tf.adjusted.ci.upper.toFixed(3);
 
         html += '<div class="result-item"><div class="result-item-value">' + origEst + '</div>'
             + '<div class="result-item-label">Original ' + selectedMeasure + '</div></div>';
@@ -878,11 +878,11 @@
 
         // Draw enhanced funnel plot
         setTimeout(function() {
-            var canvas = document.getElementById('ma-tf-funnel-canvas');
+            let canvas = document.getElementById('ma-tf-funnel-canvas');
             if (!canvas) return;
 
-            var imputedEffects = tf.imputedEffects;
-            var imputedSE = tf.imputedVariances.map(function(v) { return Math.sqrt(v); });
+            let imputedEffects = tf.imputedEffects;
+            let imputedSE = tf.imputedVariances.map(function(v) { return Math.sqrt(v); });
 
             Charts.FunnelPlot(canvas, {
                 effects: prep.effects,
@@ -900,30 +900,30 @@
 
     // Begg's rank correlation test (Kendall's tau)
     function computeBeggTest(effects, se) {
-        var k = effects.length;
+        let k = effects.length;
         // Compute standardized effects
-        var concordant = 0;
-        var discordant = 0;
+        let concordant = 0;
+        let discordant = 0;
 
-        for (var i = 0; i < k; i++) {
-            for (var j = i + 1; j < k; j++) {
-                var diffEffect = effects[i] - effects[j];
-                var diffSE = se[i] - se[j];
+        for (let i = 0; i < k; i++) {
+            for (let j = i + 1; j < k; j++) {
+                let diffEffect = effects[i] - effects[j];
+                let diffSE = se[i] - se[j];
                 if (diffEffect * diffSE > 0) concordant++;
                 else if (diffEffect * diffSE < 0) discordant++;
             }
         }
 
-        var tau = (concordant - discordant) / (k * (k - 1) / 2);
-        var varTau = (2 * (2 * k + 5)) / (9 * k * (k - 1));
-        var z = tau / Math.sqrt(varTau);
-        var pValue = 2 * (1 - Statistics.normalCDF(Math.abs(z)));
+        let tau = (concordant - discordant) / (k * (k - 1) / 2);
+        let varTau = (2 * (2 * k + 5)) / (9 * k * (k - 1));
+        let z = tau / Math.sqrt(varTau);
+        let pValue = 2 * (1 - Statistics.normalCDF(Math.abs(z)));
 
         return { tau: tau, z: z, pValue: pValue, concordant: concordant, discordant: discordant };
     }
 
     function copyPubBiasResults() {
-        var el = document.getElementById('ma-pubbias-results');
+        let el = document.getElementById('ma-pubbias-results');
         if (el) Export.copyText(el.textContent);
     }
 
@@ -931,7 +931,7 @@
     // META-REGRESSION REFERENCE PANEL
     // ============================================================
     function renderMetaRegressionPanel() {
-        var html = '';
+        let html = '';
         html += '<div class="card-subtitle">Meta-Regression: Concept and Implementation Reference</div>';
 
         html += '<div style="background:var(--bg-secondary);padding:16px;border-radius:8px;margin-bottom:16px;">';
@@ -1003,7 +1003,7 @@
     }
 
     function copyMetaRegCode() {
-        var code = '# Meta-regression with metafor\nlibrary(metafor)\n\n'
+        let code = '# Meta-regression with metafor\nlibrary(metafor)\n\n'
             + 'dat <- data.frame(\n  study = c("Study1", "Study2", ...),\n'
             + '  yi = c(...),\n  sei = c(...),\n  moderator = c(...)\n)\n\n'
             + 'res.mr <- rma(yi, sei = sei, mods = ~ moderator, data = dat,\n'
@@ -1016,7 +1016,7 @@
     // GRADE CERTAINTY ASSESSMENT
     // ============================================================
     function renderGRADEPanel() {
-        var html = '';
+        let html = '';
         html += '<div class="card-subtitle">Rate the certainty of evidence for each outcome using the GRADE framework. Start from High (RCTs) or Low (observational), then rate up/down.</div>';
 
         html += '<div class="form-group"><label class="form-label">Outcome Name</label>'
@@ -1034,7 +1034,7 @@
         // Rate down domains
         html += '<div class="card-title mt-2">Rate Down</div>';
 
-        var domains = [
+        let domains = [
             { id: 'rob', label: 'Risk of Bias', desc: 'Study limitations (randomization, blinding, attrition, selective reporting)' },
             { id: 'inconsistency', label: 'Inconsistency', desc: 'Heterogeneity across studies (I-squared, overlapping CIs)' },
             { id: 'indirectness', label: 'Indirectness', desc: 'Differences in PICO from the question of interest' },
@@ -1053,7 +1053,7 @@
 
         // Rate up domains
         html += '<div class="card-title mt-2">Rate Up (for observational studies)</div>';
-        var upDomains = [
+        let upDomains = [
             { id: 'large', label: 'Large Effect', desc: 'RR >2 or <0.5 with no plausible confounders' },
             { id: 'dose', label: 'Dose-Response', desc: 'Dose-response gradient observed' },
             { id: 'confounding', label: 'Residual Confounding', desc: 'All residual confounding would reduce observed effect' }
@@ -1083,13 +1083,13 @@
     }
 
     function computeGRADE() {
-        var base = parseInt(document.getElementById('ma-grade-base').value);
-        var level = base;
+        let base = parseInt(document.getElementById('ma-grade-base').value);
+        let level = base;
 
-        var downDomains = ['rob', 'inconsistency', 'indirectness', 'imprecision', 'pubbias'];
-        var downRatings = {};
+        let downDomains = ['rob', 'inconsistency', 'indirectness', 'imprecision', 'pubbias'];
+        let downRatings = {};
         downDomains.forEach(function(d) {
-            var sel = document.querySelector('input[name="ma-grade-' + d + '"]:checked');
+            let sel = document.querySelector('input[name="ma-grade-' + d + '"]:checked');
             if (sel) {
                 downRatings[d] = sel.value;
                 if (sel.value.indexOf('-1') > -1) level -= 1;
@@ -1099,10 +1099,10 @@
             }
         });
 
-        var upDomains = ['large', 'dose', 'confounding'];
-        var upRatings = {};
+        let upDomains = ['large', 'dose', 'confounding'];
+        let upRatings = {};
         upDomains.forEach(function(d) {
-            var sel = document.querySelector('input[name="ma-grade-up-' + d + '"]:checked');
+            let sel = document.querySelector('input[name="ma-grade-up-' + d + '"]:checked');
             if (sel) {
                 upRatings[d] = sel.value;
                 if (sel.value.indexOf('+1') > -1) level += 1;
@@ -1112,17 +1112,17 @@
         });
 
         level = Math.max(1, Math.min(4, level));
-        var labels = ['', 'Very Low', 'Low', 'Moderate', 'High'];
-        var colors = ['', 'var(--danger)', 'var(--warning)', 'var(--info)', 'var(--success)'];
-        var symbols = ['', '\u2B24\u2B24\u2B24\u2B24', '\u2B24\u2B24\u2B24\u25EF', '\u2B24\u2B24\u25EF\u25EF', '\u2B24\u25EF\u25EF\u25EF'];
+        let labels = ['', 'Very Low', 'Low', 'Moderate', 'High'];
+        let colors = ['', 'var(--danger)', 'var(--warning)', 'var(--info)', 'var(--success)'];
+        let symbols = ['', '\u2B24\u2B24\u2B24\u2B24', '\u2B24\u2B24\u2B24\u25EF', '\u2B24\u2B24\u25EF\u25EF', '\u2B24\u25EF\u25EF\u25EF'];
         // Use filled/empty circles
-        var gradeSymbols = '';
-        for (var gi = 0; gi < 4; gi++) {
+        let gradeSymbols = '';
+        for (let gi = 0; gi < 4; gi++) {
             gradeSymbols += gi < level ? '\u2B24' : '\u25EF';
         }
 
-        var resultEl = document.getElementById('ma-grade-result');
-        var html = '<div class="result-panel animate-in">';
+        let resultEl = document.getElementById('ma-grade-result');
+        let html = '<div class="result-panel animate-in">';
         html += '<div style="text-align:center;font-size:1.5rem;font-weight:700;color:' + colors[level] + ';">'
             + gradeSymbols + '<br>' + labels[level] + '</div>';
         html += '<div class="text-secondary" style="text-align:center;font-size:0.85rem;margin-top:4px;">GRADE Certainty of Evidence</div>';
@@ -1138,16 +1138,16 @@
     }
 
     function addGRADEOutcome() {
-        var outcome = document.getElementById('ma-grade-outcome').value || 'Unnamed outcome';
-        var nStudies = document.getElementById('ma-grade-nstudies').value || '?';
-        var notes = document.getElementById('ma-grade-notes').value || '';
+        let outcome = document.getElementById('ma-grade-outcome').value || 'Unnamed outcome';
+        let nStudies = document.getElementById('ma-grade-nstudies').value || '?';
+        let notes = document.getElementById('ma-grade-notes').value || '';
 
         if (!window._lastGradeLevel) {
             Export.showToast('Please compute GRADE level first', 'error');
             return;
         }
 
-        var labels = ['', 'Very Low', 'Low', 'Moderate', 'High'];
+        let labels = ['', 'Very Low', 'Low', 'Moderate', 'High'];
         gradeOutcomes.push({
             outcome: outcome,
             nStudies: nStudies,
@@ -1163,12 +1163,12 @@
     }
 
     function renderGRADETable() {
-        var el = document.getElementById('ma-grade-table');
+        let el = document.getElementById('ma-grade-table');
         if (!el || gradeOutcomes.length === 0) return;
 
-        var colors = ['', 'var(--danger)', 'var(--warning)', 'var(--info)', 'var(--success)'];
+        let colors = ['', 'var(--danger)', 'var(--warning)', 'var(--info)', 'var(--success)'];
 
-        var html = '<div class="card-title mt-2">Summary of Findings (GRADE)</div>';
+        let html = '<div class="card-title mt-2">Summary of Findings (GRADE)</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr>'
             + '<th>Outcome</th><th>k</th><th>Risk of Bias</th><th>Inconsistency</th>'
             + '<th>Indirectness</th><th>Imprecision</th><th>Pub Bias</th><th>Certainty</th></tr></thead><tbody>';
@@ -1208,7 +1208,7 @@
     }
 
     function exportGRADETable() {
-        var text = 'Summary of Findings (GRADE)\n\n';
+        let text = 'Summary of Findings (GRADE)\n\n';
         text += 'Outcome\tk\tRisk of Bias\tInconsistency\tIndirectness\tImprecision\tPub Bias\tCertainty\n';
         gradeOutcomes.forEach(function(g) {
             text += g.outcome + '\t' + g.nStudies + '\t'
@@ -1223,10 +1223,10 @@
     // PRISMA FLOW DIAGRAM
     // ============================================================
     function renderPRISMAPanel() {
-        var html = '';
+        let html = '';
         html += '<div class="card-subtitle">Generate a text-based PRISMA 2020 flow diagram for your systematic review. Enter the numbers at each stage.</div>';
 
-        var fields = [
+        let fields = [
             { id: 'identified', label: 'Records identified through database searching', placeholder: 'e.g., 1250' },
             { id: 'otherSources', label: 'Additional records from other sources', placeholder: 'e.g., 15' },
             { id: 'duplicates', label: 'Records removed as duplicates', placeholder: 'e.g., 320' },
@@ -1257,17 +1257,17 @@
     }
 
     function generatePRISMA() {
-        var fields = ['identified', 'otherSources', 'duplicates', 'screened', 'excludedScreen', 'fullText', 'excludedFT', 'excludedReasons', 'includedQual', 'includedQuant'];
-        var vals = {};
+        let fields = ['identified', 'otherSources', 'duplicates', 'screened', 'excludedScreen', 'fullText', 'excludedFT', 'excludedReasons', 'includedQual', 'includedQuant'];
+        let vals = {};
         fields.forEach(function(f) {
-            var el = document.getElementById('ma-prisma-' + f);
+            let el = document.getElementById('ma-prisma-' + f);
             vals[f] = el ? el.value.trim() : '';
             prismaNumbers[f] = vals[f];
         });
 
-        var n = function(v) { return v || 'n'; };
+        let n = function(v) { return v || 'n'; };
 
-        var diagram = '';
+        let diagram = '';
         diagram += '=============================================================\n';
         diagram += '                   PRISMA 2020 Flow Diagram\n';
         diagram += '=============================================================\n\n';
@@ -1298,7 +1298,7 @@
         diagram += '  | (n = ' + n(vals.fullText) + ')' + spaces(36 - n(vals.fullText).length) + '| --> | (n = ' + n(vals.excludedFT) + ')' + spaces(18 - n(vals.excludedFT).length) + '|\n';
 
         if (vals.excludedReasons) {
-            var reasons = vals.excludedReasons.split(',');
+            let reasons = vals.excludedReasons.split(',');
             reasons.forEach(function(r) {
                 diagram += '  |                                           |     | - ' + r.trim() + spaces(Math.max(0, 22 - r.trim().length)) + '|\n';
             });
@@ -1319,8 +1319,8 @@
         diagram += '  | (n = ' + n(vals.includedQuant) + ')' + spaces(36 - n(vals.includedQuant).length) + '|\n';
         diagram += '  +-------------------------------------------+\n';
 
-        var outputEl = document.getElementById('ma-prisma-output');
-        var html = '<div class="text-output" style="font-family:var(--font-mono);font-size:0.78rem;white-space:pre;overflow-x:auto;line-height:1.5;">'
+        let outputEl = document.getElementById('ma-prisma-output');
+        let html = '<div class="text-output" style="font-family:var(--font-mono);font-size:0.78rem;white-space:pre;overflow-x:auto;line-height:1.5;">'
             + diagram + '</div>';
         html += '<div class="btn-group mt-2">'
             + '<button class="btn btn-secondary" onclick="MetaAnalysisModule.copyPRISMA()">Copy PRISMA Diagram</button>'
@@ -1331,15 +1331,15 @@
 
     function spaces(n) {
         if (n < 0) n = 0;
-        var s = '';
-        for (var i = 0; i < n; i++) s += ' ';
+        let s = '';
+        for (let i = 0; i < n; i++) s += ' ';
         return s;
     }
 
     function copyPRISMA() {
-        var el = document.getElementById('ma-prisma-output');
+        let el = document.getElementById('ma-prisma-output');
         if (el) {
-            var pre = el.querySelector('.text-output');
+            let pre = el.querySelector('.text-output');
             if (pre) Export.copyText(pre.textContent);
         }
     }
@@ -1348,10 +1348,10 @@
     // FOREST PLOT
     // ============================================================
     function drawForestPlot(studies, re, prep, isLog) {
-        var canvas = document.getElementById('ma-forest-canvas');
+        let canvas = document.getElementById('ma-forest-canvas');
         if (!canvas) return;
 
-        var nullVal = isLog ? 0 : 0;
+        let nullVal = isLog ? 0 : 0;
 
         Charts.ForestPlot(canvas, {
             studies: studies,
@@ -1373,7 +1373,7 @@
     // FUNNEL PLOT
     // ============================================================
     function drawFunnelPlot(prep, re, egger) {
-        var canvas = document.getElementById('ma-funnel-canvas');
+        let canvas = document.getElementById('ma-funnel-canvas');
         if (!canvas) return;
 
         Charts.FunnelPlot(canvas, {
@@ -1391,15 +1391,15 @@
     // RESULTS TEXT
     // ============================================================
     function generateResultsText(prep, fe, re, egger, isLog) {
-        var k = prep.effects.length;
-        var reEst = isLog ? Math.exp(re.pooled).toFixed(2) : re.pooled.toFixed(2);
-        var reLo = isLog ? Math.exp(re.ci.lower).toFixed(2) : re.ci.lower.toFixed(2);
-        var reHi = isLog ? Math.exp(re.ci.upper).toFixed(2) : re.ci.upper.toFixed(2);
-        var feEst = isLog ? Math.exp(fe.pooled).toFixed(2) : fe.pooled.toFixed(2);
-        var i2val = (re.I2 * 100).toFixed(1);
-        var i2interp = re.I2 * 100 < 25 ? 'low' : (re.I2 * 100 < 50 ? 'moderate' : (re.I2 * 100 < 75 ? 'substantial' : 'considerable'));
+        let k = prep.effects.length;
+        let reEst = isLog ? Math.exp(re.pooled).toFixed(2) : re.pooled.toFixed(2);
+        let reLo = isLog ? Math.exp(re.ci.lower).toFixed(2) : re.ci.lower.toFixed(2);
+        let reHi = isLog ? Math.exp(re.ci.upper).toFixed(2) : re.ci.upper.toFixed(2);
+        let feEst = isLog ? Math.exp(fe.pooled).toFixed(2) : fe.pooled.toFixed(2);
+        let i2val = (re.I2 * 100).toFixed(1);
+        let i2interp = re.I2 * 100 < 25 ? 'low' : (re.I2 * 100 < 50 ? 'moderate' : (re.I2 * 100 < 75 ? 'substantial' : 'considerable'));
 
-        var text = 'A ' + (useHKSJ ? 'DerSimonian-Laird random-effects meta-analysis with Hartung-Knapp-Sidik-Jonkman adjustment' : 'DerSimonian-Laird random-effects meta-analysis')
+        let text = 'A ' + (useHKSJ ? 'DerSimonian-Laird random-effects meta-analysis with Hartung-Knapp-Sidik-Jonkman adjustment' : 'DerSimonian-Laird random-effects meta-analysis')
             + ' of ' + k + ' studies was performed. '
             + 'The pooled ' + selectedMeasure + ' was ' + reEst
             + ' (95% CI, ' + reLo + ' to ' + reHi + '; P ' + Statistics.formatPValue(re.pValue) + '). '
@@ -1410,8 +1410,8 @@
             + String.fromCharCode(964) + String.fromCharCode(178) + ' = ' + re.tau2.toFixed(4) + '). ';
 
         if (re.predInterval) {
-            var piLo = isLog ? Math.exp(re.predInterval.lower).toFixed(2) : re.predInterval.lower.toFixed(2);
-            var piHi = isLog ? Math.exp(re.predInterval.upper).toFixed(2) : re.predInterval.upper.toFixed(2);
+            let piLo = isLog ? Math.exp(re.predInterval.lower).toFixed(2) : re.predInterval.lower.toFixed(2);
+            let piHi = isLog ? Math.exp(re.predInterval.upper).toFixed(2) : re.predInterval.upper.toFixed(2);
             text += 'The 95% prediction interval was ' + piLo + ' to ' + piHi + '. ';
         }
 
@@ -1429,7 +1429,7 @@
     // COPY ALL RESULTS
     // ============================================================
     function copyAllResults() {
-        var textEl = document.getElementById('ma-results-text');
+        let textEl = document.getElementById('ma-results-text');
         if (textEl) {
             Export.copyText(textEl.textContent);
         }
