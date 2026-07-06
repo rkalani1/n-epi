@@ -210,4 +210,39 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('waldCI', () => {
+        test('calculates Wald CI correctly with specified z', () => {
+            const p = 0.5;
+            const n = 100;
+            const z = 1.96; // Approximate 95% CI
+            const result = Statistics.waldCI(p, n, z);
+
+            // se = sqrt(0.5 * 0.5 / 100) = 0.05
+            // lower = 0.5 - 1.96 * 0.05 = 0.402
+            // upper = 0.5 + 1.96 * 0.05 = 0.598
+            expect(result.se).toBeCloseTo(0.05, 5);
+            expect(result.lower).toBeCloseTo(0.402, 5);
+            expect(result.upper).toBeCloseTo(0.598, 5);
+        });
+
+        test('uses default z value when z is omitted', () => {
+            const p = 0.5;
+            const n = 100;
+            const result = Statistics.waldCI(p, n);
+            const zDefault = Statistics.normalQuantile(0.975);
+            expect(result.lower).toBeCloseTo(0.5 - zDefault * 0.05, 5);
+            expect(result.upper).toBeCloseTo(0.5 + zDefault * 0.05, 5);
+        });
+
+        test('caps lower bound at 0', () => {
+            const result = Statistics.waldCI(0.01, 10, 2);
+            expect(result.lower).toBe(0);
+        });
+
+        test('caps upper bound at 1', () => {
+            const result = Statistics.waldCI(0.99, 10, 2);
+            expect(result.upper).toBe(1);
+        });
+    });
 });
