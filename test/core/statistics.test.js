@@ -279,3 +279,66 @@ describe('Statistics Module', () => {
         });
     });
 });
+
+    describe('twoByTwo', () => {
+        test('computes risk ratio, odds ratio, and risk difference correctly', () => {
+            const result = Statistics.twoByTwo(20, 80, 10, 90);
+
+            // Proportions
+            expect(result.p1).toBeCloseTo(0.2, 5);
+            expect(result.p2).toBeCloseTo(0.1, 5);
+
+            // Risk Ratio
+            expect(result.rr.value).toBeCloseTo(2, 5);
+            expect(result.rr.ci.lower).toBeCloseTo(0.98656, 5);
+            expect(result.rr.ci.upper).toBeCloseTo(4.05448, 5);
+
+            // Odds Ratio
+            expect(result.or.value).toBeCloseTo(2.25, 5);
+            expect(result.or.ci.lower).toBeCloseTo(0.99429, 5);
+            expect(result.or.ci.upper).toBeCloseTo(5.09155, 5);
+
+            expect(result.rd.value).toBeCloseTo(0.1, 5);
+            expect(result.rd.ci.lower).toBeCloseTo(0.00200, 5);
+            expect(result.rd.ci.upper).toBeCloseTo(0.19800, 5);
+
+            // NNT
+            expect(result.nnt.value).toBeCloseTo(10, 5);
+            expect(result.nnt.ci.lower).toBeCloseTo(5.05055, 5);
+            expect(result.nnt.ci.upper).toBeCloseTo(499.55023, 5);
+            expect(result.nnt.isHarm).toBe(false);
+
+            // Attributable Fractions
+            expect(result.afExposed).toBeCloseTo(0.5, 5);
+            expect(result.paf).toBeCloseTo(0.33333, 5);
+
+            // Counts
+            expect(result.counts).toEqual({ a: 20, b: 80, c: 10, d: 90, n: 200 });
+        });
+
+        test('handles negative risk difference and NNT as harm', () => {
+            const result = Statistics.twoByTwo(10, 90, 20, 80);
+
+            expect(result.rd.value).toBeCloseTo(-0.1, 5);
+            expect(result.nnt.value).toBeCloseTo(-10, 5); // When rd < 0, nnt value should be negative representation
+            expect(result.nnt.isHarm).toBe(true);
+        });
+
+        test('handles zero risk difference (Infinity NNT)', () => {
+            const result = Statistics.twoByTwo(10, 90, 10, 90);
+
+            expect(result.rd.value).toBeCloseTo(0, 5);
+            expect(result.nnt.value).toBe(-Infinity);
+            expect(result.nnt.ci.lower).toBe(Infinity);
+            expect(result.nnt.ci.upper).toBe(Infinity);
+            expect(result.nnt.isHarm).toBe(false);
+        });
+
+        test('handles zeroes in cells for odds ratio (Infinity or NaN depending on cells)', () => {
+            const result = Statistics.twoByTwo(10, 0, 10, 90); // b = 0
+            expect(result.or.value).toBe(Infinity);
+
+            const result2 = Statistics.twoByTwo(0, 10, 10, 90); // a = 0
+            expect(result2.or.value).toBe(0);
+        });
+    });
