@@ -210,4 +210,34 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('sampleSizeTwoMeans', () => {
+        test('computes sample size with default alpha=0.05, power=0.8, ratio=1', () => {
+            const result = Statistics.sampleSizeTwoMeans(1, 1);
+            // using normal approximation: n1 = (1.96 + 0.84)^2 * (1 + 1)/1 ≈ 15.68 -> 16
+            expect(result).toEqual({ n1: 16, n2: 16, total: 32 });
+        });
+
+        test('computes sample size with explicit alpha, power, and unequal SDs/ratio', () => {
+            const result = Statistics.sampleSizeTwoMeans(5, 10, 15, 0.01, 0.9, 2);
+            // delta=5, sd1=10, sd2=15, alpha=0.01, power=0.9, ratio=2
+            // za ≈ 2.576, zb ≈ 1.282
+            // n1 = (2.576 + 1.282)^2 * (100 + 225/2) / 25 ≈ 126.5 -> 127
+            // n2 = n1 * 2 ≈ 253
+            expect(result).toEqual({ n1: 127, n2: 253, total: 380 });
+        });
+
+        test('handles single sd parameter implicitly duplicating for sd2', () => {
+            const result = Statistics.sampleSizeTwoMeans(5, 10, undefined, undefined, undefined, undefined);
+            // sd2 becomes 10, defaults for rest
+            expect(result).toEqual({ n1: 63, n2: 63, total: 126 });
+        });
+
+        test('computes sample size with larger power (e.g. 0.95)', () => {
+            const result = Statistics.sampleSizeTwoMeans(1, 1, 1, 0.05, 0.95, 1);
+            // za = 1.96, zb = 1.645
+            // n1 = (1.96 + 1.645)^2 * 2 ≈ 25.99 -> 26
+            expect(result).toEqual({ n1: 26, n2: 26, total: 52 });
+        });
+    });
 });
