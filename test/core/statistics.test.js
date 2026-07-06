@@ -210,4 +210,51 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredPDF(4, 4)).toBeCloseTo(Math.exp(-2), 10);
         });
     });
+
+    describe('sampleSizeTwoProportions', () => {
+        test('computes sample size with default parameters (normal approximation)', () => {
+            const result = Statistics.sampleSizeTwoProportions(0.5, 0.4);
+            expect(result).not.toBeNull();
+            expect(result.n1).toBe(388);
+            expect(result.n2).toBe(388);
+            expect(result.total).toBe(776);
+        });
+
+        test('computes sample size with normal method', () => {
+            const result = Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'normal');
+            expect(result).not.toBeNull();
+            expect(result.n1).toBe(388);
+            expect(result.n2).toBe(388);
+            expect(result.total).toBe(776);
+        });
+
+        test('computes sample size with fleiss method', () => {
+            const result = Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'fleiss');
+            expect(result).not.toBeNull();
+            expect(result.n1).toBe(408);
+            expect(result.n2).toBe(408);
+            expect(result.total).toBe(816);
+        });
+
+        test('computes sample size with arcsine method', () => {
+            const result = Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'arcsine');
+            expect(result).not.toBeNull();
+            expect(result.n1).toBe(194);
+            expect(result.n2).toBe(194);
+            expect(result.total).toBe(388);
+        });
+
+        test('computes sample size with unequal allocation ratio', () => {
+            const result = Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 2, 'arcsine');
+            expect(result).not.toBeNull();
+            expect(result.n1).toBe(194);
+            expect(result.n2).toBe(388);
+            expect(result.total).toBe(582);
+        });
+
+        test('returns null for invalid method', () => {
+            const result = Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'invalid_method');
+            expect(result).toBeNull();
+        });
+    });
 });
