@@ -96,6 +96,13 @@ describe('Statistics Engine Tests', function() {
         it('should return 1 when x === 1', function() {
             assert.strictEqual(Statistics.regularizedIncompleteBeta(1, 2, 2), 1);
         });
+
+        it('should calculate specific values correctly', function() {
+            assert.ok(Math.abs(Statistics.regularizedIncompleteBeta(0.5, 1, 1) - 0.5) < 1e-7);
+            assert.ok(Math.abs(Statistics.regularizedIncompleteBeta(0.5, 2, 2) - 0.5) < 1e-7);
+            assert.ok(Math.abs(Statistics.regularizedIncompleteBeta(0.2, 2, 2) - 0.104) < 1e-7);
+            assert.ok(Math.abs(Statistics.regularizedIncompleteBeta(0.8, 2, 2) - 0.896) < 1e-7);
+        });
     });
 });
 
