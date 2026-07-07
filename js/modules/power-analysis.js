@@ -469,7 +469,11 @@
             var nPG = parseInt(document.getElementById('pa-mde-n').value);
             var alpha = parseFloat(document.getElementById('pa-mde-alpha').value);
 
-            if (isNaN(p1) || isNaN(nPG) || p1 <= 0 || p1 >= 1 || nPG < 10) {
+            const hasMissingValues = isNaN(p1) || isNaN(nPG);
+            const hasInvalidProportion = p1 <= 0 || p1 >= 1;
+            const hasInvalidSampleSize = nPG < 10;
+
+            if (hasMissingValues || hasInvalidProportion || hasInvalidSampleSize) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -507,7 +511,11 @@
             var nPGm = parseInt(document.getElementById('pa-mde-n-means').value);
             var alphaM = parseFloat(document.getElementById('pa-mde-alpha-means').value);
 
-            if (isNaN(sd) || isNaN(nPGm) || sd <= 0 || nPGm < 10) {
+            const hasMissingValues = isNaN(sd) || isNaN(nPGm);
+            const hasInvalidVariance = sd <= 0;
+            const hasInvalidSampleSize = nPGm < 10;
+
+            if (hasMissingValues || hasInvalidVariance || hasInvalidSampleSize) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -542,7 +550,10 @@
             var events = parseInt(document.getElementById('pa-mde-events').value);
             var alphaS = parseFloat(document.getElementById('pa-mde-alpha-surv').value);
 
-            if (isNaN(events) || events < 10) {
+            const hasMissingValues = isNaN(events);
+            const hasInvalidEvents = events < 10;
+
+            if (hasMissingValues || hasInvalidEvents) {
                 Export.showToast('Please check input values', 'error');
                 return;
             }
@@ -595,7 +606,11 @@
             var p2 = parseFloat(p2El.value);
             var nPG = parseInt(nEl.value);
             var scAlpha = parseFloat(alphaEl.value);
-            if (isNaN(p1) || isNaN(p2) || isNaN(nPG) || nPG <= 0) continue;
+
+            const hasMissingValues = isNaN(p1) || isNaN(p2) || isNaN(nPG);
+            const hasInvalidSampleSize = nPG <= 0;
+
+            if (hasMissingValues || hasInvalidSampleSize) continue;
 
             var power = Statistics.powerTwoProportions(p1, p2, nPG, scAlpha);
             var powerEl = document.getElementById('pa-sc' + i + '-power');

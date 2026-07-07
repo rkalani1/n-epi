@@ -342,3 +342,217 @@ describe('Statistics Module', () => {
             expect(result2.or.value).toBe(0);
         });
     });
+
+describe('Additional Statistics Coverage', () => {
+    describe('poissonCDF', () => {
+        test('handles edge cases and known cumulative values', () => {
+            expect(Statistics.poissonCDF(-1, 2)).toBe(0);
+            expect(Statistics.poissonCDF(0, 2)).toBeCloseTo(0.1353352832366127, 8);
+            expect(Statistics.poissonCDF(1, 2)).toBeCloseTo(0.4060058497098381, 8);
+            expect(Statistics.poissonCDF(2.9, 2)).toBeCloseTo(Statistics.poissonCDF(2, 2), 8);
+            expect(Statistics.poissonCDF(20, 2)).toBeCloseTo(1, 8);
+        });
+    });
+
+    describe('fCDF', () => {
+        test('handles nonpositive x and standard F-distribution values', () => {
+            expect(Statistics.fCDF(0, 1, 1)).toBe(0);
+            expect(Statistics.fCDF(-1, 5, 10)).toBe(0);
+            expect(Statistics.fCDF(4.9646, 1, 10)).toBeCloseTo(0.95, 4);
+            expect(Statistics.fCDF(4.1028, 2, 10)).toBeCloseTo(0.95, 4);
+            expect(Statistics.fCDF(2.7109, 5, 20)).toBeCloseTo(0.95, 4);
+        });
+    });
+
+    describe('diagnosticAccuracy', () => {
+        test('calculates standard diagnostic accuracy metrics', () => {
+            const result = Statistics.diagnosticAccuracy(40, 10, 20, 80);
+            expect(result.sensitivity.value).toBeCloseTo(2 / 3, 5);
+            expect(result.specificity.value).toBeCloseTo(8 / 9, 5);
+            expect(result.ppv.value).toBeCloseTo(0.8, 5);
+            expect(result.npv.value).toBeCloseTo(0.8, 5);
+            expect(result.plr).toBeCloseTo(6, 5);
+            expect(result.nlr).toBeCloseTo(0.375, 5);
+            expect(result.dor).toBeCloseTo(16, 5);
+            expect(result.accuracy).toBeCloseTo(0.8, 5);
+            expect(result.prevalence).toBeCloseTo(0.4, 5);
+            expect(result.youdenJ).toBeCloseTo(5 / 9, 5);
+        });
+
+        test('handles perfect and completely wrong tests', () => {
+            const perfect = Statistics.diagnosticAccuracy(50, 0, 0, 50);
+            expect(perfect.sensitivity.value).toBeCloseTo(1, 5);
+            expect(perfect.specificity.value).toBeCloseTo(1, 5);
+            expect(perfect.plr).toBe(Infinity);
+            expect(perfect.nlr).toBeCloseTo(0, 5);
+            expect(perfect.dor).toBe(Infinity);
+
+            const wrong = Statistics.diagnosticAccuracy(0, 50, 50, 0);
+            expect(wrong.sensitivity.value).toBeCloseTo(0, 5);
+            expect(wrong.specificity.value).toBeCloseTo(0, 5);
+            expect(wrong.plr).toBeCloseTo(0, 5);
+            expect(wrong.nlr).toBe(Infinity);
+            expect(wrong.dor).toBeCloseTo(0, 5);
+            expect(wrong.youdenJ).toBeCloseTo(-1, 5);
+        });
+    });
+
+    describe('sampleSizeTwoMeans', () => {
+        test('computes default, unequal-ratio, and high-power sample sizes', () => {
+            expect(Statistics.sampleSizeTwoMeans(1, 1)).toEqual({ n1: 16, n2: 16, total: 32 });
+            expect(Statistics.sampleSizeTwoMeans(5, 10, 15, 0.01, 0.9, 2)).toEqual({ n1: 127, n2: 253, total: 380 });
+            expect(Statistics.sampleSizeTwoMeans(5, 10, undefined, undefined, undefined, undefined)).toEqual({ n1: 63, n2: 63, total: 126 });
+            expect(Statistics.sampleSizeTwoMeans(1, 1, 1, 0.05, 0.95, 1)).toEqual({ n1: 26, n2: 26, total: 52 });
+        });
+    });
+
+    describe('chiSquaredTest2x2', () => {
+        test('calculates uncorrected and Yates-corrected chi-squared tests', () => {
+            const noEffect = Statistics.chiSquaredTest2x2(10, 10, 10, 10);
+            expect(noEffect.chi2).toBe(0);
+            expect(noEffect.df).toBe(1);
+            expect(noEffect.pValue).toBe(1);
+
+            const uncorrected = Statistics.chiSquaredTest2x2(15, 5, 5, 15);
+            expect(uncorrected.chi2).toBeCloseTo(10, 5);
+            expect(uncorrected.pValue).toBeCloseTo(0.0015654, 5);
+
+            const yates = Statistics.chiSquaredTest2x2(15, 5, 5, 15, true);
+            expect(yates.chi2).toBeCloseTo(8.1, 5);
+            expect(yates.pValue).toBeCloseTo(0.0044265, 5);
+        });
+    });
+
+    describe('sampleSizeTwoProportions', () => {
+        test('computes supported methods and rejects invalid methods', () => {
+            expect(Statistics.sampleSizeTwoProportions(0.5, 0.4)).toEqual({ n1: 388, n2: 388, total: 776 });
+            expect(Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'fleiss')).toEqual({ n1: 408, n2: 408, total: 816 });
+            expect(Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'arcsine')).toEqual({ n1: 194, n2: 194, total: 388 });
+            expect(Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 2, 'arcsine')).toEqual({ n1: 194, n2: 388, total: 582 });
+            expect(Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'invalid_method')).toBeNull();
+        });
+    });
+
+    describe('mcNemarTest', () => {
+        test('calculates exact and asymptotic McNemar tests', () => {
+            const exact = Statistics.mcNemarTest(10, 2, true);
+            expect(exact.method).toBe('exact');
+            expect(exact.statistic).toBeNull();
+            expect(exact.pValue).toBeCloseTo(0.038574, 4);
+
+            const asymptotic = Statistics.mcNemarTest(10, 2, false);
+            expect(asymptotic.method).toBe('asymptotic');
+            expect(asymptotic.df).toBe(1);
+            expect(asymptotic.chi2).toBeCloseTo(5.3333, 4);
+            expect(asymptotic.pValue).toBeCloseTo(0.020921, 4);
+        });
+
+        test('handles ties and zero discordant cells', () => {
+            expect(Statistics.mcNemarTest(5, 5, true).pValue).toBe(1);
+            expect(Statistics.mcNemarTest(5, 5, false).chi2).toBe(0);
+            expect(Statistics.mcNemarTest(10, 0, true).pValue).toBeCloseTo(0.001953125, 4);
+            expect(Statistics.mcNemarTest(10, 0, false).chi2).toBeCloseTo(10, 4);
+        });
+    });
+
+    describe('wilsonCI', () => {
+        test('calculates Wilson intervals with bounds and custom z-scores', () => {
+            const z = Statistics.normalQuantile(0.975);
+            const ci = Statistics.wilsonCI(0.5, 100, z);
+            expect(ci.lower).toBeCloseTo(0.40383, 5);
+            expect(ci.upper).toBeCloseTo(0.59617, 5);
+
+            expect(Statistics.wilsonCI(0, 10, 1.96).lower).toBe(0);
+            expect(Statistics.wilsonCI(1, 10, 1.96).upper).toBe(1);
+
+            const wide = Statistics.wilsonCI(0.5, 100, 2.576);
+            expect(wide.lower).toBeCloseTo(0.3753, 4);
+            expect(wide.upper).toBeCloseTo(0.6247, 4);
+        });
+    });
+
+    describe('kaplanMeier', () => {
+        test('computes survival for a single group', () => {
+            const results = Statistics.kaplanMeier([1, 2, 2, 3, 4, 5], [1, 1, 0, 1, 0, 1]);
+            const group0 = results['0'];
+            expect(group0.n).toBe(6);
+            expect(group0.median).toBe(3);
+            expect(group0.table[1]).toMatchObject({ time: 1, nRisk: 6, events: 1, censored: 0 });
+            expect(group0.table[1].survival).toBeCloseTo(5 / 6, 5);
+            expect(group0.table[2].survival).toBeCloseTo((5 / 6) * (4 / 5), 5);
+            expect(group0.table[5].survival).toBe(0);
+        });
+
+        test('computes survival for multiple groups and Greenwood intervals', () => {
+            const grouped = Statistics.kaplanMeier(
+                [1, 2, 3, 2, 4, 5],
+                [1, 1, 0, 1, 0, 1],
+                ['A', 'A', 'A', 'B', 'B', 'B']
+            );
+            expect(grouped.A.n).toBe(3);
+            expect(grouped.B.n).toBe(3);
+            expect(grouped.A.median).toBe(2);
+            expect(grouped.B.median).toBe(5);
+
+            const single = Statistics.kaplanMeier([1, 2, 3], [1, 1, 0]);
+            expect(single['0'].table[1].se).toBeCloseTo((2 / 3) * Math.sqrt(1 / 6), 5);
+        });
+    });
+
+    describe('metaAnalysisFixedEffect', () => {
+        test('calculates fixed-effect meta-analysis with internal and explicit weights', () => {
+            const effects = [0.1, 0.2, 0.3];
+            const variances = [0.01, 0.04, 0.09];
+            const result = Statistics.metaAnalysisFixedEffect(effects, variances);
+            expect(result.pooled).toBeCloseTo(0.13469, 4);
+            expect(result.se).toBeCloseTo(0.08571, 4);
+            expect(result.z).toBeCloseTo(1.5714, 4);
+            expect(result.weights[0]).toBeCloseTo(100, 4);
+
+            const weighted = Statistics.metaAnalysisFixedEffect(effects, variances, [50, 50, 50]);
+            expect(weighted.pooled).toBeCloseTo(0.2, 4);
+            expect(weighted.se).toBeCloseTo(0.08165, 4);
+            expect(weighted.z).toBeCloseTo(2.44948, 4);
+            expect(weighted.weights).toEqual([50, 50, 50]);
+        });
+    });
+
+    describe('logRankTest', () => {
+        test('returns null unless there are exactly two groups', () => {
+            expect(Statistics.logRankTest([10, 20, 30], [1, 1, 1], [1, 1, 1])).toBeNull();
+            expect(Statistics.logRankTest([10, 20, 30], [1, 1, 1], [1, 2, 3])).toBeNull();
+        });
+
+        test('calculates standard, tied-time, and no-event datasets', () => {
+            const result = Statistics.logRankTest(
+                [10, 20, 30, 40, 50, 60, 70, 80],
+                [1, 1, 0, 1, 1, 0, 1, 0],
+                [1, 1, 1, 1, 2, 2, 2, 2]
+            );
+            expect(result.chi2).toBeCloseTo(5.347771891555002, 5);
+            expect(result.pValue).toBeCloseTo(0.020748769062276073, 5);
+            expect(result.hr).toBeCloseTo(17.41946107240046, 5);
+
+            const tied = Statistics.logRankTest([10, 10, 20, 20], [1, 1, 1, 0], [1, 2, 1, 2]);
+            expect(tied.O1).toBe(2);
+            expect(tied.E1).toBeCloseTo(1.5, 5);
+            expect(tied.V).toBeCloseTo(0.5833333333333333, 5);
+
+            const noEvents = Statistics.logRankTest([10, 20, 30, 40], [0, 0, 0, 0], [1, 1, 2, 2]);
+            expect(noEvents.O1).toBe(0);
+            expect(noEvents.E1).toBe(0);
+            expect(noEvents.V).toBe(0);
+            expect(Number.isNaN(noEvents.chi2)).toBe(true);
+        });
+    });
+
+    describe('fisherExact', () => {
+        test('calculates exact p-values and caps at 1', () => {
+            expect(Statistics.fisherExact(10, 10, 10, 10).pValue).toBeCloseTo(1.0, 4);
+            expect(Statistics.fisherExact(2, 14, 15, 3).pValue).toBeCloseTo(0.000086035, 6);
+            expect(Statistics.fisherExact(0, 5, 5, 0).pValue).toBeCloseTo(0.0079365, 5);
+            expect(Statistics.fisherExact(1, 9, 11, 3).pValue).toBeCloseTo(0.002759, 5);
+            expect(Statistics.fisherExact(5, 5, 5, 5).pValue).toBeLessThanOrEqual(1.0);
+        });
+    });
+});
