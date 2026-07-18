@@ -37,6 +37,47 @@ describe('Sample size — equivalence (TOST)', () => {
     });
 });
 
+describe('Sample size — Whitehead ordinal (two-arm mean)', () => {
+    const control = [0.10, 0.20, 0.30, 0.25, 0.15];
+    const OR = 2.0;
+    const za = Statistics.normalQuantile(0.975), zb = Statistics.normalQuantile(0.80);
+
+    // Independent derivation of the treatment distribution under proportional odds.
+    function deriveTreat(c, or) {
+        const t = []; let cum = 0, prev = 0;
+        for (let i = 0; i < c.length; i++) {
+            cum += c[i];
+            let T = (i === c.length - 1) ? 1 : (or * cum / (1 - cum)) / (1 + or * cum / (1 - cum));
+            t.push(T - prev); prev = T;
+        }
+        return t;
+    }
+
+    test('derives a valid treatment distribution that sums to 1', () => {
+        const r = Statistics.sampleSizeOrdinalShift(control, null, OR, 0.05, 0.80);
+        const sum = r.treatDist.reduce((a, b) => a + b, 0);
+        expect(sum).toBeCloseTo(1, 6);
+        r.treatDist.forEach((p) => expect(p).toBeGreaterThanOrEqual(-1e-9));
+    });
+
+    test('uses the mean of the two arms (matches independent calc, differs from control-only)', () => {
+        const t = deriveTreat(control, OR);
+        let sumMean = 0, sumCtrl = 0;
+        for (let i = 0; i < control.length; i++) {
+            sumMean += Math.pow((control[i] + t[i]) / 2, 3);
+            sumCtrl += Math.pow(control[i], 3);
+        }
+        const lnOR = Math.log(OR);
+        const nMean = Math.ceil(6 * Math.pow(za + zb, 2) / (lnOR * lnOR * (1 - sumMean)) / 2);
+
+        const r = Statistics.sampleSizeOrdinalShift(control, null, OR, 0.05, 0.80);
+        expect(r.nPerGroup).toBe(nMean);
+        // The averaged proportions genuinely differ from the control-only ones
+        // (the previous implementation used sumCtrl).
+        expect(Math.abs(sumMean - sumCtrl)).toBeGreaterThan(1e-4);
+    });
+});
+
 describe('Sample size — multi-arm multiplicity scaling', () => {
     // Only z_alpha changes with the adjustment, so N scales by
     // (z_adj + z_beta)^2 / (z_orig + z_beta)^2, not (z_adj/z_orig)^2.

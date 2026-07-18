@@ -853,14 +853,40 @@ const Statistics = (() => {
         power = power || 0.80;
 
         // Whitehead method for ordinal data under proportional odds
-        // N = 6 * (z_alpha/2 + z_beta)^2 / (log(OR)^2 * (1 - sum(pi^3)))
+        // N = 6 * (z_alpha/2 + z_beta)^2 / (log(OR)^2 * (1 - sum(pBar_i^3)))
+        // where pBar_i is the MEAN of the two arms' category probabilities.
         const za = normalQuantile(1 - alpha / 2);
         const zb = normalQuantile(power);
 
-        // Using control distribution to compute the non-centrality factor
+        // Derive the treatment distribution from the control distribution under
+        // proportional odds (odds_treat(Y<=k) = OR * odds_control(Y<=k)) unless a
+        // treatment distribution is supplied directly.
+        let tDist;
+        if (treatDist && treatDist.length === controlDist.length) {
+            tDist = treatDist;
+        } else {
+            tDist = [];
+            let cum = 0, prevT = 0;
+            for (let i = 0; i < controlDist.length; i++) {
+                cum += controlDist[i];
+                let T;
+                if (i === controlDist.length - 1) {
+                    T = 1;
+                } else {
+                    const oddsC = cum / (1 - cum);
+                    const oddsT = commonOR * oddsC;
+                    T = oddsT / (1 + oddsT);
+                }
+                tDist.push(T - prevT);
+                prevT = T;
+            }
+        }
+
+        // Non-centrality factor from the average category proportions.
         let sumPiCubed = 0;
         for (let i = 0; i < controlDist.length; i++) {
-            sumPiCubed += Math.pow(controlDist[i], 3);
+            const pBar = (controlDist[i] + tDist[i]) / 2;
+            sumPiCubed += Math.pow(pBar, 3);
         }
 
         const lnOR = Math.log(commonOR);
@@ -872,7 +898,7 @@ const Statistics = (() => {
             commonOR,
             lnOR,
             controlDist,
-            treatDist
+            treatDist: tDist
         };
     }
 
