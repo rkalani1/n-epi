@@ -1703,37 +1703,41 @@ const Statistics = (() => {
         };
     }
 
-    // Fragility index
+    // Fragility index (Walsh et al. 2014): the fewest patient-outcome changes,
+    // within a single arm, needed to make a significant result non-significant.
+    // Minimised over both arms and both flip directions (the previous version
+    // only tried one direction and could overestimate the index).
     function fragilityIndex(a, b, c, d) {
-        let fragility = 0;
-        let modA = a, modB = b, modC = c, modD = d;
-        let currentP = fisherExact(a, b, c, d).pValue;
-
-        if (currentP >= 0.05) return { index: 0, message: 'Result is already non-significant' };
-
-        // Determine which cell to modify (move events from smaller p arm to non-events)
-        const p1 = a / (a + b);
-        const p2 = c / (c + d);
-
-        while (currentP < 0.05 && fragility < 1000) {
-            if (p1 > p2) {
-                modA--;
-                modB++;
-            } else {
-                modC--;
-                modD++;
-            }
-            if (modA < 0 || modC < 0) break;
-            fragility++;
-            currentP = fisherExact(modA, modB, modC, modD).pValue;
+        const originalP = fisherExact(a, b, c, d).pValue;
+        if (originalP >= 0.05) {
+            return { index: 0, originalP, modifiedP: originalP, modifiedTable: { a, b, c, d }, message: 'Result is already non-significant' };
         }
 
-        return {
-            index: fragility,
-            originalP: fisherExact(a, b, c, d).pValue,
-            modifiedP: currentP,
-            modifiedTable: { a: modA, b: modB, c: modC, d: modD }
-        };
+        const moves = [
+            { arm: 'group 1 (event to non-event)', da: -1, db: 1, dc: 0, dd: 0 },
+            { arm: 'group 1 (non-event to event)', da: 1, db: -1, dc: 0, dd: 0 },
+            { arm: 'group 2 (event to non-event)', da: 0, db: 0, dc: -1, dd: 1 },
+            { arm: 'group 2 (non-event to event)', da: 0, db: 0, dc: 1, dd: -1 }
+        ];
+
+        let best = Infinity, bestTable = null, bestP = originalP, bestArm = null;
+        moves.forEach(m => {
+            let A = a, B = b, C = c, D = d, steps = 0, p = originalP;
+            while (p < 0.05 && steps < 1000) {
+                A += m.da; B += m.db; C += m.dc; D += m.dd;
+                if (A < 0 || B < 0 || C < 0 || D < 0) { steps = Infinity; break; }
+                steps++;
+                p = fisherExact(A, B, C, D).pValue;
+            }
+            if (p >= 0.05 && steps < best) {
+                best = steps; bestTable = { a: A, b: B, c: C, d: D }; bestP = p; bestArm = m.arm;
+            }
+        });
+
+        if (!isFinite(best)) {
+            return { index: null, originalP, message: 'Could not reach non-significance by single-arm changes' };
+        }
+        return { index: best, originalP, modifiedP: bestP, modifiedTable: bestTable, arm: bestArm };
     }
 
     // Additive interaction measures

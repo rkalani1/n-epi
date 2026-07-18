@@ -233,6 +233,29 @@ describe('twoByTwo — NNT/NNH labelling and CI (Altman)', () => {
     });
 });
 
+describe('Fragility index — minimum over both arms/directions', () => {
+    test('finds the shortest path to non-significance (2, not the one-direction 3)', () => {
+        const r = Statistics.fragilityIndex(8, 42, 0, 50);
+        expect(r.originalP).toBeLessThan(0.05);
+        expect(r.index).toBe(2);
+        expect(r.modifiedP).toBeGreaterThanOrEqual(0.05);
+        // The reported modified table really is non-significant.
+        const t = r.modifiedTable;
+        expect(Statistics.fisherExact(t.a, t.b, t.c, t.d).pValue).toBeGreaterThanOrEqual(0.05);
+    });
+
+    test('returns 0 for an already non-significant table', () => {
+        const r = Statistics.fragilityIndex(5, 95, 4, 96);
+        expect(r.index).toBe(0);
+    });
+
+    test('flipping index-1 fewer events keeps the table significant', () => {
+        const r = Statistics.fragilityIndex(20, 80, 8, 92);
+        expect(r.index).toBeGreaterThanOrEqual(1);
+        expect(r.modifiedP).toBeGreaterThanOrEqual(0.05);
+    });
+});
+
 describe('Kaplan-Meier — Greenwood SE at S(t)=0', () => {
     test('SE is finite (0, not NaN) when survival reaches exactly zero', () => {
         // Last observation is an event, so S drops to 0 with nRisk === nEvents.
