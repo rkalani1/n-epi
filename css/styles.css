@@ -2345,3 +2345,25 @@ textarea.form-input {
         }
     }
 }
+
+/* Accessibility & mobile touch-target refinements (audit 2026) */
+@media (max-width: 767px) {
+    /* WCAG 2.5.5 / iOS HIG: interactive targets should be at least ~44px. */
+    .mobile-header-menu,
+    .mobile-header-search,
+    .theme-toggle {
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+
+    .btn-xs,
+    .btn-sm {
+        min-height: 44px;
+    }
+
+    /* Keep toasts clear of the fixed bottom navigation and the home indicator. */
+    .ne-toast {
+        bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    }
+}
