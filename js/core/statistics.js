@@ -1397,10 +1397,16 @@ const Statistics = (() => {
 
                 if (nEvents > 0) {
                     survival *= (1 - nEvents / nRisk);
-                    greenwood += nEvents / (nRisk * (nRisk - nEvents));
+                    // Skip the Greenwood term when everyone at risk has an event
+                    // (nRisk === nEvents): the term is undefined (÷0) and survival
+                    // becomes 0, so its variance is taken as 0.
+                    if (nRisk > nEvents) {
+                        greenwood += nEvents / (nRisk * (nRisk - nEvents));
+                    }
                 }
 
-                const se = survival * Math.sqrt(greenwood);
+                // Guard the 0 * Infinity case so SE is 0 (not NaN) once S(t) = 0.
+                const se = survival > 0 ? survival * Math.sqrt(greenwood) : 0;
                 // Log-log CI
                 let ciLower, ciUpper;
                 if (survival > 0 && survival < 1) {

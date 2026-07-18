@@ -177,3 +177,17 @@ describe('twoByTwo — NNT/NNH labelling and CI (Altman)', () => {
         expect(res.nnt.ci.lower).toBeUndefined();
     });
 });
+
+describe('Kaplan-Meier — Greenwood SE at S(t)=0', () => {
+    test('SE is finite (0, not NaN) when survival reaches exactly zero', () => {
+        // Last observation is an event, so S drops to 0 with nRisk === nEvents.
+        const km = Statistics.kaplanMeier([2, 4, 6], [1, 0, 1]);
+        const table = km[0].table;
+        const last = table[table.length - 1];
+        expect(last.survival).toBe(0);
+        expect(Number.isNaN(last.se)).toBe(false);
+        expect(last.se).toBe(0);
+        // Every SE in the table is a real number.
+        table.forEach((row) => expect(Number.isNaN(row.se)).toBe(false));
+    });
+});
