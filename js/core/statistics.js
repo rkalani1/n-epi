@@ -1630,12 +1630,26 @@ const Statistics = (() => {
         // Newcombe CI for RD
         const rdNewcombe = newcombeCI(p1, a + b, p2, c + d, z);
 
-        // NNT
+        // NNT / NNH from the risk difference (rd = risk_exposed - risk_unexposed,
+        // so rd > 0 indicates harm in the exposed group). When the RD CI crosses
+        // zero the NNT interval is discontinuous (Altman 1998, BMJ): it runs from
+        // a finite benefit NNT out to infinity and from infinity in to a finite
+        // harm NNT, so no single finite interval is reported.
         const nnt = rd !== 0 ? 1 / Math.abs(rd) : Infinity;
-        const nntCI = rd !== 0 ? {
-            lower: rdCI.upper !== 0 ? 1 / Math.abs(rdCI.upper) : Infinity,
-            upper: rdCI.lower !== 0 ? 1 / Math.abs(rdCI.lower) : Infinity
-        } : { lower: Infinity, upper: Infinity };
+        let nntCI;
+        if (rdCI.lower <= 0 && rdCI.upper >= 0) {
+            nntCI = {
+                crossesZero: true,
+                nntHarm: rdCI.upper > 0 ? 1 / rdCI.upper : Infinity,
+                nntBenefit: rdCI.lower < 0 ? 1 / Math.abs(rdCI.lower) : Infinity
+            };
+        } else {
+            nntCI = {
+                crossesZero: false,
+                lower: 1 / Math.abs(rdCI.upper),
+                upper: 1 / Math.abs(rdCI.lower)
+            };
+        }
 
         // Chi-squared
         const chi2 = chiSquaredTest2x2(a, b, c, d);
@@ -1652,7 +1666,7 @@ const Statistics = (() => {
             rr: { value: rr, ci: rrCI, seLnRR },
             or: { value: or, ci: orCI, seLnOR },
             rd: { value: rd, ci: rdCI, seRD, newcombe: rdNewcombe },
-            nnt: { value: rd > 0 ? nnt : -nnt, ci: nntCI, isHarm: rd < 0 },
+            nnt: { value: nnt, ci: nntCI, isHarm: rd > 0 },
             chi2, chi2Yates, fisher,
             afExposed, paf,
             counts: { a, b, c, d, n }

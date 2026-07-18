@@ -76,3 +76,23 @@ describe('nnt-calculator pure functions', () => {
         expect(result.b).toBe(100);
     });
 });
+
+describe('formatNNTCI (ARR bounds, positive = benefit)', () => {
+    let fmt;
+    beforeEach(() => { fmt = window.NNTModule._formatNNTCI; });
+
+    test('a clearly beneficial CI is labelled NNTB (not NNTH)', () => {
+        // ARR CI [0.123, 0.275] -> NNTB 4 to 9
+        expect(fmt(0.123, 0.275)).toBe('NNTB 4 to 9');
+    });
+
+    test('a clearly harmful CI is labelled NNTH, ascending', () => {
+        // ARR CI [-0.275, -0.123] -> NNTH 4 to 9
+        expect(fmt(-0.275, -0.123)).toBe('NNTH 4 to 9');
+    });
+
+    test('a CI that crosses zero is discontinuous: NNTB ... to inf to NNTH ...', () => {
+        // ARR CI [-0.127, 0.046] -> NNTB 22 to inf to NNTH 8
+        expect(fmt(-0.127, 0.046)).toBe('NNTB 22 to ∞ to NNTH 8');
+    });
+});

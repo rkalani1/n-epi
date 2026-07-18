@@ -382,21 +382,22 @@
         if (ciLow && ciHigh) {
             var rdLo = Math.min(ciLow.rd, ciHigh.rd);
             var rdHi = Math.max(ciLow.rd, ciHigh.rd);
+            // rdLo/rdHi are absolute-risk-reduction bounds (positive = benefit).
+            // A CI that includes 0 gives a discontinuous NNT interval (Altman 1998).
             if (rdLo <= 0 && rdHi >= 0) {
                 if (rdLo < 0 && rdHi > 0) {
-                    nntCIStr = 'NNTB ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E to NNTH ' + Math.ceil(1 / rdHi);
+                    nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to \u221E to NNTH ' + Math.ceil(1 / Math.abs(rdLo));
                 } else if (rdLo < 0 && rdHi === 0) {
-                    nntCIStr = 'NNTB ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E';
+                    nntCIStr = 'NNTH ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E';
                 } else if (rdLo === 0 && rdHi > 0) {
-                    nntCIStr = '\u221E to NNTH ' + Math.ceil(1 / rdHi);
+                    nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to \u221E';
                 } else {
                     nntCIStr = '\u221E';
                 }
+            } else if (rdLo > 0) {
+                nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to ' + Math.ceil(1 / rdLo);
             } else {
-                var nntCILo = Math.ceil(1 / Math.abs(rdHi));
-                var nntCIHi = Math.ceil(1 / Math.abs(rdLo));
-                var ciPrefix = rdLo > 0 ? 'NNTH' : 'NNTB';
-                nntCIStr = ciPrefix + ' ' + nntCILo + ' to ' + nntCIHi;
+                nntCIStr = 'NNTH ' + Math.ceil(1 / Math.abs(rdLo)) + ' to ' + Math.ceil(1 / Math.abs(rdHi));
             }
         }
 

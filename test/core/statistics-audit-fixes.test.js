@@ -144,3 +144,36 @@ describe('Diagnostic — AUC trapezoidal', () => {
         expect(b).toBeCloseTo(a, 10);
     });
 });
+
+describe('twoByTwo — NNT/NNH labelling and CI (Altman)', () => {
+    test('a harmful exposure (risk_exposed > risk_unexposed) is flagged isHarm', () => {
+        // a=30/100 exposed events vs c=10/100 unexposed -> rd = +0.20 (harm)
+        const harm = Statistics.twoByTwo(30, 70, 10, 90);
+        expect(harm.rd.value).toBeGreaterThan(0);
+        expect(harm.nnt.isHarm).toBe(true);
+
+        // protective exposure -> not harm
+        const benefit = Statistics.twoByTwo(10, 90, 30, 70);
+        expect(benefit.rd.value).toBeLessThan(0);
+        expect(benefit.nnt.isHarm).toBe(false);
+    });
+
+    test('a significant (non-crossing) RD gives a finite NNT interval', () => {
+        const res = Statistics.twoByTwo(30, 70, 10, 90);
+        expect(res.nnt.ci.crossesZero).toBe(false);
+        expect(res.nnt.ci.lower).toBeLessThan(res.nnt.ci.upper);
+        expect(res.nnt.value).toBeCloseTo(1 / 0.2, 6);
+    });
+
+    test('an RD CI that crosses zero yields a discontinuous benefit/harm interval', () => {
+        // Borderline table whose Wald RD CI straddles 0.
+        const res = Statistics.twoByTwo(12, 88, 8, 92);
+        expect(res.rd.ci.lower).toBeLessThan(0);
+        expect(res.rd.ci.upper).toBeGreaterThan(0);
+        expect(res.nnt.ci.crossesZero).toBe(true);
+        expect(res.nnt.ci.nntBenefit).toBeGreaterThan(0);
+        expect(res.nnt.ci.nntHarm).toBeGreaterThan(0);
+        // No misleading single finite [lower, upper] interval is exposed.
+        expect(res.nnt.ci.lower).toBeUndefined();
+    });
+});
