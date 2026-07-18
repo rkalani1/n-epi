@@ -1,20 +1,21 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
-title: "Neuro-Epi"
+title: "n-epi"
 abstract: >-
   A comprehensive, open-source epidemiology, biostatistics, and clinical research
   platform for study design, data analysis, grant writing, manuscript preparation,
-  and critical appraisal. Built as a static web application with no dependencies.
+  and critical appraisal. Built as a static web application with no runtime
+  dependencies.
 authors:
   - family-names: "Contributor"
     given-names: "Operator"
     orcid: ""
-version: "2.0.0"
+version: "2.1.0"
 date-released: "2026-02-05"
 license: MIT
-url: "https://github.com/example/neuroepi-suite"
-repository-code: "https://github.com/example/neuroepi-suite"
+url: "https://rkalani1.github.io/n-epi/"
+repository-code: "https://github.com/rkalani1/n-epi"
 keywords:
   - epidemiology
   - biostatistics

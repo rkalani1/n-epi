@@ -2,9 +2,9 @@
 
 **Comprehensive epidemiology, biostatistics, and clinical research platform.**
 
-A zero-dependency static web app built for clinical researchers, epidemiologists, biostatisticians, and clinical trialists. Designed for daily use in study design, data analysis, grant writing, manuscript preparation, and critical appraisal.
+A static web app with **no runtime dependencies** — the shipped application loads zero third-party libraries in the browser (DOMPurify is vendored in `js/core/`). Built for clinical researchers, epidemiologists, biostatisticians, and clinical trialists, and designed for daily use in study design, data analysis, grant writing, manuscript preparation, and critical appraisal.
 
-**[Live Demo →](/n-epi/)**
+**[Live Demo →](https://rkalani1.github.io/n-epi/)**
 
 ## Data Guardrail
 
@@ -54,7 +54,7 @@ The public GitHub Pages deployment is for de-identified, aggregate, or synthetic
 - **Copy/Export** — clipboard integration for all results, PNG chart export, CSV export
 
 ### Technical Features
-- Complete statistical engine built from scratch (no dependencies)
+- Complete statistical engine built from scratch (no runtime dependencies)
 - Canvas-based charting with Retina support
 - Dark/light theme toggle
 - Responsive design (desktop, tablet, mobile)
@@ -69,17 +69,17 @@ No build step required. Open `index.html` in any modern browser.
 
 ```bash
 # Clone the repository
-git clone https://github.com/example/neuroepi-suite.git
+git clone https://github.com/rkalani1/n-epi.git
 
 # Open in browser
-open neuroepi-suite/index.html
+open n-epi/index.html
 ```
 
-Or visit the [live site](/n-epi/).
+Or visit the [live site](https://rkalani1.github.io/n-epi/).
 
 ## Technology
 
-- Vanilla HTML, CSS, and JavaScript — no frameworks, no bundlers, no dependencies
+- Vanilla HTML, CSS, and JavaScript — no frameworks, no bundlers, no runtime dependencies (the packages under `dependencies` in `package.json` belong to the Jest + jsdom test toolchain only)
 - Single-page application with hash-based routing
 - Statistical functions implemented from numerical methods (Lanczos gamma, Lentz's continued fraction, Abramowitz & Stegun approximations)
 - Canvas 2D API for all charts with `devicePixelRatio` support

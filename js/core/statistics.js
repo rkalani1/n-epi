@@ -1,5 +1,5 @@
 /**
- * Neuro-Epi — Complete Statistical Engine
+ * n-epi — Complete Statistical Engine
  * Implements all distribution functions, hypothesis tests, sample size formulas,
  * and epidemiological calculations from scratch.
  *

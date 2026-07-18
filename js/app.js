@@ -306,8 +306,10 @@ const App = (() => {
 
         let html = '<div class="sidebar-header">'
             + '<div class="sidebar-logo" onclick="App.navigate(\'home\')" style="cursor:pointer;">'
-            + '<div>'
-            + '</div></div>'
+            + '<div class="sidebar-logo-icon">n</div>'
+            + '<div><span class="sidebar-logo-text">n-epi</span>'
+            + '<span class="sidebar-logo-version">v2.1</span></div>'
+            + '</div>'
             + '<button class="sidebar-cmd-k-btn" onclick="App.openCommandPalette()" title="Search modules (Cmd+K)">'
             + '<span style="opacity:0.6;">Search...</span>'
             + '<kbd class="kbd-hint">&#8984;K</kbd>'
@@ -351,7 +353,7 @@ const App = (() => {
 
         html += '</nav>'
             + '<div class="sidebar-footer">'
-            + '<a href="https://github.com/example/neuroepi-suite" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-tertiary);">GitHub</a>'
+            + '<a href="https://github.com/rkalani1/n-epi" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-tertiary);">GitHub</a>'
             + '<div style="display:flex;gap:6px;align-items:center;">'
             + '<button class="theme-toggle" onclick="App.showShortcutsModal()" title="Keyboard shortcuts">'
             + '<span>?</span>'
@@ -741,10 +743,10 @@ const App = (() => {
         let shareUrl = window.location.origin + window.location.pathname + '#' + moduleId;
         return '<div class="module-footer">'
             + '<div class="module-footer-left">'
-            + '<span class="module-footer-updated">Last updated: February 2025</span>'
+            + '<span class="module-footer-updated">Public synthetic/reference demo &mdash; not for clinical decisions</span>'
             + '</div>'
             + '<div class="module-footer-right">'
-            + '<a href="https://github.com/example/neuroepi-suite/issues/new?title=Issue+with+' + moduleId + '" target="_blank" rel="noopener" class="module-footer-link">Report Issue</a>'
+            + '<a href="https://github.com/rkalani1/n-epi/issues/new?title=Issue+with+' + moduleId + '" target="_blank" rel="noopener" class="module-footer-link">Report Issue</a>'
             + '<button class="btn btn-ghost btn-xs module-footer-share" onclick="App.shareModule(\'' + moduleId + '\')" title="Copy link">'
             + '<span style="margin-right:4px;">&#128279;</span>Share'
             + '</button>'
@@ -788,7 +790,7 @@ const App = (() => {
 
         // Hero section
         html += '<div class="dashboard-hero">'
-            + '<h1 class="dashboard-hero-title">N-Epi</h1>'
+            + '<h1 class="dashboard-hero-title">n-epi</h1>'
             + '<button class="dashboard-search-btn" onclick="App.openCommandPalette()">'
             + '<span style="opacity:0.5;margin-right:8px;">&#128269;</span>'
             + '<span>Search modules...</span>'
@@ -1173,11 +1175,11 @@ document.addEventListener('DOMContentLoaded', function () { App.init(); });
 
 // Global error handler — log uncaught errors gracefully
 window.onerror = function (msg, src, line, col, err) {
-    console.error('Neuro-Epi Error:', msg, 'at', src, line + ':' + col);
+    console.error('n-epi Error:', msg, 'at', src, line + ':' + col);
     return false; // let default handler run too
 };
 window.addEventListener('unhandledrejection', function (e) {
-    console.error('Neuro-Epi Unhandled Promise:', e.reason);
+    console.error('n-epi Unhandled Promise:', e.reason);
 });
 
 if (typeof module !== 'undefined' && module.exports) {

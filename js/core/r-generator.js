@@ -1,5 +1,5 @@
 /**
- * Neuro-Epi -- R Script Generator
+ * n-epi -- R Script Generator
  * Generates complete, runnable R scripts for all calculator modules.
  * Each script includes package installation (commented), library loading,
  * parameter setup, computation, results output, and ggplot2 visualization.
@@ -25,9 +25,9 @@ var RGenerator = (function() {
     function header(title) {
         return [
             '# ============================================================',
-            '# Neuro-Epi Suite: ' + title,
+            '# n-epi: ' + title,
             '# Generated: ' + dateStr(),
-            '# https://github.com/example/neuroepi-suite',
+            '# https://github.com/rkalani1/n-epi',
             '# ============================================================',
             ''
         ].join('\n');
