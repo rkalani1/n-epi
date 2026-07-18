@@ -320,6 +320,22 @@ const App = (() => {
             if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
             if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
         });
+        // Give chart canvases an accessible name (they are otherwise invisible to
+        // screen readers). Derive a best-effort label from a nearby title or the id.
+        root.querySelectorAll('canvas:not([aria-label])').forEach(function (cv) {
+            cv.setAttribute('role', 'img');
+            let label = cv.getAttribute('data-chart-title');
+            if (!label) {
+                const container = cv.closest('.chart-container') || cv;
+                let prev = container.previousElementSibling, hops = 0;
+                while (prev && hops < 4 && !/(card-title|chart-title|result-value)/.test(prev.className || '')) {
+                    prev = prev.previousElementSibling; hops++;
+                }
+                if (prev && prev.textContent) label = prev.textContent.trim().slice(0, 80);
+            }
+            if (!label && cv.id) label = cv.id.replace(/[-_]/g, ' ');
+            cv.setAttribute('aria-label', (label || 'Chart') + ' chart (visual)');
+        });
     }
 
     function setTrustedHTML(element, trustedContent) {

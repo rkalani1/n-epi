@@ -120,6 +120,14 @@ describe('setTrustedHTML() sanitization', () => {
         expect(card.getAttribute('role')).toBe('button');
         expect(card.getAttribute('tabindex')).toBe('0');
     });
+
+    it('gives chart canvases a role and an accessible name from context', () => {
+        const el = document.createElement('div');
+        App.setTrustedHTML(el, '<div class="card-title">Forest Plot</div><div class="chart-container"><canvas id="ma-forest-canvas"></canvas></div>');
+        const cv = el.querySelector('canvas');
+        expect(cv.getAttribute('role')).toBe('img');
+        expect(cv.getAttribute('aria-label')).toContain('Forest Plot');
+    });
 });
 
 describe('Navigation structure counts', () => {
