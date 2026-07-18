@@ -670,15 +670,8 @@ const Statistics = (() => {
             });
             const rrMH = sumA / sumB;
 
-            // Greenland-Robins variance
-            let varNum = 0;
-            tables.forEach(t => {
-                const n = t.a + t.b + t.c + t.d;
-                const r1 = t.a + t.b, r2 = t.c + t.d;
-                varNum += (t.a * t.d * r1 + t.c * t.b * r2 - t.a * t.c * n) / (n * n) +
-                          (r1 * r2 * (t.a * t.d - t.b * t.c)) / (n * n * n);
-            });
-            // Simplified variance estimate
+            // Greenland-Robins variance of ln(RR_MH):
+            //   var = sum[ (r1*r2*(a+c) - a*c*n) / n^2 ] / (sumA * sumB)
             let P = 0;
             tables.forEach(t => {
                 const n = t.a + t.b + t.c + t.d;
@@ -1292,7 +1285,10 @@ const Statistics = (() => {
         const ma = metaAnalysisRandomEffects(effects, variances);
         const center = ma.pooled;
 
-        // Rank-based method (R0)
+        // L0 estimator (Duval & Tweedie): rank the absolute residuals, sum the
+        // ranks of the right-side (positive-residual) studies, and estimate the
+        // number of missing studies. NB: this is a single-pass estimate, not the
+        // full iterative trim/re-centre/re-estimate loop.
         const residuals = effects.map(e => e - center);
         const absRes = residuals.map(Math.abs);
         const ranks = absRes.map((v, i) => ({ v, i }))
@@ -1300,11 +1296,8 @@ const Statistics = (() => {
             .map((item, rank) => ({ ...item, rank: rank + 1 }))
             .sort((a, b) => a.i - b.i);
 
-        // Count studies on right side that are "extra"
-        let T = 0;
         const rightSide = residuals.map((r, i) => r > 0 ? ranks[i].rank : 0);
         const S = rightSide.reduce((a, b) => a + b, 0);
-        const expectedS = k * (k + 1) / 4;
         const k0 = Math.round(Math.max(0, (4 * S - k * (k + 1)) / (2 * k - 1)));
 
         // Generate imputed studies
@@ -1335,17 +1328,12 @@ const Statistics = (() => {
     function subgroupAnalysis(effects, variances, groups) {
         const uniqueGroups = [...new Set(groups)];
         const subResults = {};
-        const betweenGroupEffects = [];
-        const betweenGroupVariances = [];
 
         uniqueGroups.forEach(g => {
             const idx = groups.map((gr, i) => gr === g ? i : -1).filter(i => i >= 0);
             const e = idx.map(i => effects[i]);
             const v = idx.map(i => variances[i]);
-            const ma = metaAnalysisRandomEffects(e, v);
-            subResults[g] = ma;
-            betweenGroupEffects.push(ma.pooled);
-            betweenGroupVariances.push(ma.se * ma.se);
+            subResults[g] = metaAnalysisRandomEffects(e, v);
         });
 
         // Between-group Q test

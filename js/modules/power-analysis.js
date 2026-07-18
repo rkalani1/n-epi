@@ -670,7 +670,7 @@
             text = 'With ' + pm.n + ' participants per group, the study has '
                 + (calc.power * 100).toFixed(1) + '% power to detect a mean difference of '
                 + pm.delta + ' (SD = ' + pm.sd + ', effect size d = ' + (pm.delta / pm.sd).toFixed(2) + ') '
-                + 'using a two-sided two-sample t-test at \u03B1 = ' + pm.alpha + '.';
+                + 'using a two-sided two-sample comparison of means (large-sample normal approximation) at \u03B1 = ' + pm.alpha + '. Assumes 1:1 allocation; for small samples the t-based power is slightly lower.';
         } else {
             var ps = calc.params;
             text = 'With ' + ps.events + ' events, the study has '

@@ -453,8 +453,12 @@
         html += makeResultItem('AF (Exposed)', (res.afExposed * 100).toFixed(1) + '%',
             App.tooltip('Attributable fraction among the exposed = (RR-1)/RR'));
         html += makeResultItem('PAF', (res.paf * 100).toFixed(1) + '%',
-            App.tooltip('Population Attributable Fraction'));
+            App.tooltip('Population Attributable Fraction (Levin), using the exposure prevalence and RR from this table.'));
         html += '</div>';
+        html += '<div class="text-secondary" style="font-size:0.8rem;margin-top:6px;">'
+            + 'AF and PAF assume cohort or cross-sectional data (RR and exposure prevalence are estimable). '
+            + 'For case-control data use the case-based PAF, p<sub>c</sub>(OR&minus;1)/OR.'
+            + '</div>';
 
         // Copy + Methods + R Script buttons
         html += '<div class="btn-group mt-3">'

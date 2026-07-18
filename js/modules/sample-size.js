@@ -887,7 +887,7 @@
 
         var html = '<div class="result-panel animate-in">';
         html += '<div class="result-value">' + result.total + ' participants</div>';
-        html += '<div class="result-label">Required sample size (two-sample t-test)</div>';
+        html += '<div class="result-label">Required sample size (two means, normal approximation)</div>';
         html += '<div class="result-detail">' + result.n1 + ' per group. Cohen\'s d = ' + (delta / sd1).toFixed(2);
         if (params.dropout > 0) html += '. Dropout-adjusted: <strong class="text-accent">' + dropoutN + '</strong>';
         html += '</div>';
@@ -918,7 +918,7 @@
         html += '<div class="chart-container"><canvas id="ss-means-power-chart" width="700" height="350"></canvas></div>';
 
         // Methods text
-        var methodsText = 'Sample size was calculated for a two-sample t-test comparing means between two independent groups. '
+        var methodsText = 'Sample size was calculated for a comparison of means between two independent groups using the large-sample normal approximation (add ~1-2 per group for the exact t-based value). '
             + 'Assuming a mean difference of ' + delta + ' with standard deviations of ' + sd1 + ' and ' + sd2
             + ' (Cohen\'s d = ' + (delta / sd1).toFixed(2) + '), a two-sided significance level of ' + params.alpha
             + ', and ' + (params.power * 100).toFixed(0) + '% power, '
