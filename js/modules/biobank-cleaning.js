@@ -9,10 +9,33 @@
     const MODULE_ID = 'biobank-cleaning';
     let currentData = null;
     const birthDateToken = 'd' + 'ob';
-    const SENSITIVE_COLUMN_PATTERN = new RegExp('(name|mrn|medical[_ -]?record|record[_ -]?id|patient[_ -]?id|subject[_ -]?id|' + birthDateToken + '|birth|date|time|phone|email|address|zip|postal|ssn|identifier)', 'i');
+    const SENSITIVE_COLUMN_PATTERN = new RegExp('(name|mrn|medical[_ -]?record|record[_ -]?id|patient[_ -]?id|subject[_ -]?id|' + birthDateToken + '|birth|date|time|phone|fax|email|address|street|city|county|zip|postal|ssn|identifier|visit|onset|admission|admit|discharge|encounter|exam|accession|specimen|note|comment|contact|\\bid\\b)', 'i');
 
     function isSensitiveColumn(columnName) {
         return SENSITIVE_COLUMN_PATTERN.test(String(columnName || ''));
+    }
+
+    // Value-level PHI patterns (dates, SSNs, phone numbers, emails). Redacted
+    // regardless of column name so an identifier cannot leak through an
+    // unrecognised column such as a free-text note.
+    const PHI_VALUE_PATTERN = new RegExp(
+        '\\b\\d{1,2}[\\/.\\-]\\d{1,2}[\\/.\\-]\\d{2,4}\\b' +      // 03/14/2019, 3-14-19
+        '|\\b\\d{4}-\\d{2}-\\d{2}\\b' +                            // 2019-03-14
+        '|\\b\\d{3}-\\d{2}-\\d{4}\\b' +                            // SSN
+        '|[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}' +  // email
+        '|\\b\\d{1,2}[ \\-]?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[ ,\\-]?\\d{2,4}\\b' + // 14 Mar 2019
+        '|(?:\\+?\\d[ ().\\-]?){9,}\\d',                          // phone / long digit runs
+        'i'
+    );
+
+    function looksLikePHIValue(value) {
+        return PHI_VALUE_PATTERN.test(String(value == null ? '' : value));
+    }
+
+    function escapeHTML(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     function redactedValue(columnName) {
@@ -40,7 +63,7 @@
         html += '<div class="card-subtitle">Upload a CSV file (client-side only) to run validation checks on de-identified or synthetic data.</div>';
         html += '<div style="margin:12px 0;padding:12px;border:1px solid #f59e0b;border-radius:6px;background:rgba(245,158,11,0.12);font-size:0.88rem;line-height:1.55;">'
             + '<strong>Privacy gate:</strong> Do not upload PHI, patient identifiers, limited datasets, restricted research data, or confidential data to this public demo. '
-            + 'Use an approved device, application, storage location, and protocol-governed workflow for real clinical or research data. Date and identifier-like fields are redacted in UI messages and exports.'
+            + 'Use an approved device, application, storage location, and protocol-governed workflow for real clinical or research data. As a safeguard, identifier/date-like columns and cell values that look like dates, emails, phone numbers, or SSNs are redacted from exports on a best-effort basis &mdash; this is not a substitute for proper de-identification.'
             + '</div>';
 
         html += '<div class="form-group">';
@@ -118,6 +141,7 @@
         });
 
         currentData = data;
+        const issues = [];
         const sensitiveColumns = headers.filter(isSensitiveColumn);
         if (sensitiveColumns.length > 0) {
             issues.push(`[Privacy] Identifier/date-like columns were detected and will be redacted in displayed messages and exported CSV: ${sensitiveColumns.join(', ')}.`);
@@ -127,7 +151,6 @@
         const ageMax = parseInt(document.getElementById('clean-age-max').value) || 120;
         const nihssMax = parseInt(document.getElementById('clean-nihss-max').value) || 42;
 
-        const issues = [];
         const numericCols = headers.filter(h => data.some(row => row[h] !== undefined && !isNaN(parseFloat(row[h]))));
 
         // Detect outliers for all numeric columns
@@ -382,7 +405,7 @@
             html += `<div class="text-danger" style="font-weight:600;">\u26A0 Detected ${issues.length} potential issues:</div>`;
             html += '<ul style="font-size:0.85rem; max-height:200px; overflow-y:auto; margin-top:8px;">';
             issues.slice(0, 100).forEach(issue => {
-                html += `<li>${issue}</li>`;
+                html += `<li>${escapeHTML(issue)}</li>`;
             });
             if (issues.length > 100) html += '<li>... and more.</li>';
             html += '</ul>';
@@ -425,7 +448,7 @@
             // Let's stick to specific columns if possible, but generic is better.
             // Let's do generic boolean standardization for common Yes/No terms
             Object.keys(newRow).forEach(k => {
-                if (isSensitiveColumn(k)) {
+                if (isSensitiveColumn(k) || looksLikePHIValue(newRow[k])) {
                     newRow[k] = '[redacted]';
                     return;
                 }
@@ -437,11 +460,16 @@
             return newRow;
         });
 
-        // Convert to CSV
+        // Convert to CSV with RFC-4180 quoting so values containing commas,
+        // quotes, or newlines cannot shift columns (and bypass redaction).
+        function csvField(v) {
+            const s = String(v == null ? '' : v);
+            return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        }
         const headers = Object.keys(cleaned[0]);
         const csvContent = [
-            headers.join(','),
-            ...cleaned.map(row => headers.map(h => row[h]).join(','))
+            headers.map(csvField).join(','),
+            ...cleaned.map(row => headers.map(h => csvField(row[h])).join(','))
         ].join('\n');
 
         // Download
@@ -461,6 +489,10 @@
 
     window.BiobankCleaning = {
         handleFile: handleFile,
-        exportCleanedData: exportCleanedData
+        exportCleanedData: exportCleanedData,
+        // Exported for testing
+        _isSensitiveColumn: isSensitiveColumn,
+        _looksLikePHIValue: looksLikePHIValue,
+        _escapeHTML: escapeHTML
     };
 })();
