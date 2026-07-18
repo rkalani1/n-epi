@@ -771,6 +771,9 @@ const Statistics = (() => {
     }
 
     // Survival — Freedman
+    // Total number of events = (z_a + z_b)^2 * (1 + ratio*HR)^2 / (ratio * (1 - HR)^2),
+    // where ratio is the allocation ratio (n2/n1). Reduces to
+    // ((HR+1)/(HR-1))^2 * (z_a + z_b)^2 for 1:1 allocation.
     function sampleSizeFreedman(hr, alpha, power, ratio) {
         alpha = alpha || 0.05;
         power = power || 0.80;
@@ -778,9 +781,9 @@ const Statistics = (() => {
 
         const za = normalQuantile(1 - alpha / 2);
         const zb = normalQuantile(power);
-        const p = ratio / (1 + ratio);
 
-        const events = Math.pow(za + zb, 2) / (p * (1 - p) * Math.pow(hr - 1, 2) / Math.pow(hr + 1, 2));
+        const events = Math.pow(za + zb, 2) * Math.pow(1 + ratio * hr, 2) /
+            (ratio * Math.pow(1 - hr, 2));
         return { events: Math.ceil(events) };
     }
 
@@ -798,13 +801,16 @@ const Statistics = (() => {
         return { n1: Math.ceil(n1), n2: Math.ceil(n1 * ratio), total: Math.ceil(n1) + Math.ceil(n1 * ratio) };
     }
 
-    // Equivalence — proportions
+    // Equivalence — proportions (two one-sided tests).
+    // At a true difference of zero the design can be rejected in either
+    // direction, so the power term uses z_{1-beta/2}, not z_{1-beta}
+    // (Chow, Shao & Wang; Julious 2004). Using z_{1-beta} under-powers the study.
     function sampleSizeEquivalence(p1, margin, alpha, power) {
         alpha = alpha || 0.025;
         power = power || 0.80;
 
         const za = normalQuantile(1 - alpha);
-        const zb = normalQuantile(power);
+        const zb = normalQuantile(1 - (1 - power) / 2);
         const n = Math.pow(za + zb, 2) * 2 * p1 * (1 - p1) / (margin * margin);
         return { n1: Math.ceil(n), n2: Math.ceil(n), total: 2 * Math.ceil(n) };
     }
