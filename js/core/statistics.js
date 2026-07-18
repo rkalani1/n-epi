@@ -3,7 +3,9 @@
  * Implements all distribution functions, hypothesis tests, sample size formulas,
  * and epidemiological calculations from scratch.
  *
- * Numerical accuracy: 7+ decimal places for distribution functions.
+ * Numerical accuracy: distribution CDFs/quantiles are accurate to ~1e-7 or
+ * better in the practical range (normalCDF uses the A&S 26.2.17 approximation,
+ * ~7.5e-8 absolute; extreme tails beyond |z|~8 are clamped).
  * References: Abramowitz & Stegun, Fleiss, Whitehead, Schoenfeld, DerSimonian-Laird
  */
 
