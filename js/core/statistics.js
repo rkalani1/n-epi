@@ -609,36 +609,43 @@ const Statistics = (() => {
             const z = normalQuantile(0.975);
             const lnOR = Math.log(orMH);
 
-            // Breslow-Day test for homogeneity
+            // Breslow-Day test for homogeneity of the odds ratio.
+            // For each stratum the expected cell "a" under the common OR (psi=orMH)
+            // is the admissible root of the quadratic
+            //   (psi-1) a^2 - [psi(r1+c1) + (n-r1-c1)] a + psi*r1*c1 = 0
+            // (Breslow & Day 1980). Then Var(a) = (1/a + 1/b + 1/c + 1/d)^-1 on the
+            // expected cells, and BD = sum (a_obs - a_exp)^2 / Var(a).
             let bd = 0;
-            tables.forEach((t, i) => {
+            tables.forEach((t) => {
                 const n = t.a + t.b + t.c + t.d;
-                const r1 = t.a + t.b, c1 = t.a + t.c;
-                // Expected a under common OR
-                const A = orMH - 1;
-                const B = -(r1 + c1 + (r1 * (orMH - 1) + n + c1));
-                // Solve quadratic for expected a
-                // Simplified: use iterative approach
-                let aExp = t.a;
-                for (let iter = 0; iter < 50; iter++) {
-                    const bExp = r1 - aExp;
-                    const cExp = c1 - aExp;
-                    const dExp = n - r1 - cExp;
-                    if (bExp <= 0 || cExp <= 0 || dExp <= 0) break;
-                    const orExp = (aExp * dExp) / (bExp * cExp);
-                    const f = orExp - orMH;
-                    const deriv = dExp / (bExp * cExp) + aExp / (bExp * cExp) +
-                                  aExp * dExp / (bExp * bExp * cExp) + aExp * dExp / (bExp * cExp * cExp);
-                    // Simplified Newton
-                    const correction = f / (1/aExp + 1/bExp + 1/cExp + 1/dExp);
-                    aExp -= f / (1/aExp + 1/bExp + 1/cExp + 1/dExp) * (aExp*bExp*cExp*dExp/(aExp*dExp + bExp*cExp));
-                    if (aExp < 0.5) aExp = 0.5;
-                    if (aExp > Math.min(r1, c1) - 0.5) aExp = Math.min(r1, c1) - 0.5;
+                const r1 = t.a + t.b;   // row-1 (exposed) total
+                const c1 = t.a + t.c;   // col-1 (case) total
+                const psi = orMH;
+                let aExp;
+                if (Math.abs(psi - 1) < 1e-9) {
+                    aExp = r1 * c1 / n; // independence
+                } else {
+                    const A = psi - 1;
+                    const B = -(psi * (r1 + c1) + (n - r1 - c1));
+                    const C = psi * r1 * c1;
+                    const disc = Math.sqrt(Math.max(0, B * B - 4 * A * C));
+                    const root1 = (-B + disc) / (2 * A);
+                    const root2 = (-B - disc) / (2 * A);
+                    const lo = Math.max(0, r1 + c1 - n);
+                    const hi = Math.min(r1, c1);
+                    const inRange = (x) => x >= lo - 1e-7 && x <= hi + 1e-7;
+                    if (inRange(root1) && (!inRange(root2) ||
+                        Math.abs(root1 - t.a) <= Math.abs(root2 - t.a))) {
+                        aExp = root1;
+                    } else {
+                        aExp = root2;
+                    }
                 }
                 const bExp = r1 - aExp;
                 const cExp = c1 - aExp;
                 const dExp = n - r1 - cExp;
-                const varA = 1 / (1/aExp + 1/bExp + 1/cExp + 1/dExp);
+                if (aExp <= 0 || bExp <= 0 || cExp <= 0 || dExp <= 0) return;
+                const varA = 1 / (1 / aExp + 1 / bExp + 1 / cExp + 1 / dExp);
                 bd += Math.pow(t.a - aExp, 2) / varA;
             });
             const bdPValue = 1 - chiSquaredCDF(bd, k - 1);

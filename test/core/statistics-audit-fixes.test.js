@@ -36,3 +36,52 @@ describe('Sample size — equivalence (TOST)', () => {
         expect(eq).toBeGreaterThan(ni);
     });
 });
+
+describe('Mantel-Haenszel — Breslow-Day homogeneity test', () => {
+    // Independent expected-cell solver via bisection (different algorithm than the
+    // closed-form quadratic used in the implementation) for cross-verification.
+    function breslowDayIndependent(tables, orMH) {
+        let bd = 0;
+        tables.forEach((t) => {
+            const n = t.a + t.b + t.c + t.d;
+            const r1 = t.a + t.b, c1 = t.a + t.c;
+            const lo = Math.max(0, r1 + c1 - n) + 1e-9;
+            const hi = Math.min(r1, c1) - 1e-9;
+            const orAt = (a) => (a * (n - r1 - c1 + a)) / ((r1 - a) * (c1 - a));
+            let a = lo, b = hi;
+            for (let i = 0; i < 200; i++) {
+                const m = (a + b) / 2;
+                (orAt(m) < orMH) ? (a = m) : (b = m);
+            }
+            const aE = (a + b) / 2, bE = r1 - aE, cE = c1 - aE, dE = n - r1 - cE;
+            const varA = 1 / (1 / aE + 1 / bE + 1 / cE + 1 / dE);
+            bd += Math.pow(t.a - aE, 2) / varA;
+        });
+        return bd;
+    }
+
+    test('matches an independent bisection-based computation (heterogeneous strata)', () => {
+        const tables = [
+            { a: 15, b: 10, c: 12, d: 18 },
+            { a: 8, b: 14, c: 20, d: 9 },
+            { a: 25, b: 12, c: 10, d: 22 }
+        ];
+        const res = Statistics.mantelHaenszel(tables, 'OR');
+        const expected = breslowDayIndependent(tables, res.estimate);
+        expect(res.breslowDay.statistic).toBeCloseTo(expected, 4);
+        // Sanity: the old broken Newton iteration produced values in the hundreds.
+        expect(res.breslowDay.statistic).toBeLessThan(50);
+    });
+
+    test('is near zero and non-significant for homogeneous strata (equal OR)', () => {
+        // Each stratum has OR = 2 exactly.
+        const tables = [
+            { a: 20, b: 10, c: 10, d: 10 },
+            { a: 40, b: 20, c: 20, d: 20 },
+            { a: 16, b: 8, c: 8, d: 8 }
+        ];
+        const res = Statistics.mantelHaenszel(tables, 'OR');
+        expect(res.breslowDay.statistic).toBeLessThan(1e-6);
+        expect(res.breslowDay.pValue).toBeGreaterThan(0.9);
+    });
+});
