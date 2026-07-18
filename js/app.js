@@ -271,6 +271,18 @@ const App = (() => {
         initCommandPalette();
         initSwipeGestures();
         window.addEventListener('resize', handleResize);
+
+        // Activate keyboard-focusable role="button" elements (nav links, cards)
+        // on Enter/Space, mirroring their inline onclick.
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+            const el = document.activeElement;
+            if (!el || el.getAttribute('role') !== 'button') return;
+            const tag = el.tagName;
+            if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            el.click();
+        });
     }
 
     // ============================================================
@@ -287,12 +299,36 @@ const App = (() => {
     // their interpolation points (see trial-database.js / biobank-cleaning.js).
     const TRUSTED_HTML_CONFIG = { ADD_ATTR: ['onclick', 'onchange', 'oninput'] };
 
+    let a11yIdCounter = 0;
+
+    // Accessibility enhancement applied to every rendered fragment: associate
+    // orphan .form-label elements with their control (screen-reader names), and
+    // make onclick-only div/span elements keyboard-focusable and operable.
+    function enhanceAccessibility(root) {
+        if (!root || !root.querySelectorAll) return;
+        root.querySelectorAll('label.form-label:not([for])').forEach(function (label) {
+            const group = label.closest('.form-group') || label.parentElement;
+            const control = group ? group.querySelector('input, select, textarea') : null;
+            if (control) {
+                if (!control.id) control.id = 'ctl-a11y-' + (++a11yIdCounter);
+                label.setAttribute('for', control.id);
+            }
+        });
+        root.querySelectorAll('[onclick]').forEach(function (el) {
+            const tag = el.tagName;
+            if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+            if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+        });
+    }
+
     function setTrustedHTML(element, trustedContent) {
         if (typeof DOMPurify !== 'undefined') {
             element.innerHTML = DOMPurify.sanitize(trustedContent, TRUSTED_HTML_CONFIG);
         } else {
             element.textContent = trustedContent;
         }
+        enhanceAccessibility(element);
     }
 
     // ============================================================
@@ -355,10 +391,10 @@ const App = (() => {
             + '<div class="sidebar-footer">'
             + '<a href="https://github.com/rkalani1/n-epi" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-tertiary);">GitHub</a>'
             + '<div style="display:flex;gap:6px;align-items:center;">'
-            + '<button class="theme-toggle" onclick="App.showShortcutsModal()" title="Keyboard shortcuts">'
+            + '<button class="theme-toggle" onclick="App.showShortcutsModal()" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">'
             + '<span>?</span>'
             + '</button>'
-            + '<button class="theme-toggle" onclick="App.toggleTheme()" title="Toggle theme">'
+            + '<button class="theme-toggle" onclick="App.toggleTheme()" title="Toggle theme" aria-label="Toggle light/dark theme">'
             + '<span id="theme-icon">&#9790;</span>'
             + '</button></div></div>';
 
@@ -392,11 +428,14 @@ const App = (() => {
 
         let dialog = document.createElement('div');
         dialog.className = 'cmd-palette-dialog';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        dialog.setAttribute('aria-label', 'Search modules');
 
         setTrustedHTML(dialog,
             '<div class="cmd-palette-input-wrap">'
             + '<span class="cmd-palette-search-icon">&#128269;</span>'
-            + '<input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Search modules..." autocomplete="off" />'
+            + '<input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Search modules..." autocomplete="off" aria-label="Search modules" />'
             + '<kbd class="kbd-hint" style="margin-right:4px;">esc</kbd>'
             + '</div>'
             + '<div id="cmd-palette-results" class="cmd-palette-results"></div>'
@@ -621,6 +660,9 @@ const App = (() => {
 
         let dialog = document.createElement('div');
         dialog.className = 'shortcuts-modal-dialog';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        dialog.setAttribute('aria-label', 'Keyboard shortcuts');
         setTrustedHTML(dialog, getShortcutsHTML());
 
         overlay.appendChild(dialog);

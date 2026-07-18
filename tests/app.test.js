@@ -105,6 +105,21 @@ describe('setTrustedHTML() sanitization', () => {
         const href = el.querySelector('a').getAttribute('href');
         expect(href == null || href.indexOf('javascript:') === -1).toBe(true);
     });
+
+    it('associates orphan form labels and makes onclick divs keyboard-operable', () => {
+        const el = document.createElement('div');
+
+        App.setTrustedHTML(el, '<div class="form-group"><label class="form-label">Age</label><input type="number"></div>');
+        const label = el.querySelector('label');
+        const input = el.querySelector('input');
+        expect(input.id).toBeTruthy();
+        expect(label.getAttribute('for')).toBe(input.id);
+
+        App.setTrustedHTML(el, '<div class="dashboard-module-card" onclick="App.navigate(\'home\')">Card</div>');
+        const card = el.querySelector('.dashboard-module-card');
+        expect(card.getAttribute('role')).toBe('button');
+        expect(card.getAttribute('tabindex')).toBe('0');
+    });
 });
 
 describe('Navigation structure counts', () => {
