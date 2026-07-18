@@ -271,6 +271,18 @@ const App = (() => {
         initCommandPalette();
         initSwipeGestures();
         window.addEventListener('resize', handleResize);
+
+        // Activate keyboard-focusable role="button" elements (nav links, cards)
+        // on Enter/Space, mirroring their inline onclick.
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+            const el = document.activeElement;
+            if (!el || el.getAttribute('role') !== 'button') return;
+            const tag = el.tagName;
+            if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            el.click();
+        });
     }
 
     // ============================================================
@@ -278,12 +290,61 @@ const App = (() => {
     // All rendered content comes from trusted internal constants.
     // ============================================================
 
+    // DOMPurify's default config strips ALL inline event handlers (on*),
+    // which would render every module inert since the UI is wired with inline
+    // onclick/onchange/oninput on trusted, app-generated markup. Allow exactly
+    // those three handler attributes (the only ones the app emits) so the
+    // interface works, while DOMPurify still removes <script>, javascript: URLs,
+    // and dangerous handlers like onerror. User-supplied strings are escaped at
+    // their interpolation points (see trial-database.js / biobank-cleaning.js).
+    const TRUSTED_HTML_CONFIG = { ADD_ATTR: ['onclick', 'onchange', 'oninput'] };
+
+    let a11yIdCounter = 0;
+
+    // Accessibility enhancement applied to every rendered fragment: associate
+    // orphan .form-label elements with their control (screen-reader names), and
+    // make onclick-only div/span elements keyboard-focusable and operable.
+    function enhanceAccessibility(root) {
+        if (!root || !root.querySelectorAll) return;
+        root.querySelectorAll('label.form-label:not([for])').forEach(function (label) {
+            const group = label.closest('.form-group') || label.parentElement;
+            const control = group ? group.querySelector('input, select, textarea') : null;
+            if (control) {
+                if (!control.id) control.id = 'ctl-a11y-' + (++a11yIdCounter);
+                label.setAttribute('for', control.id);
+            }
+        });
+        root.querySelectorAll('[onclick]').forEach(function (el) {
+            const tag = el.tagName;
+            if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+            if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+        });
+        // Give chart canvases an accessible name (they are otherwise invisible to
+        // screen readers). Derive a best-effort label from a nearby title or the id.
+        root.querySelectorAll('canvas:not([aria-label])').forEach(function (cv) {
+            cv.setAttribute('role', 'img');
+            let label = cv.getAttribute('data-chart-title');
+            if (!label) {
+                const container = cv.closest('.chart-container') || cv;
+                let prev = container.previousElementSibling, hops = 0;
+                while (prev && hops < 4 && !/(card-title|chart-title|result-value)/.test(prev.className || '')) {
+                    prev = prev.previousElementSibling; hops++;
+                }
+                if (prev && prev.textContent) label = prev.textContent.trim().slice(0, 80);
+            }
+            if (!label && cv.id) label = cv.id.replace(/[-_]/g, ' ');
+            cv.setAttribute('aria-label', (label || 'Chart') + ' chart (visual)');
+        });
+    }
+
     function setTrustedHTML(element, trustedContent) {
         if (typeof DOMPurify !== 'undefined') {
-            element.innerHTML = DOMPurify.sanitize(trustedContent);
+            element.innerHTML = DOMPurify.sanitize(trustedContent, TRUSTED_HTML_CONFIG);
         } else {
             element.textContent = trustedContent;
         }
+        enhanceAccessibility(element);
     }
 
     // ============================================================
@@ -297,8 +358,10 @@ const App = (() => {
 
         let html = '<div class="sidebar-header">'
             + '<div class="sidebar-logo" onclick="App.navigate(\'home\')" style="cursor:pointer;">'
-            + '<div>'
-            + '</div></div>'
+            + '<div class="sidebar-logo-icon">n</div>'
+            + '<div><span class="sidebar-logo-text">n-epi</span>'
+            + '<span class="sidebar-logo-version">v2.1</span></div>'
+            + '</div>'
             + '<button class="sidebar-cmd-k-btn" onclick="App.openCommandPalette()" title="Search modules (Cmd+K)">'
             + '<span style="opacity:0.6;">Search...</span>'
             + '<kbd class="kbd-hint">&#8984;K</kbd>'
@@ -342,12 +405,12 @@ const App = (() => {
 
         html += '</nav>'
             + '<div class="sidebar-footer">'
-            + '<a href="https://github.com/example/neuroepi-suite" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-tertiary);">GitHub</a>'
+            + '<a href="https://github.com/rkalani1/n-epi" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--text-tertiary);">GitHub</a>'
             + '<div style="display:flex;gap:6px;align-items:center;">'
-            + '<button class="theme-toggle" onclick="App.showShortcutsModal()" title="Keyboard shortcuts">'
+            + '<button class="theme-toggle" onclick="App.showShortcutsModal()" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">'
             + '<span>?</span>'
             + '</button>'
-            + '<button class="theme-toggle" onclick="App.toggleTheme()" title="Toggle theme">'
+            + '<button class="theme-toggle" onclick="App.toggleTheme()" title="Toggle theme" aria-label="Toggle light/dark theme">'
             + '<span id="theme-icon">&#9790;</span>'
             + '</button></div></div>';
 
@@ -381,11 +444,14 @@ const App = (() => {
 
         let dialog = document.createElement('div');
         dialog.className = 'cmd-palette-dialog';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        dialog.setAttribute('aria-label', 'Search modules');
 
         setTrustedHTML(dialog,
             '<div class="cmd-palette-input-wrap">'
             + '<span class="cmd-palette-search-icon">&#128269;</span>'
-            + '<input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Search modules..." autocomplete="off" />'
+            + '<input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Search modules..." autocomplete="off" aria-label="Search modules" />'
             + '<kbd class="kbd-hint" style="margin-right:4px;">esc</kbd>'
             + '</div>'
             + '<div id="cmd-palette-results" class="cmd-palette-results"></div>'
@@ -556,7 +622,7 @@ const App = (() => {
         // 1-7 — Quick switch nav groups
         if (!e.metaKey && !e.ctrlKey && !e.altKey) {
             let num = parseInt(e.key, 10);
-            if (num >= 1 && num <= 7 && num <= NAV.length) {
+            if (num >= 1 && num <= NAV.length) {
                 e.preventDefault();
                 let firstItem = NAV[num - 1].items[0];
                 if (firstItem) navigate(firstItem.id);
@@ -582,7 +648,7 @@ const App = (() => {
             + '<div class="shortcut-row"><kbd>&#8984;K</kbd><span>Open command palette</span></div>'
             + '<div class="shortcut-row"><kbd>Esc</kbd><span>Close overlay / modal</span></div>'
             + '<div class="shortcut-row"><kbd>?</kbd><span>Show this help</span></div>'
-            + '<div class="shortcut-row"><kbd>1</kbd> - <kbd>7</kbd><span>Jump to nav group</span></div>'
+            + '<div class="shortcut-row"><kbd>1</kbd> - <kbd>' + NAV.length + '</kbd><span>Jump to nav group</span></div>'
             + '<div class="shortcuts-divider"></div>'
             + '<div class="shortcut-section-title">In Command Palette</div>'
             + '<div class="shortcut-row"><kbd>&#8593;</kbd> / <kbd>&#8595;</kbd><span>Navigate results</span></div>'
@@ -590,13 +656,9 @@ const App = (() => {
             + '<div class="shortcut-row"><kbd>Esc</kbd><span>Close palette</span></div>'
             + '<div class="shortcuts-divider"></div>'
             + '<div class="shortcut-section-title">Navigation Groups</div>'
-            + '<div class="shortcut-row"><kbd>1</kbd><span>Study Design</span></div>'
-            + '<div class="shortcut-row"><kbd>2</kbd><span>Epidemiology</span></div>'
-            + '<div class="shortcut-row"><kbd>3</kbd><span>Biostatistics</span></div>'
-            + '<div class="shortcut-row"><kbd>4</kbd><span>Clinical Trials</span></div>'
-            + '<div class="shortcut-row"><kbd>5</kbd><span>Meta-Analysis</span></div>'
-            + '<div class="shortcut-row"><kbd>6</kbd><span>ML &amp; Prediction</span></div>'
-            + '<div class="shortcut-row"><kbd>7</kbd><span>Writing &amp; Productivity</span></div>'
+            + NAV.map(function (g, i) {
+                return '<div class="shortcut-row"><kbd>' + (i + 1) + '</kbd><span>' + g.title + '</span></div>';
+            }).join('')
             + '</div>';
     }
 
@@ -614,6 +676,9 @@ const App = (() => {
 
         let dialog = document.createElement('div');
         dialog.className = 'shortcuts-modal-dialog';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        dialog.setAttribute('aria-label', 'Keyboard shortcuts');
         setTrustedHTML(dialog, getShortcutsHTML());
 
         overlay.appendChild(dialog);
@@ -732,10 +797,10 @@ const App = (() => {
         let shareUrl = window.location.origin + window.location.pathname + '#' + moduleId;
         return '<div class="module-footer">'
             + '<div class="module-footer-left">'
-            + '<span class="module-footer-updated">Last updated: February 2025</span>'
+            + '<span class="module-footer-updated">Public synthetic/reference demo &mdash; not for clinical decisions</span>'
             + '</div>'
             + '<div class="module-footer-right">'
-            + '<a href="https://github.com/example/neuroepi-suite/issues/new?title=Issue+with+' + moduleId + '" target="_blank" rel="noopener" class="module-footer-link">Report Issue</a>'
+            + '<a href="https://github.com/rkalani1/n-epi/issues/new?title=Issue+with+' + moduleId + '" target="_blank" rel="noopener" class="module-footer-link">Report Issue</a>'
             + '<button class="btn btn-ghost btn-xs module-footer-share" onclick="App.shareModule(\'' + moduleId + '\')" title="Copy link">'
             + '<span style="margin-right:4px;">&#128279;</span>Share'
             + '</button>'
@@ -779,7 +844,7 @@ const App = (() => {
 
         // Hero section
         html += '<div class="dashboard-hero">'
-            + '<h1 class="dashboard-hero-title">N-Epi</h1>'
+            + '<h1 class="dashboard-hero-title">n-epi</h1>'
             + '<button class="dashboard-search-btn" onclick="App.openCommandPalette()">'
             + '<span style="opacity:0.5;margin-right:8px;">&#128269;</span>'
             + '<span>Search modules...</span>'
@@ -802,7 +867,7 @@ const App = (() => {
             + '<div class="dashboard-stat-label">Calculators</div>'
             + '</div>'
             + '<div class="dashboard-stat">'
-            + '<div class="dashboard-stat-value">7</div>'
+            + '<div class="dashboard-stat-value">' + NAV.length + '</div>'
             + '<div class="dashboard-stat-label">Categories</div>'
             + '</div>'
             + '</div>';
@@ -925,8 +990,8 @@ const App = (() => {
             + '<h2 class="dashboard-section-title">&#127881; What\'s New in v2.1</h2>'
             + '<div class="dashboard-whats-new card">'
             + '<ul class="dashboard-changelog">'
-            + '<li><strong>R Script Generation</strong> &mdash; 26 calculators now generate ready-to-run R scripts with one click</li>'
-            + '<li><strong>26 Modules</strong> &mdash; Added R Code Library, Teaching Tools, and Quick Reference</li>'
+            + '<li><strong>R Script Generation</strong> &mdash; calculators across the suite generate ready-to-run R scripts with one click</li>'
+            + '<li><strong>' + totalModules + ' Modules</strong> &mdash; Added R Code Library, Teaching Tools, Quick Reference, and Biobank Cleaning</li>'
             + '<li><strong>200+ Clinical Trials</strong> &mdash; Expanded database across 17 neurological categories</li>'
             + '<li><strong>Deeper Modules</strong> &mdash; Every module expanded with new calculators, tables, and educational content</li>'
             + '<li><strong>PRECIS-2 Tool</strong> &mdash; Pragmatic-explanatory spectrum scorer in Study Design Guide</li>'
@@ -985,6 +1050,15 @@ const App = (() => {
 
     function navigate(moduleId, pushState) {
         if (pushState === undefined) pushState = true;
+
+        // Unknown route: fall back to home instead of stranding the user on a
+        // permanent "Loading module..." stub. All real modules register at load,
+        // so anything unregistered (and not 'home') is a stray hash.
+        if (moduleId !== 'home' && (!modules[moduleId] || !modules[moduleId].render)) {
+            navigate('home', true);
+            return;
+        }
+
         if (pushState) {
             window.location.hash = moduleId;
         }
@@ -1164,11 +1238,11 @@ document.addEventListener('DOMContentLoaded', function () { App.init(); });
 
 // Global error handler — log uncaught errors gracefully
 window.onerror = function (msg, src, line, col, err) {
-    console.error('Neuro-Epi Error:', msg, 'at', src, line + ':' + col);
+    console.error('n-epi Error:', msg, 'at', src, line + ':' + col);
     return false; // let default handler run too
 };
 window.addEventListener('unhandledrejection', function (e) {
-    console.error('Neuro-Epi Unhandled Promise:', e.reason);
+    console.error('n-epi Unhandled Promise:', e.reason);
 });
 
 if (typeof module !== 'undefined' && module.exports) {

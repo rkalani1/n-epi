@@ -1,9 +1,11 @@
 /**
- * Neuro-Epi — Complete Statistical Engine
+ * n-epi — Complete Statistical Engine
  * Implements all distribution functions, hypothesis tests, sample size formulas,
  * and epidemiological calculations from scratch.
  *
- * Numerical accuracy: 7+ decimal places for distribution functions.
+ * Numerical accuracy: distribution CDFs/quantiles are accurate to ~1e-7 or
+ * better in the practical range (normalCDF uses the A&S 26.2.17 approximation,
+ * ~7.5e-8 absolute; extreme tails beyond |z|~8 are clamped).
  * References: Abramowitz & Stegun, Fleiss, Whitehead, Schoenfeld, DerSimonian-Laird
  */
 
@@ -609,36 +611,43 @@ const Statistics = (() => {
             const z = normalQuantile(0.975);
             const lnOR = Math.log(orMH);
 
-            // Breslow-Day test for homogeneity
+            // Breslow-Day test for homogeneity of the odds ratio.
+            // For each stratum the expected cell "a" under the common OR (psi=orMH)
+            // is the admissible root of the quadratic
+            //   (psi-1) a^2 - [psi(r1+c1) + (n-r1-c1)] a + psi*r1*c1 = 0
+            // (Breslow & Day 1980). Then Var(a) = (1/a + 1/b + 1/c + 1/d)^-1 on the
+            // expected cells, and BD = sum (a_obs - a_exp)^2 / Var(a).
             let bd = 0;
-            tables.forEach((t, i) => {
+            tables.forEach((t) => {
                 const n = t.a + t.b + t.c + t.d;
-                const r1 = t.a + t.b, c1 = t.a + t.c;
-                // Expected a under common OR
-                const A = orMH - 1;
-                const B = -(r1 + c1 + (r1 * (orMH - 1) + n + c1));
-                // Solve quadratic for expected a
-                // Simplified: use iterative approach
-                let aExp = t.a;
-                for (let iter = 0; iter < 50; iter++) {
-                    const bExp = r1 - aExp;
-                    const cExp = c1 - aExp;
-                    const dExp = n - r1 - cExp;
-                    if (bExp <= 0 || cExp <= 0 || dExp <= 0) break;
-                    const orExp = (aExp * dExp) / (bExp * cExp);
-                    const f = orExp - orMH;
-                    const deriv = dExp / (bExp * cExp) + aExp / (bExp * cExp) +
-                                  aExp * dExp / (bExp * bExp * cExp) + aExp * dExp / (bExp * cExp * cExp);
-                    // Simplified Newton
-                    const correction = f / (1/aExp + 1/bExp + 1/cExp + 1/dExp);
-                    aExp -= f / (1/aExp + 1/bExp + 1/cExp + 1/dExp) * (aExp*bExp*cExp*dExp/(aExp*dExp + bExp*cExp));
-                    if (aExp < 0.5) aExp = 0.5;
-                    if (aExp > Math.min(r1, c1) - 0.5) aExp = Math.min(r1, c1) - 0.5;
+                const r1 = t.a + t.b;   // row-1 (exposed) total
+                const c1 = t.a + t.c;   // col-1 (case) total
+                const psi = orMH;
+                let aExp;
+                if (Math.abs(psi - 1) < 1e-9) {
+                    aExp = r1 * c1 / n; // independence
+                } else {
+                    const A = psi - 1;
+                    const B = -(psi * (r1 + c1) + (n - r1 - c1));
+                    const C = psi * r1 * c1;
+                    const disc = Math.sqrt(Math.max(0, B * B - 4 * A * C));
+                    const root1 = (-B + disc) / (2 * A);
+                    const root2 = (-B - disc) / (2 * A);
+                    const lo = Math.max(0, r1 + c1 - n);
+                    const hi = Math.min(r1, c1);
+                    const inRange = (x) => x >= lo - 1e-7 && x <= hi + 1e-7;
+                    if (inRange(root1) && (!inRange(root2) ||
+                        Math.abs(root1 - t.a) <= Math.abs(root2 - t.a))) {
+                        aExp = root1;
+                    } else {
+                        aExp = root2;
+                    }
                 }
                 const bExp = r1 - aExp;
                 const cExp = c1 - aExp;
                 const dExp = n - r1 - cExp;
-                const varA = 1 / (1/aExp + 1/bExp + 1/cExp + 1/dExp);
+                if (aExp <= 0 || bExp <= 0 || cExp <= 0 || dExp <= 0) return;
+                const varA = 1 / (1 / aExp + 1 / bExp + 1 / cExp + 1 / dExp);
                 bd += Math.pow(t.a - aExp, 2) / varA;
             });
             const bdPValue = 1 - chiSquaredCDF(bd, k - 1);
@@ -663,15 +672,8 @@ const Statistics = (() => {
             });
             const rrMH = sumA / sumB;
 
-            // Greenland-Robins variance
-            let varNum = 0;
-            tables.forEach(t => {
-                const n = t.a + t.b + t.c + t.d;
-                const r1 = t.a + t.b, r2 = t.c + t.d;
-                varNum += (t.a * t.d * r1 + t.c * t.b * r2 - t.a * t.c * n) / (n * n) +
-                          (r1 * r2 * (t.a * t.d - t.b * t.c)) / (n * n * n);
-            });
-            // Simplified variance estimate
+            // Greenland-Robins variance of ln(RR_MH):
+            //   var = sum[ (r1*r2*(a+c) - a*c*n) / n^2 ] / (sumA * sumB)
             let P = 0;
             tables.forEach(t => {
                 const n = t.a + t.b + t.c + t.d;
@@ -771,6 +773,9 @@ const Statistics = (() => {
     }
 
     // Survival — Freedman
+    // Total number of events = (z_a + z_b)^2 * (1 + ratio*HR)^2 / (ratio * (1 - HR)^2),
+    // where ratio is the allocation ratio (n2/n1). Reduces to
+    // ((HR+1)/(HR-1))^2 * (z_a + z_b)^2 for 1:1 allocation.
     function sampleSizeFreedman(hr, alpha, power, ratio) {
         alpha = alpha || 0.05;
         power = power || 0.80;
@@ -778,9 +783,9 @@ const Statistics = (() => {
 
         const za = normalQuantile(1 - alpha / 2);
         const zb = normalQuantile(power);
-        const p = ratio / (1 + ratio);
 
-        const events = Math.pow(za + zb, 2) / (p * (1 - p) * Math.pow(hr - 1, 2) / Math.pow(hr + 1, 2));
+        const events = Math.pow(za + zb, 2) * Math.pow(1 + ratio * hr, 2) /
+            (ratio * Math.pow(1 - hr, 2));
         return { events: Math.ceil(events) };
     }
 
@@ -798,13 +803,16 @@ const Statistics = (() => {
         return { n1: Math.ceil(n1), n2: Math.ceil(n1 * ratio), total: Math.ceil(n1) + Math.ceil(n1 * ratio) };
     }
 
-    // Equivalence — proportions
+    // Equivalence — proportions (two one-sided tests).
+    // At a true difference of zero the design can be rejected in either
+    // direction, so the power term uses z_{1-beta/2}, not z_{1-beta}
+    // (Chow, Shao & Wang; Julious 2004). Using z_{1-beta} under-powers the study.
     function sampleSizeEquivalence(p1, margin, alpha, power) {
         alpha = alpha || 0.025;
         power = power || 0.80;
 
         const za = normalQuantile(1 - alpha);
-        const zb = normalQuantile(power);
+        const zb = normalQuantile(1 - (1 - power) / 2);
         const n = Math.pow(za + zb, 2) * 2 * p1 * (1 - p1) / (margin * margin);
         return { n1: Math.ceil(n), n2: Math.ceil(n), total: 2 * Math.ceil(n) };
     }
@@ -845,14 +853,40 @@ const Statistics = (() => {
         power = power || 0.80;
 
         // Whitehead method for ordinal data under proportional odds
-        // N = 6 * (z_alpha/2 + z_beta)^2 / (log(OR)^2 * (1 - sum(pi^3)))
+        // N = 6 * (z_alpha/2 + z_beta)^2 / (log(OR)^2 * (1 - sum(pBar_i^3)))
+        // where pBar_i is the MEAN of the two arms' category probabilities.
         const za = normalQuantile(1 - alpha / 2);
         const zb = normalQuantile(power);
 
-        // Using control distribution to compute the non-centrality factor
+        // Derive the treatment distribution from the control distribution under
+        // proportional odds (odds_treat(Y<=k) = OR * odds_control(Y<=k)) unless a
+        // treatment distribution is supplied directly.
+        let tDist;
+        if (treatDist && treatDist.length === controlDist.length) {
+            tDist = treatDist;
+        } else {
+            tDist = [];
+            let cum = 0, prevT = 0;
+            for (let i = 0; i < controlDist.length; i++) {
+                cum += controlDist[i];
+                let T;
+                if (i === controlDist.length - 1) {
+                    T = 1;
+                } else {
+                    const oddsC = cum / (1 - cum);
+                    const oddsT = commonOR * oddsC;
+                    T = oddsT / (1 + oddsT);
+                }
+                tDist.push(T - prevT);
+                prevT = T;
+            }
+        }
+
+        // Non-centrality factor from the average category proportions.
         let sumPiCubed = 0;
         for (let i = 0; i < controlDist.length; i++) {
-            sumPiCubed += Math.pow(controlDist[i], 3);
+            const pBar = (controlDist[i] + tDist[i]) / 2;
+            sumPiCubed += Math.pow(pBar, 3);
         }
 
         const lnOR = Math.log(commonOR);
@@ -864,13 +898,18 @@ const Statistics = (() => {
             commonOR,
             lnOR,
             controlDist,
-            treatDist
+            treatDist: tDist
         };
     }
 
-    // Multi-arm with Bonferroni correction
-    function sampleSizeMultiArm(nPerGroup_2arm, nArms, correction) {
+    // Multi-arm with Bonferroni / approximate-Dunnett correction.
+    // N scales with (z_alpha/2 + z_beta)^2; only the significance level changes
+    // with the multiplicity adjustment, so the two-arm N is rescaled by
+    // (z_adj + z_beta)^2 / (z_0.975 + z_beta)^2 (power is required — scaling the
+    // whole N by the alpha-ratio alone over-inflates the z_beta component).
+    function sampleSizeMultiArm(nPerGroup_2arm, nArms, correction, power) {
         correction = correction || 'bonferroni';
+        power = power || 0.80;
         let adjustedAlpha;
         if (correction === 'bonferroni') {
             adjustedAlpha = 0.05 / (nArms - 1);
@@ -881,15 +920,18 @@ const Statistics = (() => {
             adjustedAlpha = 0.05;
         }
 
-        const za = normalQuantile(1 - adjustedAlpha / 2);
-        const ratio = za / normalQuantile(0.975);
-        const adjustedN = Math.ceil(nPerGroup_2arm * ratio * ratio);
+        const zb = normalQuantile(power);
+        const zaAdj = normalQuantile(1 - adjustedAlpha / 2);
+        const zaOrig = normalQuantile(0.975);
+        const factor = Math.pow(zaAdj + zb, 2) / Math.pow(zaOrig + zb, 2);
+        const adjustedN = Math.ceil(nPerGroup_2arm * factor);
 
         return {
             nPerArm: adjustedN,
             totalN: adjustedN * nArms,
             adjustedAlpha,
-            correction
+            correction,
+            power
         };
     }
 
@@ -1129,13 +1171,17 @@ const Statistics = (() => {
             seRE *= Math.sqrt(qHKSJ);
         }
 
-        const z = normalQuantile(0.975);
+        // Critical value / p-value reference: the Hartung-Knapp-Sidik-Jonkman
+        // adjustment uses a t_{k-1} reference (matching its inflated SE); the
+        // standard DerSimonian-Laird random-effects model uses the normal.
+        const useT = hksj && k > 1;
+        const crit = useT ? tQuantile(0.975, k - 1) : normalQuantile(0.975);
+        const zStat = pooledRE / seRE;
+        const pVal = useT
+            ? 2 * (1 - tCDF(Math.abs(zStat), k - 1))
+            : 2 * (1 - normalCDF(Math.abs(zStat)));
 
-        // I² CI (Higgins & Thompson)
-        const B = 0.5 * (Math.log(Q) - Math.log(df)) / (Math.sqrt(2 * Q) - Math.sqrt(2 * df - 1));
-        const I2Lower = Math.max(0, (Math.exp(0.5 * Math.log(Q / df) - 1.96 * B) - 1) / (Math.exp(0.5 * Math.log(Q / df) - 1.96 * B)));
-
-        // Prediction interval
+        // Prediction interval (IntHout et al. 2016): t_{k-2} reference.
         const tVal = k > 2 ? tQuantile(0.975, k - 2) : normalQuantile(0.975);
         const predSE = Math.sqrt(seRE * seRE + tau2);
         const predInterval = {
@@ -1146,9 +1192,9 @@ const Statistics = (() => {
         return {
             pooled: pooledRE,
             se: seRE,
-            ci: { lower: pooledRE - z * seRE, upper: pooledRE + z * seRE },
-            z: pooledRE / seRE,
-            pValue: 2 * (1 - normalCDF(Math.abs(pooledRE / seRE))),
+            ci: { lower: pooledRE - crit * seRE, upper: pooledRE + crit * seRE },
+            z: zStat,
+            pValue: pVal,
             Q, df, pHet,
             I2, H2, tau2,
             predInterval,
@@ -1275,7 +1321,10 @@ const Statistics = (() => {
         const ma = metaAnalysisRandomEffects(effects, variances);
         const center = ma.pooled;
 
-        // Rank-based method (R0)
+        // L0 estimator (Duval & Tweedie): rank the absolute residuals, sum the
+        // ranks of the right-side (positive-residual) studies, and estimate the
+        // number of missing studies. NB: this is a single-pass estimate, not the
+        // full iterative trim/re-centre/re-estimate loop.
         const residuals = effects.map(e => e - center);
         const absRes = residuals.map(Math.abs);
         const ranks = absRes.map((v, i) => ({ v, i }))
@@ -1283,11 +1332,8 @@ const Statistics = (() => {
             .map((item, rank) => ({ ...item, rank: rank + 1 }))
             .sort((a, b) => a.i - b.i);
 
-        // Count studies on right side that are "extra"
-        let T = 0;
         const rightSide = residuals.map((r, i) => r > 0 ? ranks[i].rank : 0);
         const S = rightSide.reduce((a, b) => a + b, 0);
-        const expectedS = k * (k + 1) / 4;
         const k0 = Math.round(Math.max(0, (4 * S - k * (k + 1)) / (2 * k - 1)));
 
         // Generate imputed studies
@@ -1318,17 +1364,12 @@ const Statistics = (() => {
     function subgroupAnalysis(effects, variances, groups) {
         const uniqueGroups = [...new Set(groups)];
         const subResults = {};
-        const betweenGroupEffects = [];
-        const betweenGroupVariances = [];
 
         uniqueGroups.forEach(g => {
             const idx = groups.map((gr, i) => gr === g ? i : -1).filter(i => i >= 0);
             const e = idx.map(i => effects[i]);
             const v = idx.map(i => variances[i]);
-            const ma = metaAnalysisRandomEffects(e, v);
-            subResults[g] = ma;
-            betweenGroupEffects.push(ma.pooled);
-            betweenGroupVariances.push(ma.se * ma.se);
+            subResults[g] = metaAnalysisRandomEffects(e, v);
         });
 
         // Between-group Q test
@@ -1380,10 +1421,16 @@ const Statistics = (() => {
 
                 if (nEvents > 0) {
                     survival *= (1 - nEvents / nRisk);
-                    greenwood += nEvents / (nRisk * (nRisk - nEvents));
+                    // Skip the Greenwood term when everyone at risk has an event
+                    // (nRisk === nEvents): the term is undefined (÷0) and survival
+                    // becomes 0, so its variance is taken as 0.
+                    if (nRisk > nEvents) {
+                        greenwood += nEvents / (nRisk * (nRisk - nEvents));
+                    }
                 }
 
-                const se = survival * Math.sqrt(greenwood);
+                // Guard the 0 * Infinity case so SE is 0 (not NaN) once S(t) = 0.
+                const se = survival > 0 ? survival * Math.sqrt(greenwood) : 0;
                 // Log-log CI
                 let ciLower, ciUpper;
                 if (survival > 0 && survival < 1) {
@@ -1550,27 +1597,34 @@ const Statistics = (() => {
         return { preTestProb, postTestProbPos, postTestProbNeg, preTestOdds, postTestOddsPos, postTestOddsNeg };
     }
 
-    // AUC by trapezoidal rule
-    function aucTrapezoidal(sensitivities, specificities) {
-        // Points should be sorted by 1-specificity
-        const len = specificities.length;
-        const points = new Array(len);
+    // AUC by the trapezoidal rule over the ROC points.
+    // The (0,0) and (1,1) endpoints are always included so the estimate spans
+    // the full [0,1] FPR range and matches the plotted curve; omitting them
+    // badly under-estimates the AUC when only interior thresholds are supplied.
+    // The Hanley-McNeil SE/CI need the number of diseased (nPos) and
+    // non-diseased (nNeg) SUBJECTS — not the number of ROC points. When those
+    // counts are unavailable no valid interval exists, so ci/se are returned null.
+    function aucTrapezoidal(sensitivities, specificities, nPos, nNeg) {
+        const len = Math.min(sensitivities.length, specificities.length);
+        const points = [{ fpr: 0, tpr: 0 }, { fpr: 1, tpr: 1 }];
         for (let i = 0; i < len; i++) {
-            points[i] = { fpr: 1 - specificities[i], tpr: sensitivities[i] };
+            points.push({ fpr: 1 - specificities[i], tpr: sensitivities[i] });
         }
-        points.sort((a, b) => a.fpr - b.fpr);
+        points.sort((a, b) => (a.fpr - b.fpr) || (a.tpr - b.tpr));
 
         let auc = 0;
         for (let i = 1; i < points.length; i++) {
             auc += (points[i].fpr - points[i - 1].fpr) * (points[i].tpr + points[i - 1].tpr) / 2;
         }
 
-        // SE via Hanley-McNeil
-        const n1 = sensitivities.length; // Approximate
-        const n2 = specificities.length;
+        // Hanley-McNeil SE requires real case counts, not the number of points.
+        if (!(nPos > 0 && nNeg > 0)) {
+            return { auc, se: null, ci: null };
+        }
         const Q1 = auc / (2 - auc);
         const Q2 = 2 * auc * auc / (1 + auc);
-        const se = Math.sqrt((auc * (1 - auc) + (n1 - 1) * (Q1 - auc * auc) + (n2 - 1) * (Q2 - auc * auc)) / (n1 * n2));
+        const se = Math.sqrt((auc * (1 - auc) + (nPos - 1) * (Q1 - auc * auc) +
+            (nNeg - 1) * (Q2 - auc * auc)) / (nPos * nNeg));
         const z = normalQuantile(0.975);
 
         return { auc, se, ci: { lower: Math.max(0, auc - z * se), upper: Math.min(1, auc + z * se) } };
@@ -1606,12 +1660,26 @@ const Statistics = (() => {
         // Newcombe CI for RD
         const rdNewcombe = newcombeCI(p1, a + b, p2, c + d, z);
 
-        // NNT
+        // NNT / NNH from the risk difference (rd = risk_exposed - risk_unexposed,
+        // so rd > 0 indicates harm in the exposed group). When the RD CI crosses
+        // zero the NNT interval is discontinuous (Altman 1998, BMJ): it runs from
+        // a finite benefit NNT out to infinity and from infinity in to a finite
+        // harm NNT, so no single finite interval is reported.
         const nnt = rd !== 0 ? 1 / Math.abs(rd) : Infinity;
-        const nntCI = rd !== 0 ? {
-            lower: rdCI.upper !== 0 ? 1 / Math.abs(rdCI.upper) : Infinity,
-            upper: rdCI.lower !== 0 ? 1 / Math.abs(rdCI.lower) : Infinity
-        } : { lower: Infinity, upper: Infinity };
+        let nntCI;
+        if (rdCI.lower <= 0 && rdCI.upper >= 0) {
+            nntCI = {
+                crossesZero: true,
+                nntHarm: rdCI.upper > 0 ? 1 / rdCI.upper : Infinity,
+                nntBenefit: rdCI.lower < 0 ? 1 / Math.abs(rdCI.lower) : Infinity
+            };
+        } else {
+            nntCI = {
+                crossesZero: false,
+                lower: 1 / Math.abs(rdCI.upper),
+                upper: 1 / Math.abs(rdCI.lower)
+            };
+        }
 
         // Chi-squared
         const chi2 = chiSquaredTest2x2(a, b, c, d);
@@ -1628,44 +1696,48 @@ const Statistics = (() => {
             rr: { value: rr, ci: rrCI, seLnRR },
             or: { value: or, ci: orCI, seLnOR },
             rd: { value: rd, ci: rdCI, seRD, newcombe: rdNewcombe },
-            nnt: { value: rd > 0 ? nnt : -nnt, ci: nntCI, isHarm: rd < 0 },
+            nnt: { value: nnt, ci: nntCI, isHarm: rd > 0 },
             chi2, chi2Yates, fisher,
             afExposed, paf,
             counts: { a, b, c, d, n }
         };
     }
 
-    // Fragility index
+    // Fragility index (Walsh et al. 2014): the fewest patient-outcome changes,
+    // within a single arm, needed to make a significant result non-significant.
+    // Minimised over both arms and both flip directions (the previous version
+    // only tried one direction and could overestimate the index).
     function fragilityIndex(a, b, c, d) {
-        let fragility = 0;
-        let modA = a, modB = b, modC = c, modD = d;
-        let currentP = fisherExact(a, b, c, d).pValue;
-
-        if (currentP >= 0.05) return { index: 0, message: 'Result is already non-significant' };
-
-        // Determine which cell to modify (move events from smaller p arm to non-events)
-        const p1 = a / (a + b);
-        const p2 = c / (c + d);
-
-        while (currentP < 0.05 && fragility < 1000) {
-            if (p1 > p2) {
-                modA--;
-                modB++;
-            } else {
-                modC--;
-                modD++;
-            }
-            if (modA < 0 || modC < 0) break;
-            fragility++;
-            currentP = fisherExact(modA, modB, modC, modD).pValue;
+        const originalP = fisherExact(a, b, c, d).pValue;
+        if (originalP >= 0.05) {
+            return { index: 0, originalP, modifiedP: originalP, modifiedTable: { a, b, c, d }, message: 'Result is already non-significant' };
         }
 
-        return {
-            index: fragility,
-            originalP: fisherExact(a, b, c, d).pValue,
-            modifiedP: currentP,
-            modifiedTable: { a: modA, b: modB, c: modC, d: modD }
-        };
+        const moves = [
+            { arm: 'group 1 (event to non-event)', da: -1, db: 1, dc: 0, dd: 0 },
+            { arm: 'group 1 (non-event to event)', da: 1, db: -1, dc: 0, dd: 0 },
+            { arm: 'group 2 (event to non-event)', da: 0, db: 0, dc: -1, dd: 1 },
+            { arm: 'group 2 (non-event to event)', da: 0, db: 0, dc: 1, dd: -1 }
+        ];
+
+        let best = Infinity, bestTable = null, bestP = originalP, bestArm = null;
+        moves.forEach(m => {
+            let A = a, B = b, C = c, D = d, steps = 0, p = originalP;
+            while (p < 0.05 && steps < 1000) {
+                A += m.da; B += m.db; C += m.dc; D += m.dd;
+                if (A < 0 || B < 0 || C < 0 || D < 0) { steps = Infinity; break; }
+                steps++;
+                p = fisherExact(A, B, C, D).pValue;
+            }
+            if (p >= 0.05 && steps < best) {
+                best = steps; bestTable = { a: A, b: B, c: C, d: D }; bestP = p; bestArm = m.arm;
+            }
+        });
+
+        if (!isFinite(best)) {
+            return { index: null, originalP, message: 'Could not reach non-significance by single-arm changes' };
+        }
+        return { index: best, originalP, modifiedP: bestP, modifiedTable: bestTable, arm: bestArm };
     }
 
     // Additive interaction measures

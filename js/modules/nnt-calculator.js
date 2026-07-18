@@ -223,23 +223,28 @@
     // RESULTS
     // ================================================================
 
-    function formatNNTCI(rdLower, rdUpper) {
-        if (rdLower <= 0 && rdUpper >= 0) {
-            if (rdLower < 0 && rdUpper > 0) {
-                return 'NNTB ' + Math.ceil(1 / Math.abs(rdLower)) + ' to \u221E to NNTH ' + Math.ceil(1 / rdUpper);
+    // arrLower/arrUpper are bounds on the absolute risk reduction (CER - EER),
+    // where positive = benefit. When the CI includes 0 the NNT interval is
+    // discontinuous (Altman 1998, BMJ): NNTB ... to infinity to NNTH ...
+    function formatNNTCI(arrLower, arrUpper) {
+        if (arrLower <= 0 && arrUpper >= 0) {
+            if (arrLower < 0 && arrUpper > 0) {
+                return 'NNTB ' + Math.ceil(1 / arrUpper) + ' to \u221E to NNTH ' + Math.ceil(1 / Math.abs(arrLower));
             }
-            if (rdLower < 0 && rdUpper === 0) {
-                return 'NNTB ' + Math.ceil(1 / Math.abs(rdLower)) + ' to \u221E';
+            if (arrLower < 0 && arrUpper === 0) {
+                return 'NNTH ' + Math.ceil(1 / Math.abs(arrLower)) + ' to \u221E';
             }
-            if (rdLower === 0 && rdUpper > 0) {
-                return '\u221E to NNTH ' + Math.ceil(1 / rdUpper);
+            if (arrLower === 0 && arrUpper > 0) {
+                return 'NNTB ' + Math.ceil(1 / arrUpper) + ' to \u221E';
             }
             return '\u221E';
         }
-        var nntLo = Math.ceil(1 / Math.abs(rdUpper));
-        var nntHi = Math.ceil(1 / Math.abs(rdLower));
-        var prefix = rdLower > 0 ? 'NNTH' : 'NNTB';
-        return prefix + ' ' + nntLo + ' to ' + nntHi;
+        if (arrLower > 0) {
+            // Entirely beneficial: NNTB from the tighter (upper ARR) to wider bound.
+            return 'NNTB ' + Math.ceil(1 / arrUpper) + ' to ' + Math.ceil(1 / arrLower);
+        }
+        // Entirely harmful (arrUpper < 0): NNTH, ascending.
+        return 'NNTH ' + Math.ceil(1 / Math.abs(arrLower)) + ' to ' + Math.ceil(1 / Math.abs(arrUpper));
     }
 
     function showResults(a, b, c, d, pubInfo) {
@@ -781,6 +786,7 @@
         calcNNTOverTime: calcNNTOverTime,
         // Exported for testing
         _ratesTo2x2: ratesTo2x2,
-        _publishedTo2x2: publishedTo2x2
+        _publishedTo2x2: publishedTo2x2,
+        _formatNNTCI: formatNNTCI
     };
 })();

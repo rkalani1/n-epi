@@ -1,7 +1,7 @@
 /**
  * Neuro-Epi — Effect Size Converter Module
  * Input any effect measure with CI -> compute all others.
- * Conversions: OR <-> RR <-> RD <-> Cohen's d <-> Hedge's g <-> log-OR <-> log-RR
+ * Conversions: OR <-> RR <-> RD <-> Cohen's d <-> Hedges' g <-> log-OR <-> log-RR
  * Interpretive labels, common OR shift visualization, copy buttons.
  *
  * Enhanced: NNT from effect sizes, overlapping normal curves, expanded benchmarks,
@@ -63,7 +63,7 @@
             + '<input type="number" class="form-input" id="es_hi" name="es_hi" step="0.01" value="2.05"></div>'
             + '</div>';
 
-        // Optional sample sizes for Hedge's g correction
+        // Optional sample sizes for Hedges' g correction
         html += '<div class="form-row form-row--2" id="es-n-row">'
             + '<div class="form-group"><label class="form-label">N group 1 (for Hedge\'s g correction) ' + App.tooltip('Optional. Used to compute the small-sample correction factor for Hedge\'s g.') + '</label>'
             + '<input type="number" class="form-input" id="es_n1" name="es_n1" step="1" min="2" value="100"></div>'
@@ -147,8 +147,8 @@
         html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
             + '<div><strong>Cohen\'s d:</strong> d = (M\u2081 \u2212 M\u2082) / SD<sub>pooled</sub></div>'
             + '<div><strong>Hedge\'s g:</strong> g = d \u00D7 (1 \u2212 3/(4(n\u2081+n\u2082)\u22129))</div>'
-            + '<div><strong>OR \u2192 d:</strong> d = ln(OR) \u00D7 \u221A3 / \u03C0  \u2248 ln(OR) / 1.81</div>'
-            + '<div><strong>d \u2192 OR:</strong> OR = exp(d \u00D7 \u03C0 / \u221A3) \u2248 exp(1.81 \u00D7 d)</div>'
+            + '<div><strong>OR \u2192 d:</strong> d = ln(OR) / 1.81 (Chinn 2000)</div>'
+            + '<div><strong>d \u2192 OR:</strong> OR = exp(1.81 \u00D7 d)</div>'
             + '<div><strong>OR \u2192 RR:</strong> RR = OR / (1 \u2212 P\u2080 + P\u2080 \u00D7 OR) [Zhang & Yu]</div>'
             + '<div><strong>RD:</strong> P\u2081 \u2212 P\u2080 (= EER \u2212 CER)</div>'
             + '<div><strong>NNT:</strong> 1 / |RD|</div>'
@@ -266,7 +266,7 @@
                 return null;
         }
 
-        // Hedge's g
+        // Hedges' g
         var n1 = parseInt(document.getElementById('es_n1').value, 10) || 100;
         var n2 = parseInt(document.getElementById('es_n2').value, 10) || 100;
         var gVal = Statistics.dToHedgesG(dVal, n1, n2);
@@ -382,21 +382,22 @@
         if (ciLow && ciHigh) {
             var rdLo = Math.min(ciLow.rd, ciHigh.rd);
             var rdHi = Math.max(ciLow.rd, ciHigh.rd);
+            // rdLo/rdHi are absolute-risk-reduction bounds (positive = benefit).
+            // A CI that includes 0 gives a discontinuous NNT interval (Altman 1998).
             if (rdLo <= 0 && rdHi >= 0) {
                 if (rdLo < 0 && rdHi > 0) {
-                    nntCIStr = 'NNTB ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E to NNTH ' + Math.ceil(1 / rdHi);
+                    nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to \u221E to NNTH ' + Math.ceil(1 / Math.abs(rdLo));
                 } else if (rdLo < 0 && rdHi === 0) {
-                    nntCIStr = 'NNTB ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E';
+                    nntCIStr = 'NNTH ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E';
                 } else if (rdLo === 0 && rdHi > 0) {
-                    nntCIStr = '\u221E to NNTH ' + Math.ceil(1 / rdHi);
+                    nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to \u221E';
                 } else {
                     nntCIStr = '\u221E';
                 }
+            } else if (rdLo > 0) {
+                nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to ' + Math.ceil(1 / rdLo);
             } else {
-                var nntCILo = Math.ceil(1 / Math.abs(rdHi));
-                var nntCIHi = Math.ceil(1 / Math.abs(rdLo));
-                var ciPrefix = rdLo > 0 ? 'NNTH' : 'NNTB';
-                nntCIStr = ciPrefix + ' ' + nntCILo + ' to ' + nntCIHi;
+                nntCIStr = 'NNTH ' + Math.ceil(1 / Math.abs(rdLo)) + ' to ' + Math.ceil(1 / Math.abs(rdHi));
             }
         }
 

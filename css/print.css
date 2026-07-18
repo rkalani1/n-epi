@@ -1,5 +1,24 @@
-/* Neuro-Epi — Print Stylesheet */
+/* n-epi — Print Stylesheet */
 @media print {
+    /* Neutralise the dark theme for print: redefine the design tokens so any
+       element coloured via a CSS variable prints as dark text on white paper
+       (the app boots data-theme="dark", so this is the default print path). */
+    :root,
+    html[data-theme="dark"],
+    html[data-theme="light"] {
+        --bg-base: #fff;
+        --bg-surface: #fff;
+        --bg-elevated: #f5f5f5;
+        --bg-hover: #eee;
+        --text-primary: #000;
+        --text-secondary: #222;
+        --text-tertiary: #444;
+        --accent: #0b5b6b;
+        --accent-muted: #e6f6f9;
+        --border: #ccc;
+        --border-strong: #999;
+    }
+
     body {
         background: white;
         color: #000;
@@ -12,6 +31,7 @@
     .mobile-nav,
     .mobile-header,
     .sidebar-overlay,
+    .skip-link,
     .btn,
     .r-script-btn,
     .theme-toggle,
@@ -20,8 +40,8 @@
     .filter-tags,
     .search-box,
     .ne-toast,
-    .command-palette-overlay,
-    .shortcuts-modal,
+    .cmd-palette-overlay,
+    .shortcuts-modal-overlay,
     .breadcrumbs,
     .module-footer,
     .r-script-overlay,
@@ -109,10 +129,16 @@
         page-break-inside: avoid;
     }
 
-    /* Charts */
+    /* Charts — force a light backing and print the raster so charts aren't
+       dropped as ink-heavy dark rectangles. (A full light re-render of the
+       canvas pixels requires a beforeprint JS hook; this is the CSS fallback.) */
     canvas {
         max-width: 100%;
         page-break-inside: avoid;
+        background: #fff !important;
+        border: 1px solid #ccc;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
     .chart-container {
@@ -139,12 +165,21 @@
         color: #333;
     }
 
-    /* Form elements (read-only print) */
-    .form-input, .form-select {
-        border: 1px solid #ccc;
-        background: #fafafa;
+    /* Form elements (read-only print) — force dark text so entered values
+       (e.g. the diagnostic 2x2 counts and sample-size inputs) are legible. */
+    .form-input, .form-select, textarea.form-input,
+    .table-2x2 input, input, select, textarea {
+        color: #000 !important;
+        background: #fff !important;
+        border: 1px solid #999 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+    }
+
+    /* Accent-coloured result values would be near-invisible cyan on white. */
+    .result-item-value, .result-value--small,
+    .trial-card-name {
+        color: #000 !important;
     }
 
     /* Text outputs */
@@ -167,7 +202,7 @@
     @page {
         margin: 1.5cm;
         @bottom-center {
-            content: "Neuro-Epi Suite — neuroepi-suite.github.io";
+            content: "n-epi — rkalani1.github.io/n-epi";
             font-size: 8pt;
             color: #999;
         }

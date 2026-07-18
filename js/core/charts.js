@@ -1,5 +1,5 @@
 /**
- * Neuro-Epi — Canvas Charting Library
+ * n-epi — Canvas Charting Library
  * Publication-quality charts: Forest plots, KM curves, funnel plots, etc.
  * All charts are Retina-aware, theme-aware, and exportable as PNG.
  */

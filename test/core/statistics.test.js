@@ -302,11 +302,12 @@ describe('Statistics Module', () => {
             expect(result.rd.ci.lower).toBeCloseTo(0.00200, 5);
             expect(result.rd.ci.upper).toBeCloseTo(0.19800, 5);
 
-            // NNT
+            // NNT — exposed risk (0.2) exceeds unexposed (0.1), so rd > 0 is HARM.
             expect(result.nnt.value).toBeCloseTo(10, 5);
+            expect(result.nnt.ci.crossesZero).toBe(false);
             expect(result.nnt.ci.lower).toBeCloseTo(5.05055, 5);
             expect(result.nnt.ci.upper).toBeCloseTo(499.55023, 5);
-            expect(result.nnt.isHarm).toBe(false);
+            expect(result.nnt.isHarm).toBe(true);
 
             // Attributable Fractions
             expect(result.afExposed).toBeCloseTo(0.5, 5);
@@ -316,21 +317,21 @@ describe('Statistics Module', () => {
             expect(result.counts).toEqual({ a: 20, b: 80, c: 10, d: 90, n: 200 });
         });
 
-        test('handles negative risk difference and NNT as harm', () => {
+        test('handles a protective exposure (negative risk difference) as benefit', () => {
             const result = Statistics.twoByTwo(10, 90, 20, 80);
 
             expect(result.rd.value).toBeCloseTo(-0.1, 5);
-            expect(result.nnt.value).toBeCloseTo(-10, 5); // When rd < 0, nnt value should be negative representation
-            expect(result.nnt.isHarm).toBe(true);
+            // Value is the NNT magnitude; the direction is carried by isHarm.
+            expect(result.nnt.value).toBeCloseTo(10, 5);
+            expect(result.nnt.isHarm).toBe(false);
         });
 
-        test('handles zero risk difference (Infinity NNT)', () => {
+        test('handles zero risk difference (Infinity NNT, CI crosses zero)', () => {
             const result = Statistics.twoByTwo(10, 90, 10, 90);
 
             expect(result.rd.value).toBeCloseTo(0, 5);
-            expect(result.nnt.value).toBe(-Infinity);
-            expect(result.nnt.ci.lower).toBe(Infinity);
-            expect(result.nnt.ci.upper).toBe(Infinity);
+            expect(result.nnt.value).toBe(Infinity);
+            expect(result.nnt.ci.crossesZero).toBe(true);
             expect(result.nnt.isHarm).toBe(false);
         });
 

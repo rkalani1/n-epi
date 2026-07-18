@@ -1,0 +1,54 @@
+# n-epi
+
+A static, client-side reference tool for epidemiology, biostatistics, and
+clinical research methods. No accounts, no server, no tracking; runs fully in
+the browser. Results render as on-page HTML tables and text alongside canvas
+charts. Single-page app with hash routing (append #module-id to the site URL).
+
+## Data boundary
+
+Public, synthetic, aggregate, or de-identified examples only. Do not enter PHI,
+patient identifiers, limited datasets, restricted research data, learner
+records, credentials, or confidential institutional data. Not a substitute for a
+biostatistician's review, and not for clinical decision-making or patient care.
+
+## Study Design
+- Sample Size (#sample-size): sample-size calculators for 8 designs.
+- Power Analysis (#power-analysis): power from N, curves, comparisons.
+- Hypothesis Builder (#hypothesis-builder): PICO/PECO, analysis plans.
+- Design Guide (#study-design-guide): study-design selection and references.
+
+## Epidemiology
+- Epi Calculators (#epidemiology-calcs): 2x2, stratified analysis, rates, SMR.
+- Epi Concepts (#epi-concepts): frequency, association, impact, validity.
+- Causal Inference (#causal-inference): Bradford Hill, DAGs, counterfactuals.
+
+## Biostatistics
+- Effect Sizes (#effect-size): OR/RR/RD/d/g conversions.
+- NNT / NNH (#nnt-calculator): NNT/NNH from rates, 2x2, or OR/RR.
+- Diagnostic Accuracy (#diagnostic-accuracy): 2x2, Wilson CIs, Fagan, ROC.
+- Regression Planning (#regression-helper): model selection, EPV, DAGs.
+- Survival Analysis (#survival-analysis): Kaplan-Meier, log-rank, HR.
+- Biostats Reference (#biostats-reference): test selector, distributions, CIs.
+- Results Interpreter (#results-interpreter): plain-language interpretation.
+
+## Clinical Trials
+- Trial Database (#trial-database): reference set of clinical trials.
+- Critical Appraisal (#critical-appraisal): RoB 2, NOS, AMSTAR-2, QUADAS-2, GRADE.
+- Reporting Guidelines (#reporting-guidelines): CONSORT, STROBE, PRISMA.
+
+## Meta-Analysis
+- Meta-Analysis (#meta-analysis): fixed/random effects, forest and funnel plots.
+
+## ML & Prediction
+- ML for Research (#ml-prediction): method selection, validation, TRIPOD+AI.
+
+## Writing & Productivity
+- Methods Generator (#methods-generator): statistical methods paragraphs.
+- Project Planner (#project-planner): timelines, milestones, checklists.
+
+## Tools & Reference
+- R Code Library (#r-code-library): R code recipes.
+- Teaching Tools (#teaching-tools): quizzes, worksheets, glossary.
+- Quick Reference (#quick-reference): printable reference cards.
+- Biobank Cleaning (#biobank-cleaning): standardize and check biobank data.

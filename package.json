@@ -1,7 +1,7 @@
 {
-  "name": "app",
-  "version": "1.0.0",
-  "description": "**Comprehensive epidemiology, biostatistics, and clinical research platform.**",
+  "name": "n-epi",
+  "version": "2.1.0",
+  "description": "Comprehensive epidemiology, biostatistics, and clinical research platform for study design, data analysis, grant writing, and critical appraisal.",
   "main": "run_tests.js",
   "dependencies": {
     "bidi-js": "^1.0.3",
@@ -38,14 +38,25 @@
     "type": "git",
     "url": "git+https://github.com/rkalani1/n-epi.git"
   },
-  "keywords": [],
+  "keywords": [
+    "epidemiology",
+    "biostatistics",
+    "clinical-research",
+    "clinical-trials",
+    "sample-size",
+    "power-analysis",
+    "meta-analysis",
+    "causal-inference",
+    "diagnostic-accuracy",
+    "survival-analysis"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/rkalani1/n-epi/issues"
   },
-  "homepage": "https://github.com/rkalani1/n-epi#readme",
+  "homepage": "https://rkalani1.github.io/n-epi/",
   "devDependencies": {
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",

@@ -129,10 +129,10 @@
         html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
             + '<div><strong>Kaplan-Meier:</strong> S(t) = \u220F (1 \u2212 d\u1D62/n\u1D62) for each event time</div>'
             + '<div><strong>Greenwood SE:</strong> SE[S(t)] = S(t) \u00D7 \u221A(\u03A3 d\u1D62/(n\u1D62(n\u1D62\u2212d\u1D62)))</div>'
-            + '<div><strong>Log-Rank Test:</strong> \u03C7\u00B2 = \u03A3(O\u1D62\u2212E\u1D62)\u00B2/E\u1D62, df = groups \u2212 1</div>'
+            + '<div><strong>Log-Rank Test:</strong> \u03C7\u00B2 = (O\u2212E)\u00B2/V (Mantel-Cox, hypergeometric variance), df = 1</div>'
             + '<div><strong>Median Survival:</strong> Smallest t where S(t) \u2264 0.50</div>'
             + '<div><strong>RMST:</strong> \u222B\u2080\u1D40 S(t)dt (area under the KM curve up to time \u03C4)</div>'
-            + '<div><strong>Hazard Ratio:</strong> HR = h\u2081(t)/h\u2082(t), estimated from Cox model</div>'
+            + '<div><strong>Hazard Ratio:</strong> HR = exp((O\u2081\u2212E\u2081)/V), the log-rank (Peto) one-step estimate; reference = first group. A Cox model (used in the generated R script) gives a close but not identical value.</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Assumptions</div>';
@@ -510,7 +510,7 @@
             html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(logRank.pValue) + '</div>'
                 + '<div class="result-item-label">P-value</div></div>';
             html += '<div class="result-item"><div class="result-item-value">' + logRank.hr.toFixed(3) + '</div>'
-                + '<div class="result-item-label">Hazard Ratio</div></div>';
+                + '<div class="result-item-label">HR (log-rank/Peto)</div></div>';
             html += '<div class="result-item"><div class="result-item-value">[' + logRank.hrCI.lower.toFixed(3) + ', ' + logRank.hrCI.upper.toFixed(3) + ']</div>'
                 + '<div class="result-item-label">HR 95% CI</div></div>';
             html += '</div>';
@@ -710,7 +710,7 @@
             if (logRank) {
                 text += 'The log-rank test ' + (logRank.pValue < 0.05 ? 'showed a statistically significant difference' : 'did not show a statistically significant difference')
                     + ' between groups (chi-squared = ' + logRank.chi2.toFixed(2) + ', P ' + Statistics.formatPValue(logRank.pValue) + '). '
-                    + 'The hazard ratio was ' + logRank.hr.toFixed(2)
+                    + 'The log-rank (Peto) hazard ratio (reference: first group) was ' + logRank.hr.toFixed(2)
                     + ' (95% CI, ' + logRank.hrCI.lower.toFixed(2) + ' to ' + logRank.hrCI.upper.toFixed(2) + '). ';
             }
 

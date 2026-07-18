@@ -113,7 +113,11 @@
         html += '<div class="form-row form-row--2 mt-2">'
             + '<div class="form-group"><label class="form-label">Show Threshold Markers ' + App.tooltip('Display threshold values as labeled points on the ROC curve') + '</label>'
             + '<select class="form-select" id="da-roc-markers"><option value="all">All Thresholds</option><option value="optimal">Optimal Only</option><option value="none">None</option></select></div>'
-            + '<div class="form-group"></div>'
+            + '<div class="form-group"><label class="form-label" for="da-roc-npos">Case counts for 95% CI (optional) ' + App.tooltip('The Hanley-McNeil AUC confidence interval requires the number of diseased and non-diseased subjects. Leave blank to report AUC as a point estimate only.') + '</label>'
+            + '<div class="form-row form-row--2">'
+            + '<input type="number" class="form-input" id="da-roc-npos" min="1" step="1" placeholder="N diseased" aria-label="Number of diseased subjects">'
+            + '<input type="number" class="form-input" id="da-roc-nneg" min="1" step="1" placeholder="N non-diseased" aria-label="Number of non-diseased subjects">'
+            + '</div></div>'
             + '</div>';
 
         html += '<div class="btn-group">'
@@ -715,7 +719,11 @@
             sens[i] = validPoints[i].sens;
             spec[i] = validPoints[i].spec;
         }
-        var aucResult = Statistics.aucTrapezoidal(sens, spec);
+        var nPosEl = document.getElementById('da-roc-npos');
+        var nNegEl = document.getElementById('da-roc-nneg');
+        var nPos = nPosEl ? parseInt(nPosEl.value, 10) : NaN;
+        var nNeg = nNegEl ? parseInt(nNegEl.value, 10) : NaN;
+        var aucResult = Statistics.aucTrapezoidal(sens, spec, nPos, nNeg);
 
         var bestJ = -1;
         var optimal = null;
@@ -736,8 +744,13 @@
         html += '<div class="result-grid">';
         html += '<div class="result-item"><div class="result-item-value">' + aucResult.auc.toFixed(3) + '</div>'
             + '<div class="result-item-label">AUC</div></div>';
-        html += '<div class="result-item"><div class="result-item-value">[' + aucResult.ci.lower.toFixed(3) + ', ' + aucResult.ci.upper.toFixed(3) + ']</div>'
-            + '<div class="result-item-label">AUC 95% CI</div></div>';
+        if (aucResult.ci) {
+            html += '<div class="result-item"><div class="result-item-value">[' + aucResult.ci.lower.toFixed(3) + ', ' + aucResult.ci.upper.toFixed(3) + ']</div>'
+                + '<div class="result-item-label">AUC 95% CI (Hanley-McNeil)</div></div>';
+        } else {
+            html += '<div class="result-item"><div class="result-item-value">&mdash;</div>'
+                + '<div class="result-item-label">AUC 95% CI (enter case counts above)</div></div>';
+        }
 
         if (optimal) {
             html += '<div class="result-item"><div class="result-item-value">' + optimal.threshold + '</div>'
@@ -794,7 +807,11 @@
     function copyROCResults() {
         var r = window._daROCResult;
         if (!r) return;
-        var lines = ['ROC Curve Results', 'AUC: ' + r.auc.auc.toFixed(4) + ' (' + r.auc.ci.lower.toFixed(4) + ', ' + r.auc.ci.upper.toFixed(4) + ')'];
+        var aucLine = 'AUC: ' + r.auc.auc.toFixed(4);
+        if (r.auc.ci) {
+            aucLine += ' (95% CI ' + r.auc.ci.lower.toFixed(4) + ', ' + r.auc.ci.upper.toFixed(4) + ', Hanley-McNeil)';
+        }
+        var lines = ['ROC Curve Results', aucLine];
         if (r.optimal) {
             lines.push('Optimal threshold: ' + r.optimal.threshold + ' (Youden J = ' + r.optimal.youdenJ.toFixed(3) + ')');
             lines.push('Sensitivity at optimal: ' + (r.optimal.tpr * 100).toFixed(1) + '%');
@@ -899,10 +916,6 @@
         var auc2 = Statistics.aucTrapezoidal(sens2, spec2);
 
         var aucDiff = auc1.auc - auc2.auc;
-        // Approximate comparison using independent SEs (note: DeLong requires paired data)
-        var seDiff = Math.sqrt(auc1.se * auc1.se + auc2.se * auc2.se);
-        var zDiff = seDiff > 0 ? Math.abs(aucDiff) / seDiff : 0;
-        var pDiff = 2 * (1 - Statistics.normalCDF(Math.abs(zDiff)));
 
         var resEl = document.getElementById('da-rocc-results');
         var html = '<div class="result-panel animate-in mt-3">';
@@ -910,17 +923,16 @@
         html += '<div class="card-title">AUC Comparison</div>';
         html += '<div class="result-grid">';
         html += '<div class="result-item"><div class="result-item-value">' + auc1.auc.toFixed(3) + '</div>'
-            + '<div class="result-item-label">AUC (Test 1)<br>[' + auc1.ci.lower.toFixed(3) + ', ' + auc1.ci.upper.toFixed(3) + ']</div></div>';
+            + '<div class="result-item-label">AUC (Test 1)</div></div>';
         html += '<div class="result-item"><div class="result-item-value">' + auc2.auc.toFixed(3) + '</div>'
-            + '<div class="result-item-label">AUC (Test 2)<br>[' + auc2.ci.lower.toFixed(3) + ', ' + auc2.ci.upper.toFixed(3) + ']</div></div>';
+            + '<div class="result-item-label">AUC (Test 2)</div></div>';
         html += '<div class="result-item"><div class="result-item-value">' + aucDiff.toFixed(3) + '</div>'
             + '<div class="result-item-label">AUC Difference</div></div>';
-        html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(pDiff) + '</div>'
-            + '<div class="result-item-label">p-value (approx.)</div></div>';
         html += '</div>';
 
         html += '<div class="text-secondary" style="margin-top:8px;font-size:0.85rem;">'
-            + '<strong>Note:</strong> This comparison uses independent standard errors as an approximation. '
+            + '<strong>Note:</strong> AUCs are point estimates from the trapezoidal rule; a significance test '
+            + 'is not reported here because these threshold summaries carry no valid sampling variance. '
             + 'For a formal DeLong\'s test with correlated AUCs from paired data, use R (<code>pROC::roc.test()</code>) '
             + 'or SAS (<code>PROC LOGISTIC</code> with <code>ROC</code> statement and <code>ROCCONTRAST</code>).'
             + '</div>';
