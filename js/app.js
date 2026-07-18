@@ -278,9 +278,18 @@ const App = (() => {
     // All rendered content comes from trusted internal constants.
     // ============================================================
 
+    // DOMPurify's default config strips ALL inline event handlers (on*),
+    // which would render every module inert since the UI is wired with inline
+    // onclick/onchange/oninput on trusted, app-generated markup. Allow exactly
+    // those three handler attributes (the only ones the app emits) so the
+    // interface works, while DOMPurify still removes <script>, javascript: URLs,
+    // and dangerous handlers like onerror. User-supplied strings are escaped at
+    // their interpolation points (see trial-database.js / biobank-cleaning.js).
+    const TRUSTED_HTML_CONFIG = { ADD_ATTR: ['onclick', 'onchange', 'oninput'] };
+
     function setTrustedHTML(element, trustedContent) {
         if (typeof DOMPurify !== 'undefined') {
-            element.innerHTML = DOMPurify.sanitize(trustedContent);
+            element.innerHTML = DOMPurify.sanitize(trustedContent, TRUSTED_HTML_CONFIG);
         } else {
             element.textContent = trustedContent;
         }

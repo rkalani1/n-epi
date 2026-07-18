@@ -69,3 +69,40 @@ describe('App Favorites System', () => {
         });
     });
 });
+
+describe('setTrustedHTML() sanitization', () => {
+    beforeAll(() => {
+        // Bundled DOMPurify is a UMD factory: require() returns createDOMPurify(window).
+        const createDOMPurify = require('../js/core/dompurify.min.js');
+        global.DOMPurify = createDOMPurify(window);
+    });
+    afterAll(() => { delete global.DOMPurify; });
+
+    it('preserves the inline event handlers the app relies on (onclick/onchange/oninput)', () => {
+        const el = document.createElement('div');
+
+        App.setTrustedHTML(el, '<button onclick="App.navigate(\'home\')">Go</button>');
+        expect(el.querySelector('button')).not.toBeNull();
+        expect(el.querySelector('button').getAttribute('onclick')).toBe("App.navigate('home')");
+
+        App.setTrustedHTML(el, '<select onchange="x(this)"><option>a</option></select>');
+        expect(el.querySelector('select').getAttribute('onchange')).toBe('x(this)');
+
+        App.setTrustedHTML(el, '<input oninput="y(this)">');
+        expect(el.querySelector('input').getAttribute('oninput')).toBe('y(this)');
+    });
+
+    it('still removes dangerous markup (script tags, onerror, javascript: URLs)', () => {
+        const el = document.createElement('div');
+
+        App.setTrustedHTML(el, '<div>ok</div><script>window.__pwned = 1;</script>');
+        expect(el.querySelector('script')).toBeNull();
+
+        App.setTrustedHTML(el, '<img src="x" onerror="window.__pwned = 1;">');
+        expect(el.querySelector('img').getAttribute('onerror')).toBeNull();
+
+        App.setTrustedHTML(el, '<a href="javascript:alert(1)">x</a>');
+        const href = el.querySelector('a').getAttribute('href');
+        expect(href == null || href.indexOf('javascript:') === -1).toBe(true);
+    });
+});
