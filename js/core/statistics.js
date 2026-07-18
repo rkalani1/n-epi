@@ -874,9 +874,14 @@ const Statistics = (() => {
         };
     }
 
-    // Multi-arm with Bonferroni correction
-    function sampleSizeMultiArm(nPerGroup_2arm, nArms, correction) {
+    // Multi-arm with Bonferroni / approximate-Dunnett correction.
+    // N scales with (z_alpha/2 + z_beta)^2; only the significance level changes
+    // with the multiplicity adjustment, so the two-arm N is rescaled by
+    // (z_adj + z_beta)^2 / (z_0.975 + z_beta)^2 (power is required — scaling the
+    // whole N by the alpha-ratio alone over-inflates the z_beta component).
+    function sampleSizeMultiArm(nPerGroup_2arm, nArms, correction, power) {
         correction = correction || 'bonferroni';
+        power = power || 0.80;
         let adjustedAlpha;
         if (correction === 'bonferroni') {
             adjustedAlpha = 0.05 / (nArms - 1);
@@ -887,15 +892,18 @@ const Statistics = (() => {
             adjustedAlpha = 0.05;
         }
 
-        const za = normalQuantile(1 - adjustedAlpha / 2);
-        const ratio = za / normalQuantile(0.975);
-        const adjustedN = Math.ceil(nPerGroup_2arm * ratio * ratio);
+        const zb = normalQuantile(power);
+        const zaAdj = normalQuantile(1 - adjustedAlpha / 2);
+        const zaOrig = normalQuantile(0.975);
+        const factor = Math.pow(zaAdj + zb, 2) / Math.pow(zaOrig + zb, 2);
+        const adjustedN = Math.ceil(nPerGroup_2arm * factor);
 
         return {
             nPerArm: adjustedN,
             totalN: adjustedN * nArms,
             adjustedAlpha,
-            correction
+            correction,
+            power
         };
     }
 

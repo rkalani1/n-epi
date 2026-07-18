@@ -432,13 +432,17 @@
     function buildMultiArmTab() {
         var html = '<div class="tab-content" id="tab-multiarm">';
         html += '<div class="card-subtitle">Multi-arm trials with multiplicity correction.</div>';
-        html += '<div class="form-row form-row--3">'
+        html += '<div class="form-row form-row--2">'
             + '<div class="form-group"><label class="form-label">N per Group (2-arm design)</label>'
             + '<input type="number" class="form-input" name="ss_ma_n" id="ss_ma_n" step="1" value="400"></div>'
             + '<div class="form-group"><label class="form-label">Number of Arms</label>'
             + '<input type="number" class="form-input" name="ss_ma_arms" id="ss_ma_arms" step="1" min="2" max="10" value="3"></div>'
+            + '</div>';
+        html += '<div class="form-row form-row--2">'
             + '<div class="form-group"><label class="form-label">Correction Method</label>'
             + '<select class="form-select" name="ss_ma_corr" id="ss_ma_corr"><option value="bonferroni">Bonferroni</option><option value="dunnett">Dunnett (approx)</option></select></div>'
+            + '<div class="form-group"><label class="form-label">Power ' + App.tooltip('Target power used for the original two-arm N. Only the significance level changes with the multiplicity adjustment, so power is needed to rescale N correctly.') + '</label>'
+            + '<input type="number" class="form-input" name="ss_ma_power" id="ss_ma_power" step="0.05" min="0.5" max="0.99" value="0.80"></div>'
             + '</div>';
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="SampleSizeModule.calculateMultiArm()">Calculate</button></div>';
         html += '<div id="ss-multiarm-results"></div>';
@@ -1370,8 +1374,9 @@
         var n = parseInt(document.getElementById('ss_ma_n').value);
         var arms = parseInt(document.getElementById('ss_ma_arms').value);
         var corr = document.getElementById('ss_ma_corr').value;
+        var power = parseFloat(document.getElementById('ss_ma_power').value) || 0.80;
 
-        var result = Statistics.sampleSizeMultiArm(n, arms, corr);
+        var result = Statistics.sampleSizeMultiArm(n, arms, corr, power);
 
         var html = '<div class="result-panel animate-in">';
         html += '<div class="result-value">' + result.totalN + ' total</div>';

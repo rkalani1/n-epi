@@ -37,6 +37,20 @@ describe('Sample size — equivalence (TOST)', () => {
     });
 });
 
+describe('Sample size — multi-arm multiplicity scaling', () => {
+    // Only z_alpha changes with the adjustment, so N scales by
+    // (z_adj + z_beta)^2 / (z_orig + z_beta)^2, not (z_adj/z_orig)^2.
+    test('3-arm Bonferroni from 400/group gives 485/arm (not the inflated 524)', () => {
+        const r = Statistics.sampleSizeMultiArm(400, 3, 'bonferroni', 0.80);
+        expect(r.nPerArm).toBe(485);
+        expect(r.adjustedAlpha).toBeCloseTo(0.025, 6);
+        // The old alpha-only scaling over-inflated N.
+        const za = Statistics.normalQuantile(0.9875), z0 = Statistics.normalQuantile(0.975);
+        const oldN = Math.ceil(400 * (za / z0) * (za / z0));
+        expect(r.nPerArm).toBeLessThan(oldN);
+    });
+});
+
 describe('Mantel-Haenszel — Breslow-Day homogeneity test', () => {
     // Independent expected-cell solver via bisection (different algorithm than the
     // closed-form quadratic used in the implementation) for cross-verification.
