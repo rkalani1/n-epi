@@ -109,3 +109,38 @@ describe('Meta-analysis — HKSJ uses t_{k-1}', () => {
         expect(Statistics.tQuantile(0.975, k - 1)).toBeGreaterThan(Statistics.normalQuantile(0.975));
     });
 });
+
+describe('Diagnostic — AUC trapezoidal', () => {
+    // The module's own 9-point ROC example. With the (0,0)/(1,1) anchors the AUC
+    // is 0.8554; without them it was under-estimated to 0.6566.
+    const sens = [0.98, 0.95, 0.90, 0.82, 0.75, 0.65, 0.50, 0.35, 0.15];
+    const spec = [0.20, 0.40, 0.58, 0.72, 0.82, 0.90, 0.95, 0.97, 0.99];
+
+    test('includes the (0,0) and (1,1) anchors (AUC 0.855, not 0.657)', () => {
+        expect(Statistics.aucTrapezoidal(sens, spec).auc).toBeCloseTo(0.8554, 3);
+    });
+
+    test('a perfect corner ROC integrates to 1.0', () => {
+        expect(Statistics.aucTrapezoidal([1], [1]).auc).toBeCloseTo(1.0, 6);
+    });
+
+    test('no CI without case counts; valid Hanley-McNeil CI with counts', () => {
+        const noCounts = Statistics.aucTrapezoidal(sens, spec);
+        expect(noCounts.ci).toBeNull();
+        expect(noCounts.se).toBeNull();
+
+        const withCounts = Statistics.aucTrapezoidal(sens, spec, 50, 50);
+        expect(withCounts.se).toBeGreaterThan(0);
+        expect(withCounts.ci.lower).toBeLessThan(withCounts.auc);
+        expect(withCounts.ci.upper).toBeGreaterThan(withCounts.auc);
+    });
+
+    test('SE no longer changes when redundant ROC points are duplicated', () => {
+        // Same underlying curve, sampled twice as densely -> SE must be identical
+        // for the same case counts (the old point-count bug shrank it).
+        const dup = (arr) => arr.concat(arr);
+        const a = Statistics.aucTrapezoidal(sens, spec, 60, 40).se;
+        const b = Statistics.aucTrapezoidal(dup(sens), dup(spec), 60, 40).se;
+        expect(b).toBeCloseTo(a, 10);
+    });
+});
