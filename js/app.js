@@ -567,7 +567,7 @@ const App = (() => {
         // 1-7 — Quick switch nav groups
         if (!e.metaKey && !e.ctrlKey && !e.altKey) {
             let num = parseInt(e.key, 10);
-            if (num >= 1 && num <= 7 && num <= NAV.length) {
+            if (num >= 1 && num <= NAV.length) {
                 e.preventDefault();
                 let firstItem = NAV[num - 1].items[0];
                 if (firstItem) navigate(firstItem.id);
@@ -593,7 +593,7 @@ const App = (() => {
             + '<div class="shortcut-row"><kbd>&#8984;K</kbd><span>Open command palette</span></div>'
             + '<div class="shortcut-row"><kbd>Esc</kbd><span>Close overlay / modal</span></div>'
             + '<div class="shortcut-row"><kbd>?</kbd><span>Show this help</span></div>'
-            + '<div class="shortcut-row"><kbd>1</kbd> - <kbd>7</kbd><span>Jump to nav group</span></div>'
+            + '<div class="shortcut-row"><kbd>1</kbd> - <kbd>' + NAV.length + '</kbd><span>Jump to nav group</span></div>'
             + '<div class="shortcuts-divider"></div>'
             + '<div class="shortcut-section-title">In Command Palette</div>'
             + '<div class="shortcut-row"><kbd>&#8593;</kbd> / <kbd>&#8595;</kbd><span>Navigate results</span></div>'
@@ -601,13 +601,9 @@ const App = (() => {
             + '<div class="shortcut-row"><kbd>Esc</kbd><span>Close palette</span></div>'
             + '<div class="shortcuts-divider"></div>'
             + '<div class="shortcut-section-title">Navigation Groups</div>'
-            + '<div class="shortcut-row"><kbd>1</kbd><span>Study Design</span></div>'
-            + '<div class="shortcut-row"><kbd>2</kbd><span>Epidemiology</span></div>'
-            + '<div class="shortcut-row"><kbd>3</kbd><span>Biostatistics</span></div>'
-            + '<div class="shortcut-row"><kbd>4</kbd><span>Clinical Trials</span></div>'
-            + '<div class="shortcut-row"><kbd>5</kbd><span>Meta-Analysis</span></div>'
-            + '<div class="shortcut-row"><kbd>6</kbd><span>ML &amp; Prediction</span></div>'
-            + '<div class="shortcut-row"><kbd>7</kbd><span>Writing &amp; Productivity</span></div>'
+            + NAV.map(function (g, i) {
+                return '<div class="shortcut-row"><kbd>' + (i + 1) + '</kbd><span>' + g.title + '</span></div>';
+            }).join('')
             + '</div>';
     }
 
@@ -813,7 +809,7 @@ const App = (() => {
             + '<div class="dashboard-stat-label">Calculators</div>'
             + '</div>'
             + '<div class="dashboard-stat">'
-            + '<div class="dashboard-stat-value">7</div>'
+            + '<div class="dashboard-stat-value">' + NAV.length + '</div>'
             + '<div class="dashboard-stat-label">Categories</div>'
             + '</div>'
             + '</div>';
@@ -936,8 +932,8 @@ const App = (() => {
             + '<h2 class="dashboard-section-title">&#127881; What\'s New in v2.1</h2>'
             + '<div class="dashboard-whats-new card">'
             + '<ul class="dashboard-changelog">'
-            + '<li><strong>R Script Generation</strong> &mdash; 26 calculators now generate ready-to-run R scripts with one click</li>'
-            + '<li><strong>26 Modules</strong> &mdash; Added R Code Library, Teaching Tools, and Quick Reference</li>'
+            + '<li><strong>R Script Generation</strong> &mdash; calculators across the suite generate ready-to-run R scripts with one click</li>'
+            + '<li><strong>' + totalModules + ' Modules</strong> &mdash; Added R Code Library, Teaching Tools, Quick Reference, and Biobank Cleaning</li>'
             + '<li><strong>200+ Clinical Trials</strong> &mdash; Expanded database across 17 neurological categories</li>'
             + '<li><strong>Deeper Modules</strong> &mdash; Every module expanded with new calculators, tables, and educational content</li>'
             + '<li><strong>PRECIS-2 Tool</strong> &mdash; Pragmatic-explanatory spectrum scorer in Study Design Guide</li>'
@@ -996,6 +992,15 @@ const App = (() => {
 
     function navigate(moduleId, pushState) {
         if (pushState === undefined) pushState = true;
+
+        // Unknown route: fall back to home instead of stranding the user on a
+        // permanent "Loading module..." stub. All real modules register at load,
+        // so anything unregistered (and not 'home') is a stray hash.
+        if (moduleId !== 'home' && (!modules[moduleId] || !modules[moduleId].render)) {
+            navigate('home', true);
+            return;
+        }
+
         if (pushState) {
             window.location.hash = moduleId;
         }

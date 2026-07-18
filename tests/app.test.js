@@ -106,3 +106,15 @@ describe('setTrustedHTML() sanitization', () => {
         expect(href == null || href.indexOf('javascript:') === -1).toBe(true);
     });
 });
+
+describe('Navigation structure counts', () => {
+    // The dashboard "Categories" stat and the keyboard-shortcut range derive from
+    // NAV.length; the "Modules" stat derives from the flattened item count. Lock
+    // both so the displayed numbers cannot silently drift out of sync.
+    it('exposes 8 nav groups and 25 unique modules', () => {
+        expect(App.NAV.length).toBe(8);
+        const ids = App.NAV.flatMap((g) => g.items.map((i) => i.id));
+        expect(ids.length).toBe(25);
+        expect(new Set(ids).size).toBe(25);
+    });
+});
