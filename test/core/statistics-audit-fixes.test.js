@@ -85,3 +85,27 @@ describe('Mantel-Haenszel — Breslow-Day homogeneity test', () => {
         expect(res.breslowDay.pValue).toBeGreaterThan(0.9);
     });
 });
+
+describe('Meta-analysis — HKSJ uses t_{k-1}', () => {
+    const effects = [0.5, 0.7, 0.3, 0.9, 0.6];
+    const variances = [0.05, 0.08, 0.06, 0.10, 0.04];
+    const k = effects.length;
+
+    test('HKSJ CI and p-value use the t_{k-1} reference', () => {
+        const hk = Statistics.metaAnalysisRandomEffects(effects, variances, { hksj: true });
+        const halfWidth = (hk.ci.upper - hk.ci.lower) / 2;
+        expect(halfWidth / hk.se).toBeCloseTo(Statistics.tQuantile(0.975, k - 1), 5);
+        expect(hk.pValue).toBeCloseTo(2 * (1 - Statistics.tCDF(Math.abs(hk.z), k - 1)), 6);
+    });
+
+    test('default random-effects still uses the normal reference', () => {
+        const re = Statistics.metaAnalysisRandomEffects(effects, variances);
+        const halfWidth = (re.ci.upper - re.ci.lower) / 2;
+        expect(halfWidth / re.se).toBeCloseTo(Statistics.normalQuantile(0.975), 5);
+    });
+
+    test('HKSJ interval is wider than a normal reference on the same SE (small k)', () => {
+        const hk = Statistics.metaAnalysisRandomEffects(effects, variances, { hksj: true });
+        expect(Statistics.tQuantile(0.975, k - 1)).toBeGreaterThan(Statistics.normalQuantile(0.975));
+    });
+});

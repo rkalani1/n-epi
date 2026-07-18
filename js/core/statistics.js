@@ -1142,13 +1142,17 @@ const Statistics = (() => {
             seRE *= Math.sqrt(qHKSJ);
         }
 
-        const z = normalQuantile(0.975);
+        // Critical value / p-value reference: the Hartung-Knapp-Sidik-Jonkman
+        // adjustment uses a t_{k-1} reference (matching its inflated SE); the
+        // standard DerSimonian-Laird random-effects model uses the normal.
+        const useT = hksj && k > 1;
+        const crit = useT ? tQuantile(0.975, k - 1) : normalQuantile(0.975);
+        const zStat = pooledRE / seRE;
+        const pVal = useT
+            ? 2 * (1 - tCDF(Math.abs(zStat), k - 1))
+            : 2 * (1 - normalCDF(Math.abs(zStat)));
 
-        // I² CI (Higgins & Thompson)
-        const B = 0.5 * (Math.log(Q) - Math.log(df)) / (Math.sqrt(2 * Q) - Math.sqrt(2 * df - 1));
-        const I2Lower = Math.max(0, (Math.exp(0.5 * Math.log(Q / df) - 1.96 * B) - 1) / (Math.exp(0.5 * Math.log(Q / df) - 1.96 * B)));
-
-        // Prediction interval
+        // Prediction interval (IntHout et al. 2016): t_{k-2} reference.
         const tVal = k > 2 ? tQuantile(0.975, k - 2) : normalQuantile(0.975);
         const predSE = Math.sqrt(seRE * seRE + tau2);
         const predInterval = {
@@ -1159,9 +1163,9 @@ const Statistics = (() => {
         return {
             pooled: pooledRE,
             se: seRE,
-            ci: { lower: pooledRE - z * seRE, upper: pooledRE + z * seRE },
-            z: pooledRE / seRE,
-            pValue: 2 * (1 - normalCDF(Math.abs(pooledRE / seRE))),
+            ci: { lower: pooledRE - crit * seRE, upper: pooledRE + crit * seRE },
+            z: zStat,
+            pValue: pVal,
             Q, df, pHet,
             I2, H2, tau2,
             predInterval,
