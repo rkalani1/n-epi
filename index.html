@@ -26,14 +26,15 @@
     <a class="skip-link" href="#module-content">Skip to content</a>
     <div class="app-layout">
         <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar"></aside>
+        <aside id="sidebar" class="sidebar" aria-label="Modules" aria-hidden="true" inert></aside>
 
         <!-- Sidebar overlay for mobile -->
-        <div id="sidebar-overlay" class="sidebar-overlay" onclick="App.closeSidebar()"></div>
+        <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true" onclick="App.closeSidebar()"></div>
 
         <!-- Mobile header bar -->
         <div class="mobile-header">
-            <button class="mobile-header-menu" onclick="App.openSidebar()" aria-label="Open menu">&#9776;</button>
+            <button id="mobile-menu-trigger" class="mobile-header-menu" onclick="App.openSidebar()"
+                aria-label="Open module menu" aria-expanded="false" aria-controls="sidebar">&#9776;</button>
             <span class="mobile-header-title" role="button" tabindex="0" aria-label="n-epi home" onclick="App.navigate('home')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('home');}">n-epi</span>
             <button class="mobile-header-search" onclick="App.openCommandPalette()"
                 aria-label="Search">&#128269;</button>
