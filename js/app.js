@@ -13,6 +13,9 @@ const App = (() => {
     let currentModule = null;
     let commandPaletteOpen = false;
     let shortcutsModalOpen = false;
+    let sidebarReturnFocus = null;
+    let commandPaletteReturnFocus = null;
+    const collapsedSidebarGroups = new Set();
 
     // Navigation structure — all data is hardcoded/trusted
     const NAV = [
@@ -130,6 +133,9 @@ const App = (() => {
     }
 
     function toggleFavorite(moduleId) {
+        const activeFavorite = document.activeElement?.closest?.('.sidebar-fav-star');
+        const restoreFavoriteFocus = activeFavorite?.dataset.favoriteModule === moduleId;
+        const favoriteScope = restoreFavoriteFocus ? activeFavorite.dataset.favoriteScope : null;
         let favs = getFavorites();
         let idx = favs.indexOf(moduleId);
         if (idx > -1) {
@@ -139,6 +145,15 @@ const App = (() => {
         }
         saveFavorites(favs);
         renderSidebar();
+        if (restoreFavoriteFocus) {
+            const replacement = Array.from(document.querySelectorAll('.sidebar-fav-star')).find(function (button) {
+                return button.dataset.favoriteModule === moduleId
+                    && button.dataset.favoriteScope === favoriteScope;
+            }) || Array.from(document.querySelectorAll('.sidebar-fav-star')).find(function (button) {
+                return button.dataset.favoriteModule === moduleId;
+            });
+            if (replacement) replacement.focus();
+        }
         // Re-highlight current module
         if (currentModule) {
             document.querySelectorAll('.sidebar-link').forEach(function (el) {
@@ -271,10 +286,12 @@ const App = (() => {
         initCommandPalette();
         initSwipeGestures();
         window.addEventListener('resize', handleResize);
+        syncSidebarA11y();
 
         // Activate keyboard-focusable role="button" elements (nav links, cards)
         // on Enter/Space, mirroring their inline onclick.
         document.addEventListener('keydown', function (e) {
+            if (trapSidebarFocus(e)) return;
             if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
             const el = document.activeElement;
             if (!el || el.getAttribute('role') !== 'button') return;
@@ -351,56 +368,86 @@ const App = (() => {
     // SIDEBAR (with Favorites)
     // ============================================================
 
+    function getCurrentGroupTitle() {
+        for (let i = 0; i < NAV.length; i++) {
+            if (NAV[i].items.some(function (item) { return item.id === currentModule; })) {
+                return NAV[i].title;
+            }
+        }
+        return null;
+    }
+
+    function moduleRowHTML(item, scope) {
+        const favorite = isFavorite(item.id);
+        const destinationCurrent = item.id === currentModule;
+        const favoriteAction = favorite ? 'Remove' : 'Add';
+        const favoritePreposition = favorite ? ' from favorites' : ' to favorites';
+        return '<li class="sidebar-module-row">'
+            + '<button type="button" class="sidebar-link' + (destinationCurrent ? ' active' : '') + '"'
+            + ' data-module="' + item.id + '" onclick="App.navigate(\'' + item.id + '\')"'
+            + (destinationCurrent ? ' aria-current="page"' : '') + '>'
+            + '<span class="sidebar-link-icon" aria-hidden="true">' + item.icon + '</span>'
+            + '<span class="sidebar-link-label">' + item.label + '</span>'
+            + '</button>'
+            + '<button type="button" class="sidebar-fav-star' + (favorite ? ' active' : '') + '"'
+            + ' data-favorite-module="' + item.id + '" data-favorite-scope="' + scope + '"'
+            + ' onclick="App.toggleFavorite(\'' + item.id + '\')"'
+            + ' aria-label="' + favoriteAction + ' ' + item.label + favoritePreposition + '"'
+            + ' aria-pressed="' + favorite + '" title="' + favoriteAction + ' favorite">'
+            + '<span aria-hidden="true">&#9733;</span></button>'
+            + '</li>';
+    }
+
     function renderSidebar() {
         let sidebar = document.getElementById('sidebar');
         let favs = getFavorites();
         let allMods = getAllModules();
+        const currentGroupTitle = getCurrentGroupTitle();
+
+        if (currentGroupTitle) collapsedSidebarGroups.delete(currentGroupTitle);
 
         let html = '<div class="sidebar-header">'
-            + '<div class="sidebar-logo" onclick="App.navigate(\'home\')" style="cursor:pointer;">'
-            + '<div class="sidebar-logo-icon">n</div>'
-            + '<div><span class="sidebar-logo-text">n-epi</span>'
-            + '<span class="sidebar-logo-version">v2.1</span></div>'
-            + '</div>'
+            + '<button type="button" class="sidebar-logo" onclick="App.navigate(\'home\')" aria-label="n-epi home">'
+            + '<span class="sidebar-logo-icon" aria-hidden="true">n</span>'
+            + '<span><span class="sidebar-logo-text">n-epi</span>'
+            + '<span class="sidebar-logo-version">v2.1</span></span>'
+            + '</button>'
             + '<button class="sidebar-cmd-k-btn" onclick="App.openCommandPalette()" title="Search modules (Cmd+K)">'
-            + '<span style="opacity:0.6;">Search...</span>'
+            + '<span style="opacity:0.6;">Search all 25 modules</span>'
             + '<kbd class="kbd-hint">&#8984;K</kbd>'
             + '</button>'
             + '</div>'
-            + '<nav class="sidebar-nav">';
+            + '<nav class="sidebar-nav" aria-label="Module categories">';
 
-        // Favorites section
         if (favs.length > 0) {
-            html += '<div class="sidebar-group sidebar-favorites-group">'
-                + '<div class="sidebar-group-title"><span style="margin-right:4px;">&#9733;</span> FAVORITES</div>';
+            html += '<section class="sidebar-group sidebar-favorites-group" aria-labelledby="sidebar-favorites-title">'
+                + '<h2 class="sidebar-group-title" id="sidebar-favorites-title"><span aria-hidden="true">&#9733;</span> Favorites</h2>'
+                + '<ul class="sidebar-group-items sidebar-favorites-items">';
             favs.forEach(function (favId) {
-                let mod = null;
-                for (let i = 0; i < allMods.length; i++) {
-                    if (allMods[i].id === favId) { mod = allMods[i]; break; }
-                }
-                if (mod) {
-                    html += '<div class="sidebar-link" data-module="' + mod.id + '" onclick="App.navigate(\'' + mod.id + '\')">'
-                        + '<span class="sidebar-link-icon">' + mod.icon + '</span>'
-                        + '<span>' + mod.label + '</span>'
-                        + '<span class="sidebar-fav-star active" onclick="event.stopPropagation();App.toggleFavorite(\'' + mod.id + '\')" title="Remove from favorites">&#9733;</span>'
-                        + '</div>';
-                }
+                let mod = allMods.find(function (candidate) { return candidate.id === favId; });
+                if (mod) html += moduleRowHTML(mod, 'favorites');
             });
-            html += '</div>';
+            html += '</ul></section>';
         }
 
-        NAV.forEach(function (group) {
-            html += '<div class="sidebar-group">'
-                + '<div class="sidebar-group-title">' + group.title + '</div>';
+        NAV.forEach(function (group, groupIndex) {
+            const groupId = 'sidebar-group-' + groupIndex;
+            const collapsed = collapsedSidebarGroups.has(group.title);
+            const containsCurrent = group.title === currentGroupTitle;
+            html += '<section class="sidebar-group' + (containsCurrent ? ' current-group' : '') + '">'
+                + '<h2 class="sidebar-group-heading">'
+                + '<button type="button" class="sidebar-group-toggle"'
+                + ' aria-expanded="' + (!collapsed) + '" aria-controls="' + groupId + '"'
+                + ' onclick="App.toggleSidebarGroup(\'' + group.title.replace(/'/g, "\\'") + '\')"'
+                + (containsCurrent ? ' title="Current module category remains expanded"' : '') + '>'
+                + '<span>' + group.title + '</span>'
+                + '<span class="sidebar-group-chevron" aria-hidden="true">⌄</span>'
+                + '</button></h2>'
+                + '<ul id="' + groupId + '" class="sidebar-group-items"' + (collapsed ? ' hidden' : '') + '>';
             group.items.forEach(function (item) {
-                let starClass = isFavorite(item.id) ? ' active' : '';
-                html += '<div class="sidebar-link" data-module="' + item.id + '" onclick="App.navigate(\'' + item.id + '\')">'
-                    + '<span class="sidebar-link-icon">' + item.icon + '</span>'
-                    + '<span>' + item.label + '</span>'
-                    + '<span class="sidebar-fav-star' + starClass + '" onclick="event.stopPropagation();App.toggleFavorite(\'' + item.id + '\')" title="Toggle favorite">&#9733;</span>'
-                    + '</div>';
+                html += moduleRowHTML(item, groupId);
             });
-            html += '</div>';
+            html += '</ul></section>';
         });
 
         html += '</nav>'
@@ -415,6 +462,21 @@ const App = (() => {
             + '</button></div></div>';
 
         setTrustedHTML(sidebar, html);
+        syncSidebarA11y();
+    }
+
+    function toggleSidebarGroup(title) {
+        if (title === getCurrentGroupTitle()) return;
+        if (collapsedSidebarGroups.has(title)) {
+            collapsedSidebarGroups.delete(title);
+        } else {
+            collapsedSidebarGroups.add(title);
+        }
+        renderSidebar();
+        const toggle = Array.from(document.querySelectorAll('.sidebar-group-toggle')).find(function (button) {
+            return button.textContent.trim().indexOf(title) === 0;
+        });
+        if (toggle) toggle.focus();
     }
 
     function renderMobileNav() {
@@ -451,10 +513,13 @@ const App = (() => {
         setTrustedHTML(dialog,
             '<div class="cmd-palette-input-wrap">'
             + '<span class="cmd-palette-search-icon">&#128269;</span>'
-            + '<input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Search modules..." autocomplete="off" aria-label="Search modules" />'
+            + '<input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Search modules..." autocomplete="off"'
+            + ' role="combobox" aria-label="Search modules" aria-autocomplete="list" aria-expanded="false"'
+            + ' aria-controls="cmd-palette-results" aria-activedescendant="" />'
             + '<kbd class="kbd-hint" style="margin-right:4px;">esc</kbd>'
             + '</div>'
-            + '<div id="cmd-palette-results" class="cmd-palette-results"></div>'
+            + '<p id="cmd-palette-status" class="cmd-palette-status" role="status" aria-live="polite" aria-atomic="true"></p>'
+            + '<div id="cmd-palette-results" class="cmd-palette-results" role="listbox" aria-label="Module search results"></div>'
         );
 
         overlay.appendChild(dialog);
@@ -472,9 +537,11 @@ const App = (() => {
     function openCommandPalette() {
         let overlay = document.getElementById('command-palette-overlay');
         if (!overlay) return;
+        commandPaletteReturnFocus = document.activeElement;
         overlay.classList.add('visible');
         commandPaletteOpen = true;
         let input = document.getElementById('cmd-palette-input');
+        input.setAttribute('aria-expanded', 'true');
         input.value = '';
         renderCommandPaletteResults('');
         setTimeout(function () { input.focus(); }, 50);
@@ -485,10 +552,21 @@ const App = (() => {
         if (!overlay) return;
         overlay.classList.remove('visible');
         commandPaletteOpen = false;
+        let input = document.getElementById('cmd-palette-input');
+        if (input) {
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
+        }
+        if (commandPaletteReturnFocus && commandPaletteReturnFocus.isConnected) {
+            commandPaletteReturnFocus.focus();
+        }
+        commandPaletteReturnFocus = null;
     }
 
     function renderCommandPaletteResults(query) {
         let resultsEl = document.getElementById('cmd-palette-results');
+        let statusEl = document.getElementById('cmd-palette-status');
+        let input = document.getElementById('cmd-palette-input');
         if (!resultsEl) return;
         let allMods = getAllModules();
         let q = query.toLowerCase().trim();
@@ -505,11 +583,14 @@ const App = (() => {
         let favs = getFavorites();
         let html = '';
         if (filtered.length === 0) {
-            html = '<div class="cmd-palette-empty">No modules found</div>';
+            html = '<div class="cmd-palette-empty">No modules found. Try another title, category, or method.</div>';
         } else {
             filtered.forEach(function (mod, idx) {
                 let favIcon = favs.indexOf(mod.id) > -1 ? ' &#9733;' : '';
-                html += '<div class="cmd-palette-item' + (idx === 0 ? ' selected' : '') + '" data-module="' + mod.id + '" data-index="' + idx + '">'
+                html += '<div id="cmd-palette-option-' + idx + '" role="option"'
+                    + ' aria-selected="' + (idx === 0) + '"'
+                    + ' class="cmd-palette-item' + (idx === 0 ? ' selected' : '') + '"'
+                    + ' data-module="' + mod.id + '" data-index="' + idx + '">'
                     + '<div class="cmd-palette-item-left">'
                     + '<span class="cmd-palette-item-icon">' + mod.icon + '</span>'
                     + '<div>'
@@ -522,6 +603,18 @@ const App = (() => {
             });
         }
         setTrustedHTML(resultsEl, html);
+        if (statusEl) {
+            statusEl.textContent = filtered.length === 0
+                ? 'No matching modules'
+                : filtered.length + ' module' + (filtered.length === 1 ? '' : 's') + ' found';
+        }
+        if (input) {
+            if (filtered.length > 0) {
+                input.setAttribute('aria-activedescendant', 'cmd-palette-option-0');
+            } else {
+                input.removeAttribute('aria-activedescendant');
+            }
+        }
 
         // Add click listeners
         resultsEl.querySelectorAll('.cmd-palette-item').forEach(function (el) {
@@ -531,12 +624,21 @@ const App = (() => {
                 navigate(mid);
             });
             el.addEventListener('mouseenter', function () {
-                resultsEl.querySelectorAll('.cmd-palette-item').forEach(function (item) {
-                    item.classList.remove('selected');
-                });
-                el.classList.add('selected');
+                setCommandPaletteSelection(resultsEl.querySelectorAll('.cmd-palette-item'), Number(el.dataset.index));
             });
         });
+    }
+
+    function setCommandPaletteSelection(items, index) {
+        let input = document.getElementById('cmd-palette-input');
+        items.forEach(function (item, itemIndex) {
+            const selected = itemIndex === index;
+            item.classList.toggle('selected', selected);
+            item.setAttribute('aria-selected', String(selected));
+        });
+        if (input && items[index]) {
+            input.setAttribute('aria-activedescendant', items[index].id);
+        }
     }
 
     function handleCommandPaletteKeydown(e) {
@@ -552,14 +654,12 @@ const App = (() => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             let next = (selectedIdx + 1) % items.length;
-            items.forEach(function (item) { item.classList.remove('selected'); });
-            items[next].classList.add('selected');
+            setCommandPaletteSelection(items, next);
             items[next].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             let prev = selectedIdx <= 0 ? items.length - 1 : selectedIdx - 1;
-            items.forEach(function (item) { item.classList.remove('selected'); });
-            items[prev].classList.add('selected');
+            setCommandPaletteSelection(items, prev);
             items[prev].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'Enter') {
             e.preventDefault();
@@ -839,6 +939,14 @@ const App = (() => {
 
         // Count total modules
         let totalModules = allMods.length;
+        let popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
+        let continueIds = [];
+        recentVisits.forEach(function (visit) {
+            if (continueIds.length < 6 && !continueIds.includes(visit.id)) continueIds.push(visit.id);
+        });
+        popularIds.forEach(function (moduleId) {
+            if (continueIds.length < 6 && !continueIds.includes(moduleId)) continueIds.push(moduleId);
+        });
 
         let html = '<div class="dashboard">';
 
@@ -893,29 +1001,24 @@ const App = (() => {
             html += '</div></div>';
         }
 
-        // Recent modules (if any)
-        if (recentVisits.length > 0) {
-            html += '<div class="dashboard-section">'
-                + '<h2 class="dashboard-section-title">&#128340; Recently Visited</h2>'
-                + '<div class="dashboard-module-grid">';
-            let shown = 0;
-            recentVisits.forEach(function (visit) {
-                if (shown >= 6) return;
-                let mod = null;
-                for (let i = 0; i < allMods.length; i++) {
-                    if (allMods[i].id === visit.id) { mod = allMods[i]; break; }
-                }
-                if (mod) {
-                    html += '<div class="dashboard-module-card" onclick="App.navigate(\'' + mod.id + '\')">'
-                        + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
-                        + '<div class="dashboard-module-label">' + mod.label + '</div>'
-                        + '<div class="dashboard-module-desc">' + mod.description + '</div>'
-                        + '</div>';
-                    shown++;
-                }
-            });
-            html += '</div></div>';
-        }
+        // One recent-first, deduplicated launch row.
+        html += '<div class="dashboard-section dashboard-continue-section">'
+            + '<div class="dashboard-section-heading">'
+            + '<h2 class="dashboard-section-title">&#8594; Continue or start</h2>'
+            + '<button type="button" class="dashboard-browse-all" onclick="App.openCommandPalette()">Browse all ' + totalModules + '</button>'
+            + '</div>'
+            + '<div class="dashboard-module-grid">';
+        continueIds.forEach(function (moduleId) {
+            let mod = allMods.find(function (candidate) { return candidate.id === moduleId; });
+            if (mod) {
+                html += '<button type="button" class="dashboard-module-card" data-continue-module="' + mod.id + '" onclick="App.navigate(\'' + mod.id + '\')">'
+                    + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
+                    + '<div class="dashboard-module-label">' + mod.label + '</div>'
+                    + '<div class="dashboard-module-desc">' + mod.description + '</div>'
+                    + '</button>';
+            }
+        });
+        html += '</div></div>';
 
         // Recent Calculations
         let calcHistory = getCalcHistory();
@@ -951,26 +1054,6 @@ const App = (() => {
             }
             html += '</div></div>';
         }
-
-        // Popular modules / Quick links
-        let popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
-        html += '<div class="dashboard-section">'
-            + '<h2 class="dashboard-section-title">&#9889; Popular Modules</h2>'
-            + '<div class="dashboard-module-grid">';
-        popularIds.forEach(function (pid) {
-            let mod = null;
-            for (let i = 0; i < allMods.length; i++) {
-                if (allMods[i].id === pid) { mod = allMods[i]; break; }
-            }
-            if (mod) {
-                html += '<div class="dashboard-module-card" onclick="App.navigate(\'' + mod.id + '\')">'
-                    + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
-                    + '<div class="dashboard-module-label">' + mod.label + '</div>'
-                    + '<div class="dashboard-module-desc">' + mod.description + '</div>'
-                    + '</div>';
-            }
-        });
-        html += '</div></div>';
 
         // All categories
         html += '<div class="dashboard-section">'
@@ -1066,19 +1149,16 @@ const App = (() => {
         // Track visit for dashboard
         trackModuleVisit(moduleId);
 
-        document.querySelectorAll('.sidebar-link').forEach(function (el) {
-            el.classList.toggle('active', el.dataset.module === moduleId);
-        });
+        currentModule = moduleId;
+        const currentGroupTitle = getCurrentGroupTitle();
+        if (currentGroupTitle) collapsedSidebarGroups.delete(currentGroupTitle);
+        renderSidebar();
 
         document.querySelectorAll('.mobile-nav-item').forEach(function (el) {
             el.classList.toggle('active', el.dataset.module === moduleId);
         });
 
-        document.getElementById('sidebar').classList.remove('open');
-        let overlay = document.getElementById('sidebar-overlay');
-        if (overlay) overlay.classList.remove('visible');
-
-        currentModule = moduleId;
+        closeSidebar(false);
         let content = document.getElementById('module-content');
 
         // Dashboard / home view
@@ -1166,19 +1246,90 @@ const App = (() => {
     // ============================================================
 
     function handleResize() {
-        // Responsive adjustments if needed
+        if (window.innerWidth >= 1024) closeSidebar(false);
+        syncSidebarA11y();
     }
 
     function openSidebar() {
-        document.getElementById('sidebar').classList.add('open');
+        if (window.innerWidth >= 1024) return;
+        const sidebar = document.getElementById('sidebar');
+        const trigger = document.getElementById('mobile-menu-trigger');
+        sidebarReturnFocus = document.activeElement;
+        sidebar.removeAttribute('inert');
+        sidebar.setAttribute('aria-hidden', 'false');
+        sidebar.classList.add('open');
+        document.body.classList.add('sidebar-open');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
         let overlay = document.getElementById('sidebar-overlay');
         if (overlay) overlay.classList.add('visible');
+        setTimeout(function () {
+            const first = sidebar.querySelector('button:not([disabled]), a[href]');
+            if (first) first.focus();
+        }, 0);
     }
 
-    function closeSidebar() {
-        document.getElementById('sidebar').classList.remove('open');
+    function closeSidebar(restoreFocus) {
+        if (restoreFocus === undefined) restoreFocus = true;
+        const sidebar = document.getElementById('sidebar');
+        const wasOpen = sidebar.classList.contains('open');
+        sidebar.classList.remove('open');
+        document.body.classList.remove('sidebar-open');
+        const trigger = document.getElementById('mobile-menu-trigger');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
         let overlay = document.getElementById('sidebar-overlay');
         if (overlay) overlay.classList.remove('visible');
+        syncSidebarA11y();
+        if (wasOpen && restoreFocus && sidebarReturnFocus && sidebarReturnFocus.isConnected) {
+            sidebarReturnFocus.focus();
+        }
+        sidebarReturnFocus = null;
+    }
+
+    function syncSidebarA11y() {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+        const compact = window.innerWidth < 1024;
+        const open = sidebar.classList.contains('open');
+        if (compact && !open) {
+            sidebar.setAttribute('inert', '');
+            sidebar.setAttribute('aria-hidden', 'true');
+        } else {
+            sidebar.removeAttribute('inert');
+            sidebar.setAttribute('aria-hidden', 'false');
+        }
+    }
+
+    function trapSidebarFocus(event) {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar || !sidebar.classList.contains('open') || event.key !== 'Tab') return false;
+        const focusable = Array.from(sidebar.querySelectorAll(
+            'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter(function (element) {
+            return !element.closest('[hidden]');
+        });
+        if (focusable.length === 0) {
+            event.preventDefault();
+            sidebar.focus();
+            return true;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!sidebar.contains(document.activeElement)) {
+            event.preventDefault();
+            (event.shiftKey ? last : first).focus();
+            return true;
+        }
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+            return true;
+        }
+        if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+            return true;
+        }
+        return false;
     }
 
     function autoSaveInputs(container, moduleId) {
@@ -1216,6 +1367,7 @@ const App = (() => {
         toggleTheme: toggleTheme,
         openSidebar: openSidebar,
         closeSidebar: closeSidebar,
+        toggleSidebarGroup: toggleSidebarGroup,
         autoSaveInputs: autoSaveInputs,
         createModuleLayout: createModuleLayout,
         tooltip: tooltip,
