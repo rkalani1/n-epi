@@ -338,6 +338,9 @@ const Statistics = (() => {
 
     function binomialPMF(k, n, p) {
         if (k < 0 || k > n) return 0;
+        // Degenerate p: k*log(0) = 0*(-Inf) = NaN, so handle explicitly.
+        if (p <= 0) return k === 0 ? 1 : 0;
+        if (p >= 1) return k === n ? 1 : 0;
         return Math.exp(logChoose(n, k) + k * Math.log(p) + (n - k) * Math.log(1 - p));
     }
 
@@ -489,8 +492,22 @@ const Statistics = (() => {
             correction = 0.5 * (1 / n1 + 1 / n2);
         }
 
-        z = (Math.abs(diff) - correction) / se;
-        const pValue = 2 * (1 - normalCDF(Math.abs(z)));
+        if (se === 0) {
+            // Degenerate table (e.g. 0 events in both groups): the asymptotic
+            // z-test is undefined (0/0 or +/-Infinity). Report z = 0, p = 1
+            // rather than a spurious "significant" result.
+            return {
+                p1, p2, diff, se, z: 0, pValue: 1,
+                note: 'Standard error is zero; asymptotic z-test not applicable. Use Fisher\'s exact test.'
+            };
+        }
+
+        // Floor the corrected difference at zero: when the continuity
+        // correction is at least |diff|, the corrected statistic is z = 0
+        // (p = 1) — a negative value must NOT be treated as evidence.
+        // (Clamp at 1: the polynomial CDF approximation is ~1e-8 off at z = 0.)
+        z = Math.max(0, Math.abs(diff) - correction) / se;
+        const pValue = Math.min(1, 2 * (1 - normalCDF(Math.abs(z))));
 
         return { p1, p2, diff, se, z, pValue };
     }
@@ -536,6 +553,11 @@ const Statistics = (() => {
             pValue *= 2;
             return { statistic: null, pValue: Math.min(1, pValue), method: 'exact' };
         }
+        if (b + c === 0) {
+            // No discordant pairs: statistic is 0/0; there is no evidence of
+            // asymmetry, so report chi2 = 0, p = 1 instead of NaN.
+            return { chi2: 0, df: 1, pValue: 1, method: 'asymptotic', note: 'No discordant pairs' };
+        }
         const chi2 = Math.pow(b - c, 2) / (b + c);
         const pValue = 1 - chiSquaredCDF(chi2, 1);
         return { chi2, df: 1, pValue, method: 'asymptotic' };
@@ -570,32 +592,51 @@ const Statistics = (() => {
     // Mantel-Haenszel for stratified 2x2 tables
     function mantelHaenszel(tables, measure = 'OR') {
         // tables = [{a, b, c, d}, ...]
-        let numerator = 0, denominator = 0;
-        let Q = 0; // Cochran Q for homogeneity
         const k = tables.length;
         const estimates = [];
 
+        // The MH estimator itself tolerates zero cells (that is its virtue),
+        // so the pooled estimate is computed on the raw counts. A global
+        // Haldane-Anscombe 0.5 correction is applied ONLY when the MH sums
+        // themselves are degenerate (numerator or denominator sum is 0, which
+        // requires a zero cell in EVERY stratum) — otherwise the estimate or
+        // the variance would be 0/Infinity/NaN.
+        const correctAll = (ts) => ts.map(t => ({ a: t.a + 0.5, b: t.b + 0.5, c: t.c + 0.5, d: t.d + 0.5 }));
+
         if (measure === 'OR') {
+            let continuityCorrected = false;
+            let work = tables;
+            if (tables.every(t => t.b === 0 || t.c === 0) ||
+                tables.every(t => t.a === 0 || t.d === 0)) {
+                work = correctAll(tables);
+                continuityCorrected = true;
+            }
+
             let sumR = 0, sumS = 0;
-            let sumRS = 0, sumR2 = 0, sumS2 = 0, sumPR = 0, sumPS = 0;
+            const correctedStrata = [];
 
-            tables.forEach(t => {
+            work.forEach(t => {
                 const n = t.a + t.b + t.c + t.d;
-                const R = t.a * t.d / n;
-                const S = t.b * t.c / n;
-                sumR += R;
-                sumS += S;
+                sumR += t.a * t.d / n;
+                sumS += t.b * t.c / n;
+            });
 
-                // For Breslow-Day / Tarone
-                const or_i = (t.a * t.d) / (t.b * t.c);
-                estimates.push(or_i);
+            // Stratum-specific ORs (display only): Haldane-Anscombe 0.5 for
+            // any stratum where a zero cell would give 0/Infinity/NaN.
+            tables.forEach((t, i) => {
+                if (t.a === 0 || t.b === 0 || t.c === 0 || t.d === 0) {
+                    estimates.push(((t.a + 0.5) * (t.d + 0.5)) / ((t.b + 0.5) * (t.c + 0.5)));
+                    correctedStrata.push(i);
+                } else {
+                    estimates.push((t.a * t.d) / (t.b * t.c));
+                }
             });
 
             const orMH = sumR / sumS;
 
             // Robins-Breslow-Greenland variance
             let P_R = 0, P_S = 0, Q_plus = 0;
-            tables.forEach(t => {
+            work.forEach(t => {
                 const n = t.a + t.b + t.c + t.d;
                 const R = t.a * t.d / n;
                 const S = t.b * t.c / n;
@@ -617,8 +658,8 @@ const Statistics = (() => {
             //   (psi-1) a^2 - [psi(r1+c1) + (n-r1-c1)] a + psi*r1*c1 = 0
             // (Breslow & Day 1980). Then Var(a) = (1/a + 1/b + 1/c + 1/d)^-1 on the
             // expected cells, and BD = sum (a_obs - a_exp)^2 / Var(a).
-            let bd = 0;
-            tables.forEach((t) => {
+            let bd = 0, bdStrata = 0;
+            work.forEach((t) => {
                 const n = t.a + t.b + t.c + t.d;
                 const r1 = t.a + t.b;   // row-1 (exposed) total
                 const c1 = t.a + t.c;   // col-1 (case) total
@@ -649,8 +690,13 @@ const Statistics = (() => {
                 if (aExp <= 0 || bExp <= 0 || cExp <= 0 || dExp <= 0) return;
                 const varA = 1 / (1 / aExp + 1 / bExp + 1 / cExp + 1 / dExp);
                 bd += Math.pow(t.a - aExp, 2) / varA;
+                bdStrata++;
             });
-            const bdPValue = 1 - chiSquaredCDF(bd, k - 1);
+            // df = (strata actually contributing to the statistic) - 1;
+            // strata skipped for non-positive expected cells carry no
+            // information about OR homogeneity.
+            const bdDf = Math.max(0, bdStrata - 1);
+            const bdPValue = bdDf > 0 ? 1 - chiSquaredCDF(bd, bdDf) : NaN;
 
             return {
                 measure: 'OR',
@@ -658,14 +704,25 @@ const Statistics = (() => {
                 lnEstimate: lnOR,
                 se: seLnOR,
                 ci: { lower: Math.exp(lnOR - z * seLnOR), upper: Math.exp(lnOR + z * seLnOR) },
-                breslowDay: { statistic: bd, df: k - 1, pValue: bdPValue },
-                stratumEstimates: estimates
+                breslowDay: { statistic: bd, df: bdDf, pValue: bdPValue, strataIncluded: bdStrata },
+                stratumEstimates: estimates,
+                continuityCorrected,
+                correctedStrata
             };
         }
 
         if (measure === 'RR') {
+            let continuityCorrected = false;
+            let work = tables;
+            if (tables.every(t => t.a === 0) || tables.every(t => t.c === 0)) {
+                // MH RR numerator/denominator sum would be 0 — apply the
+                // Haldane-Anscombe 0.5 correction to all cells.
+                work = correctAll(tables);
+                continuityCorrected = true;
+            }
+
             let sumA = 0, sumB = 0;
-            tables.forEach(t => {
+            work.forEach(t => {
                 const n = t.a + t.b + t.c + t.d;
                 sumA += t.a * (t.c + t.d) / n;
                 sumB += t.c * (t.a + t.b) / n;
@@ -675,7 +732,7 @@ const Statistics = (() => {
             // Greenland-Robins variance of ln(RR_MH):
             //   var = sum[ (r1*r2*(a+c) - a*c*n) / n^2 ] / (sumA * sumB)
             let P = 0;
-            tables.forEach(t => {
+            work.forEach(t => {
                 const n = t.a + t.b + t.c + t.d;
                 P += ((t.a + t.b) * (t.c + t.d) * (t.a + t.c) - t.a * t.c * n) / (n * n);
             });
@@ -688,7 +745,36 @@ const Statistics = (() => {
                 estimate: rrMH,
                 lnEstimate: lnRR,
                 se: seLnRR,
-                ci: { lower: Math.exp(lnRR - z * seLnRR), upper: Math.exp(lnRR + z * seLnRR) }
+                ci: { lower: Math.exp(lnRR - z * seLnRR), upper: Math.exp(lnRR + z * seLnRR) },
+                continuityCorrected
+            };
+        }
+
+        if (measure === 'RD') {
+            // Greenland-Robins (1985) Mantel-Haenszel risk difference:
+            //   RD_MH = sum[(a*n0 - c*n1)/n] / sum[n1*n0/n]
+            //   Var(RD_MH) = sum[(a*b*n0^3 + c*d*n1^3)/(n1*n0*n^2)] / (sum[n1*n0/n])^2
+            // where n1 = a+b (exposed total), n0 = c+d (unexposed total).
+            // Zero cells are unproblematic for RD; strata with an empty arm
+            // (n1 = 0 or n0 = 0) carry no information and are skipped.
+            let num = 0, den = 0, varNum = 0;
+            tables.forEach(t => {
+                const n1 = t.a + t.b, n0 = t.c + t.d;
+                if (n1 === 0 || n0 === 0) return;
+                const n = n1 + n0;
+                num += (t.a * n0 - t.c * n1) / n;
+                den += n1 * n0 / n;
+                varNum += (t.a * t.b * Math.pow(n0, 3) + t.c * t.d * Math.pow(n1, 3)) / (n1 * n0 * n * n);
+            });
+            const rdMH = num / den;
+            const seRD = Math.sqrt(varNum) / den;
+            const z = normalQuantile(0.975);
+
+            return {
+                measure: 'RD',
+                estimate: rdMH,
+                se: seRD,
+                ci: { lower: rdMH - z * seRD, upper: rdMH + z * seRD }
             };
         }
 
@@ -825,25 +911,126 @@ const Statistics = (() => {
         return { deff, nAdjusted, nClusters, totalN: nClusters * clusterSize };
     }
 
-    // Stepped-wedge (Hussey-Hughes)
+    // Small dense matrix inverse (Gauss-Jordan with partial pivoting).
+    function matInverse(M) {
+        const N = M.length;
+        const A = M.map((row, i) => [...row, ...row.map((_, j) => (i === j ? 1 : 0))]);
+        for (let i = 0; i < N; i++) {
+            let piv = i;
+            for (let r = i + 1; r < N; r++) {
+                if (Math.abs(A[r][i]) > Math.abs(A[piv][i])) piv = r;
+            }
+            const tmp = A[i]; A[i] = A[piv]; A[piv] = tmp;
+            const d = A[i][i];
+            for (let j = 0; j < 2 * N; j++) A[i][j] /= d;
+            for (let r = 0; r < N; r++) {
+                if (r === i) continue;
+                const f2 = A[r][i];
+                if (f2 === 0) continue;
+                for (let j = 0; j < 2 * N; j++) A[r][j] -= f2 * A[i][j];
+            }
+        }
+        return A.map(row => row.slice(N));
+    }
+
+    // Hussey & Hughes (2007) GLS variance of the treatment effect for a
+    // cross-sectional cluster design with T periods, fixed period effects and
+    // a random cluster intercept. treatRows holds one 0/1 treatment vector of
+    // length T per cluster. Cluster-period MEANS are modelled with residual
+    // variance sigmaW2/n and between-cluster variance tau2 (exchangeable).
+    function hhVarianceTheta(treatRows, T, nPerClusterPeriod, tau2, sigmaW2) {
+        const a = sigmaW2 / nPerClusterPeriod;
+        // V^{-1} = (1/a) I - cJ * J  for  V = a I + tau2 J  (T x T)
+        const cJ = tau2 / (a * (a + T * tau2));
+        const p = T + 1; // T period effects + treatment effect
+        const info = [];
+        for (let i = 0; i < p; i++) info.push(new Array(p).fill(0));
+        treatRows.forEach(x => {
+            let sx = 0;
+            for (let j = 0; j < T; j++) sx += x[j];
+            for (let j = 0; j < T; j++) {
+                for (let l = 0; l < T; l++) {
+                    info[j][l] += (j === l ? 1 / a : 0) - cJ;
+                }
+                const cross = x[j] / a - cJ * sx;
+                info[j][T] += cross;
+                info[T][j] += cross;
+            }
+            // x entries are 0/1 so sum(x^2) = sx
+            info[T][T] += sx / a - cJ * sx * sx;
+        });
+        return matInverse(info)[T][T];
+    }
+
+    // Stepped-wedge (cross-sectional, Hussey & Hughes 2007 — exact GLS).
+    // Given the total N required by a comparator parallel cluster-randomized
+    // design (nParallel), returns the total N a stepped-wedge design with
+    // `steps` steps and `clustersPerStep` clusters per step needs for the
+    // same precision. Design: T = steps + 1 periods, clusters split evenly
+    // across steps, each group crossing to intervention one step at a time;
+    // the comparator is a parallel design with the same clusters/periods,
+    // half intervention and half control. The treatment-effect variance in
+    // both designs is the exact GLS variance under the Hussey-Hughes model
+    // (fixed period effects, random cluster intercepts, ICC = icc).
+    // NOTE: a stepped wedge needs MORE subjects than a parallel design at low
+    // ICC (treatment is partially confounded with time) and fewer at high ICC
+    // — correctionFactor is the realized ratio totalN / nParallel.
     function sampleSizeSteppedWedge(nParallel, steps, clustersPerStep, icc) {
         const k = steps;
         const m = clustersPerStep;
         const totalClusters = k * m;
+        const T = k + 1;
+        if (!(k >= 2) || !(m >= 1) || !(nParallel > 0)) return null;
 
-        // Design effect for stepped-wedge
-        const deff_sw = (1 + icc * (k * m - 1)) / (1 + icc * (m / 2 - 1));
-        // Simplified: use ratio relative to parallel cluster RCT
-        const correctionFactor = 3 * (1 - icc) / (2 * k * (k - 1 / k) * icc + 3 * (1 - icc));
-        const nSW = Math.ceil(nParallel * correctionFactor);
+        const iccC = Math.min(Math.max(icc || 0, 0), 0.999);
+        const tau2 = iccC;          // total individual variance normalized to 1
+        const sigmaW2 = 1 - iccC;   // (scale cancels in the N ratio)
+
+        // Precision achieved by the comparator parallel cluster design.
+        const parRows = [];
+        for (let i = 0; i < totalClusters; i++) {
+            parRows.push(new Array(T).fill(i < totalClusters / 2 ? 1 : 0));
+        }
+        const nParPerCP = nParallel / (totalClusters * T);
+        const vTarget = hhVarianceTheta(parRows, T, nParPerCP, tau2, sigmaW2);
+
+        // Stepped-wedge design matrix.
+        const swRows = [];
+        for (let s = 0; s < k; s++) {
+            for (let j = 0; j < m; j++) {
+                const x = new Array(T).fill(0);
+                for (let t = s + 1; t < T; t++) x[t] = 1;
+                swRows.push(x);
+            }
+        }
+
+        // Solve for the SW cluster-period size that attains the same
+        // precision. Var(theta) is monotone decreasing in n and tends to 0
+        // as n -> Infinity under this model (the random intercept cancels in
+        // within-cluster contrasts), so a solution always exists.
+        let hi = 1;
+        while (hhVarianceTheta(swRows, T, hi, tau2, sigmaW2) > vTarget && hi < 1e12) hi *= 2;
+        let lo = hi / 2;
+        if (hhVarianceTheta(swRows, T, lo, tau2, sigmaW2) <= vTarget) lo = 1e-9;
+        for (let i = 0; i < 60; i++) {
+            const mid = Math.sqrt(lo * hi);
+            if (hhVarianceTheta(swRows, T, mid, tau2, sigmaW2) > vTarget) lo = mid;
+            else hi = mid;
+        }
+        const nSWPerCP = hi;
+        const totalN = Math.ceil(totalClusters * T * nSWPerCP);
+        const correctionFactor = totalN / nParallel;
 
         return {
             totalClusters,
             steps: k,
             clustersPerStep: m,
+            periods: T,
             correctionFactor,
-            nPerCluster: Math.ceil(nSW / totalClusters),
-            totalN: nSW
+            nPerClusterPeriod: Math.ceil(nSWPerCP),
+            nPerCluster: Math.ceil(totalN / totalClusters),
+            totalN,
+            method: 'Hussey-Hughes GLS (cross-sectional)'
         };
     }
 
@@ -935,32 +1122,107 @@ const Statistics = (() => {
         };
     }
 
-    // Group sequential — O'Brien-Fleming and Pocock boundaries
+    // ------------------------------------------------------------
+    // Group-sequential machinery: exact boundary-crossing probabilities by
+    // recursive numerical integration over the joint distribution of the
+    // sequential Z statistics (Armitage-McPherson-Rowe recursion).
+    // ------------------------------------------------------------
+
+    // P(|Z_k| >= zBounds[k] at ANY look k), for Z statistics observed at
+    // information fractions `fractions` (increasing, last = 1), under drift
+    // theta = E[Z at full information] (theta = 0 gives the type I error).
+    function seqCrossingProb(zBounds, fractions, drift, gridStep) {
+        const h = gridStep || 0.01;
+        const K = zBounds.length;
+        // Work on the Brownian-motion scale S_k = Z_k * sqrt(t_k).
+        const B = zBounds.map((b, i) => b * Math.sqrt(fractions[i]));
+        const pdf = (x) => Math.exp(-0.5 * x * x) / SQRT2PI;
+        const makeGrid = (bound) => {
+            const g = [];
+            for (let x = -bound + h / 2; x < bound; x += h) g.push(x);
+            return g;
+        };
+        let grid = makeGrid(B[0]);
+        const sd0 = Math.sqrt(fractions[0]);
+        let f = grid.map(s => pdf((s - drift * fractions[0]) / sd0) / sd0);
+        for (let i = 1; i < K; i++) {
+            const dt = fractions[i] - fractions[i - 1];
+            const sd = Math.sqrt(dt);
+            const next = makeGrid(B[i]);
+            const nf = next.map(y => {
+                let s = 0;
+                for (let j = 0; j < grid.length; j++) {
+                    s += f[j] * pdf((y - grid[j] - drift * dt) / sd);
+                }
+                return s * h / sd;
+            });
+            grid = next;
+            f = nf;
+        }
+        let surviving = 0;
+        for (let j = 0; j < f.length; j++) surviving += f[j];
+        return 1 - surviving * h;
+    }
+
+    // Boundary constant for the classical shapes, solved so that the overall
+    // two-sided type I error equals alpha exactly:
+    //   Pocock: z_k = c;   O'Brien-Fleming: z_k = c / sqrt(t_k).
+    // Reproduces the Jennison & Turnbull constants (equally spaced looks),
+    // e.g. K = 5, alpha = 0.05: Pocock c = 2.413, OBF final boundary 2.040.
+    const seqConstCache = {};
+    function seqBoundaryConstant(nLooks, alpha, type) {
+        const key = type + ':' + nLooks + ':' + alpha;
+        if (seqConstCache[key] !== undefined) return seqConstCache[key];
+        const ts = Array.from({ length: nLooks }, (_, i) => (i + 1) / nLooks);
+        const shape = (c) => ts.map(t => (type === 'pocock' ? c : c / Math.sqrt(t)));
+        let lo = 1.0, hi = 6.0;
+        for (let i = 0; i < 40; i++) {
+            const mid = (lo + hi) / 2;
+            if (seqCrossingProb(shape(mid), ts, 0, 0.02) > alpha) lo = mid;
+            else hi = mid;
+        }
+        // One refinement pass on a finer grid around the coarse solution.
+        let lo2 = (lo + hi) / 2 - 0.02, hi2 = (lo + hi) / 2 + 0.02;
+        for (let i = 0; i < 20; i++) {
+            const mid = (lo2 + hi2) / 2;
+            if (seqCrossingProb(shape(mid), ts, 0, 0.008) > alpha) lo2 = mid;
+            else hi2 = mid;
+        }
+        const c = (lo2 + hi2) / 2;
+        seqConstCache[key] = c;
+        return c;
+    }
+
+    // Group sequential — O'Brien-Fleming and Pocock boundaries, calibrated
+    // against the joint distribution so the overall two-sided type I error
+    // equals alpha (the previous version used the cumulative spending value
+    // as a per-look nominal level, i.e. OBF boundaries z_{alpha/2}/sqrt(t)
+    // with an overall alpha of 0.052-0.061, and Bonferroni instead of true
+    // Pocock boundaries with an overall alpha of 0.033-0.043).
+    // Returned fields per look:
+    //   z              — stopping boundary for |Z|
+    //   nominalAlpha   — per-look two-sided nominal level 2(1 - Phi(z))
+    //   cumulativeAlpha— P(crossing by this look | H0), reaches alpha at look K
     function groupSequentialBoundaries(nLooks, alpha, type) {
         type = type || 'obf';
         alpha = alpha || 0.05;
+        const shapeType = type === 'pocock' ? 'pocock' : 'obf';
+        const c = seqBoundaryConstant(nLooks, alpha, shapeType);
+        const ts = Array.from({ length: nLooks }, (_, i) => (i + 1) / nLooks);
+        const zs = ts.map(t => (shapeType === 'pocock' ? c : c / Math.sqrt(t)));
         const boundaries = [];
-
-        if (type === 'obf') {
-            // O'Brien-Fleming: z_k = z_final / sqrt(k/K)
-            // Use Lan-DeMets spending function
-            for (let k = 1; k <= nLooks; k++) {
-                const t = k / nLooks;
-                // OBF spending function
-                const spent = 2 * (1 - normalCDF(normalQuantile(1 - alpha / 2) / Math.sqrt(t)));
-                const z = normalQuantile(1 - spent / 2);
-                boundaries.push({ look: k, fraction: t, z, nominalAlpha: spent });
-            }
-        } else if (type === 'pocock') {
-            // Pocock: constant boundary — find z such that overall alpha is maintained
-            // Approximation: z_pocock ≈ z_alpha * sqrt(nLooks corrections)
-            let zp = normalQuantile(1 - alpha / (2 * nLooks)); // Initial Bonferroni approx
-            for (let k = 1; k <= nLooks; k++) {
-                const t = k / nLooks;
-                boundaries.push({ look: k, fraction: t, z: zp, nominalAlpha: 2 * (1 - normalCDF(zp)) });
-            }
+        for (let k = 1; k <= nLooks; k++) {
+            const z = zs[k - 1];
+            boundaries.push({
+                look: k,
+                fraction: ts[k - 1],
+                z,
+                nominalAlpha: 2 * (1 - normalCDF(z)),
+                cumulativeAlpha: k === nLooks
+                    ? alpha
+                    : seqCrossingProb(zs.slice(0, k), ts.slice(0, k), 0, 0.01)
+            });
         }
-
         return boundaries;
     }
 
@@ -974,7 +1236,9 @@ const Statistics = (() => {
         const zb = normalQuantile(power);
 
         // For a 2x2 crossover: N = 2*(za+zb)^2 * sd_within^2 / delta^2
-        // For higher-order crossovers, efficiency gain ~ sqrt(nPeriods/2)
+        // For higher-order crossovers each subject contributes ~nPeriods/2
+        // paired contrasts, so N is scaled by the linear factor 2/nPeriods
+        // (an approximation; the exact gain depends on the sequence design).
         var n = 2 * Math.pow(za + zb, 2) * sdWithin * sdWithin / (delta * delta);
         if (nPeriods > 2) {
             n = n * (2 / nPeriods);
@@ -1005,22 +1269,51 @@ const Statistics = (() => {
         return { nMetric: nMetric, totalN: totalN, expectedProp: expectedProp, ciWidth: ciWidth };
     }
 
-    // Group sequential sample size with alpha spending inflation factor
+    // Maximum-sample-size inflation factor R for the classical boundary
+    // shapes at alpha = 0.05 (two-sided), power = 0.80, equally spaced looks:
+    // R = (theta_seq / theta_fixed)^2 where theta_seq is the drift giving 80%
+    // crossing probability under the calibrated boundaries. The K = 2..5
+    // values are pre-computed (they match Jennison & Turnbull Table 2.2,
+    // e.g. Pocock: 1.110, 1.166, 1.202, 1.229); other K are solved exactly
+    // with the same integration machinery and memoized.
+    const seqInflationCache = {
+        'obf:2': 1.006, 'obf:3': 1.017, 'obf:4': 1.023, 'obf:5': 1.028,
+        'pocock:2': 1.110, 'pocock:3': 1.166, 'pocock:4': 1.203, 'pocock:5': 1.229
+    };
+    function seqInflationFactor(nLooks, type) {
+        const key = type + ':' + nLooks;
+        if (seqInflationCache[key] !== undefined) return seqInflationCache[key];
+        const alpha = 0.05, power = 0.80;
+        if (nLooks <= 1) return 1;
+        const c = seqBoundaryConstant(nLooks, alpha, type);
+        const ts = Array.from({ length: nLooks }, (_, i) => (i + 1) / nLooks);
+        const zB = ts.map(t => (type === 'pocock' ? c : c / Math.sqrt(t)));
+        let lo = 0.5, hi = 8;
+        for (let i = 0; i < 30; i++) {
+            const mid = (lo + hi) / 2;
+            if (seqCrossingProb(zB, ts, mid, 0.02) < power) lo = mid;
+            else hi = mid;
+        }
+        // Refinement pass on a finer grid around the coarse solution.
+        let lo2 = (lo + hi) / 2 - 0.03, hi2 = (lo + hi) / 2 + 0.03;
+        for (let i = 0; i < 20; i++) {
+            const mid = (lo2 + hi2) / 2;
+            if (seqCrossingProb(zB, ts, mid, 0.005) < power) lo2 = mid;
+            else hi2 = mid;
+        }
+        const thetaSeq = (lo2 + hi2) / 2;
+        const thetaFixed = normalQuantile(1 - alpha / 2) + normalQuantile(power);
+        const R = Math.pow(thetaSeq / thetaFixed, 2);
+        seqInflationCache[key] = R;
+        return R;
+    }
+
+    // Group sequential sample size with maximum-N inflation factor
+    // (alpha = 0.05 two-sided, power = 0.80, equally spaced looks).
     function sampleSizeGroupSequential(nFixed, nLooks, spendingType) {
         spendingType = spendingType || 'obf';
-        // Inflation factor for group sequential designs
-        // OBF: very small inflation (~1.015 for 3 looks)
-        // Pocock: larger inflation
-        var inflationFactor;
-        if (spendingType === 'obf') {
-            // Approximate OBF inflation factors
-            var obfFactors = { 2: 1.008, 3: 1.015, 4: 1.020, 5: 1.025 };
-            inflationFactor = obfFactors[nLooks] || (1 + 0.005 * nLooks);
-        } else {
-            // Pocock inflation factors
-            var pocockFactors = { 2: 1.17, 3: 1.23, 4: 1.27, 5: 1.30 };
-            inflationFactor = pocockFactors[nLooks] || (1 + 0.06 * Math.log(nLooks) + 0.05);
-        }
+        var type = spendingType === 'obf' ? 'obf' : 'pocock';
+        var inflationFactor = seqInflationFactor(nLooks, type);
 
         var nAdjusted = Math.ceil(nFixed * inflationFactor);
         return {
@@ -1147,17 +1440,20 @@ const Statistics = (() => {
         // Q statistic
         const Q = wi.reduce((sum, w, i) => sum + w * Math.pow(effects[i] - pooledFixed, 2), 0);
         const df = k - 1;
-        const pHet = 1 - chiSquaredCDF(Q, df);
+        const pHet = df > 0 ? 1 - chiSquaredCDF(Q, df) : NaN;
 
+        // Guard the single-study case (df = 0): heterogeneity quantities are
+        // undefined; use tau2 = 0 so the pooled result reduces to the study
+        // itself instead of propagating 0/0 = NaN.
         // I-squared
-        const I2 = Math.max(0, (Q - df) / Q);
+        const I2 = df > 0 && Q > 0 ? Math.max(0, (Q - df) / Q) : 0;
 
         // H-squared
-        const H2 = Q / df;
+        const H2 = df > 0 ? Q / df : 1;
 
         // DerSimonian-Laird tau²
         const C = sumW - sumW2 / sumW;
-        const tau2 = Math.max(0, (Q - df) / C);
+        const tau2 = df > 0 && C > 0 ? Math.max(0, (Q - df) / C) : 0;
 
         // Random-effects weights
         const wiRE = variances.map(v => 1 / (v + tau2));
@@ -1203,45 +1499,74 @@ const Statistics = (() => {
         };
     }
 
-    // Meta-analysis from 2x2 tables (Mantel-Haenszel)
+    // Meta-analysis from 2x2 tables (inverse-variance + Mantel-Haenszel).
+    // Zero-cell policy for the inverse-variance (per-study) effects, matching
+    // standard practice (RevMan/metafor): for ratio measures, studies with no
+    // events (or no non-events) in EITHER arm are excluded (their OR/RR is
+    // undefined); other studies containing a zero cell get a Haldane-Anscombe
+    // 0.5 added to all four cells. For RD, zero cells are fine; the 0.5
+    // correction is applied only when the variance would otherwise be zero.
+    // The MH pooled estimate is always computed on the raw counts.
     function metaAnalysisMH(tables, measure = 'OR') {
-        const k = tables.length;
         const effects = [];
         const variances = [];
+        const includedStudies = [];
+        const excludedStudies = [];
+        const correctedStudies = [];
 
-        tables.forEach(t => {
-            const { a, b, c, d } = t;
+        tables.forEach((t, i) => {
+            let { a, b, c, d } = t;
+            if (measure === 'OR' || measure === 'RR') {
+                const noEvents = a === 0 && c === 0;
+                const allEvents = b === 0 && d === 0;
+                if (noEvents || allEvents) {
+                    excludedStudies.push(i);
+                    return;
+                }
+                if (a === 0 || b === 0 || c === 0 || d === 0) {
+                    a += 0.5; b += 0.5; c += 0.5; d += 0.5;
+                    correctedStudies.push(i);
+                }
+            } else if (measure === 'RD') {
+                if (a * b === 0 && c * d === 0) {
+                    a += 0.5; b += 0.5; c += 0.5; d += 0.5;
+                    correctedStudies.push(i);
+                }
+            }
+
             if (measure === 'OR') {
                 const or = (a * d) / (b * c);
-                const lnOR = Math.log(or);
-                const var_lnOR = 1 / a + 1 / b + 1 / c + 1 / d;
-                effects.push(lnOR);
-                variances.push(var_lnOR);
+                effects.push(Math.log(or));
+                variances.push(1 / a + 1 / b + 1 / c + 1 / d);
             } else if (measure === 'RR') {
                 const rr = (a / (a + b)) / (c / (c + d));
-                const lnRR = Math.log(rr);
-                const var_lnRR = 1 / a - 1 / (a + b) + 1 / c - 1 / (c + d);
-                effects.push(lnRR);
-                variances.push(var_lnRR);
+                effects.push(Math.log(rr));
+                variances.push(1 / a - 1 / (a + b) + 1 / c - 1 / (c + d));
             } else if (measure === 'RD') {
                 const rd = a / (a + b) - c / (c + d);
                 const var_rd = a * b / Math.pow(a + b, 3) + c * d / Math.pow(c + d, 3);
                 effects.push(rd);
                 variances.push(var_rd);
             }
+            includedStudies.push(i);
         });
 
         return {
             iv: metaAnalysisRandomEffects(effects, variances),
-            mh: mantelHaenszel(tables, measure === 'RD' ? 'RR' : measure),
+            mh: mantelHaenszel(tables, measure),
             studyEffects: effects,
-            studyVariances: variances
+            studyVariances: variances,
+            includedStudies,
+            excludedStudies,
+            correctedStudies
         };
     }
 
     // Egger's regression test for publication bias
     function eggerTest(effects, se) {
         const k = effects.length;
+        // Intercept SE needs k - 2 > 0 residual degrees of freedom.
+        if (k < 3) return null;
         const precision = se.map(s => 1 / s);
         const standardized = effects.map((e, i) => e / se[i]);
 
@@ -1315,28 +1640,58 @@ const Statistics = (() => {
         return results;
     }
 
-    // Trim and fill
+    // Trim and fill (Duval & Tweedie 2000), L0 estimator.
+    // Follows the original algorithm: the funnel centre is estimated by
+    // FIXED-EFFECT meta-analysis (a random-effects centre lets tau^2 absorb
+    // the asymmetry and underestimates the number of missing studies), and
+    // the trim/re-centre/re-estimate loop is iterated to convergence.
+    // Missing studies are assumed to be on the LEFT of the funnel (mirrors of
+    // the most extreme right-side studies); the reported `original` and
+    // `adjusted` summaries remain DerSimonian-Laird random-effects models.
     function trimAndFill(effects, variances) {
         const k = effects.length;
         const ma = metaAnalysisRandomEffects(effects, variances);
-        const center = ma.pooled;
 
-        // L0 estimator (Duval & Tweedie): rank the absolute residuals, sum the
-        // ranks of the right-side (positive-residual) studies, and estimate the
-        // number of missing studies. NB: this is a single-pass estimate, not the
-        // full iterative trim/re-centre/re-estimate loop.
-        const residuals = effects.map(e => e - center);
-        const absRes = residuals.map(Math.abs);
-        const ranks = absRes.map((v, i) => ({ v, i }))
-            .sort((a, b) => a.v - b.v)
-            .map((item, rank) => ({ ...item, rank: rank + 1 }))
-            .sort((a, b) => a.i - b.i);
+        const feCenter = (e, v) => {
+            let sw = 0, swy = 0;
+            for (let i = 0; i < e.length; i++) {
+                const w = 1 / v[i];
+                sw += w;
+                swy += w * e[i];
+            }
+            return swy / sw;
+        };
 
-        const rightSide = residuals.map((r, i) => r > 0 ? ranks[i].rank : 0);
-        const S = rightSide.reduce((a, b) => a + b, 0);
-        const k0 = Math.round(Math.max(0, (4 * S - k * (k + 1)) / (2 * k - 1)));
+        // L0 estimator: rank the absolute residuals about `center`, sum the
+        // ranks of the right-side (positive-residual) studies.
+        const estimateK0 = (center) => {
+            const residuals = effects.map(e => e - center);
+            const ranks = residuals.map((r, i) => ({ v: Math.abs(r), i }))
+                .sort((x, y) => x.v - y.v)
+                .map((item, rank) => ({ ...item, rank: rank + 1 }))
+                .sort((x, y) => x.i - y.i);
+            let S = 0;
+            residuals.forEach((r, i) => { if (r > 0) S += ranks[i].rank; });
+            return Math.round(Math.max(0, (4 * S - k * (k + 1)) / (2 * k - 1)));
+        };
 
-        // Generate imputed studies
+        // Iterate: estimate k0, trim the k0 rightmost studies, re-centre by
+        // fixed effect on the trimmed set, re-estimate k0, until stable.
+        const byEffectDesc = effects.map((e, i) => i).sort((x, y) => effects[y] - effects[x]);
+        let k0 = 0;
+        let center = feCenter(effects, variances);
+        let iterations = 0;
+        for (let iter = 0; iter < 30; iter++) {
+            iterations = iter + 1;
+            const k0new = Math.min(estimateK0(center), Math.max(0, k - 2));
+            const keepIdx = byEffectDesc.slice(k0new);
+            center = feCenter(keepIdx.map(i => effects[i]), keepIdx.map(i => variances[i]));
+            if (k0new === k0) { k0 = k0new; break; }
+            k0 = k0new;
+        }
+
+        // Fill: mirror the k0 most extreme right-side studies about the
+        // final (fixed-effect, trimmed) centre.
         const imputedEffects = [...effects];
         const imputedVariances = [...variances];
         const rightEffects = effects
@@ -1356,7 +1711,10 @@ const Statistics = (() => {
             original: ma,
             adjusted,
             imputedEffects: imputedEffects.slice(k),
-            imputedVariances: imputedVariances.slice(k)
+            imputedVariances: imputedVariances.slice(k),
+            center,
+            iterations,
+            method: 'L0, fixed-effect centring, iterative'
         };
     }
 
@@ -1540,6 +1898,11 @@ const Statistics = (() => {
             }
         });
 
+        // V = 0 means no between-group information at any event time (e.g. no
+        // overlapping risk sets); the test is undefined — return null like the
+        // other unsupported-input cases rather than NaN/Infinity.
+        if (!(V > 0)) return null;
+
         const chi2 = Math.pow(O1 - E1, 2) / V;
         const pValue = 1 - chiSquaredCDF(chi2, 1);
 
@@ -1640,16 +2003,29 @@ const Statistics = (() => {
         const p2 = c / (c + d);
         const z = normalQuantile(0.975);
 
+        // Haldane-Anscombe 0.5 continuity correction for the ratio measures
+        // when a zero cell would otherwise give a 0/Infinity estimate or an
+        // undefined (NaN/Infinity) standard error. Applied to all four cells.
+        // RR only breaks when an EVENT cell is zero (a or c); OR and its
+        // Woolf SE break when any cell is zero. RD, chi-square and Fisher's
+        // exact test are computed from the raw counts.
+        const orCC = (a === 0 || b === 0 || c === 0 || d === 0);
+        const rrCC = (a === 0 || c === 0);
+
         // Risk Ratio
-        const rr = p1 / p2;
+        const aR = rrCC ? a + 0.5 : a, bR = rrCC ? b + 0.5 : b;
+        const cR = rrCC ? c + 0.5 : c, dR = rrCC ? d + 0.5 : d;
+        const rr = (aR / (aR + bR)) / (cR / (cR + dR));
         const lnRR = Math.log(rr);
-        const seLnRR = Math.sqrt(1 / a - 1 / (a + b) + 1 / c - 1 / (c + d));
+        const seLnRR = Math.sqrt(1 / aR - 1 / (aR + bR) + 1 / cR - 1 / (cR + dR));
         const rrCI = { lower: Math.exp(lnRR - z * seLnRR), upper: Math.exp(lnRR + z * seLnRR) };
 
         // Odds Ratio
-        const or = (a * d) / (b * c);
+        const aO = orCC ? a + 0.5 : a, bO = orCC ? b + 0.5 : b;
+        const cO = orCC ? c + 0.5 : c, dO = orCC ? d + 0.5 : d;
+        const or = (aO * dO) / (bO * cO);
         const lnOR = Math.log(or);
-        const seLnOR = Math.sqrt(1 / a + 1 / b + 1 / c + 1 / d);
+        const seLnOR = Math.sqrt(1 / aO + 1 / bO + 1 / cO + 1 / dO);
         const orCI = { lower: Math.exp(lnOR - z * seLnOR), upper: Math.exp(lnOR + z * seLnOR) };
 
         // Risk Difference
@@ -1693,12 +2069,13 @@ const Statistics = (() => {
 
         return {
             p1, p2,
-            rr: { value: rr, ci: rrCI, seLnRR },
-            or: { value: or, ci: orCI, seLnOR },
+            rr: { value: rr, ci: rrCI, seLnRR, continuityCorrected: rrCC },
+            or: { value: or, ci: orCI, seLnOR, continuityCorrected: orCC },
             rd: { value: rd, ci: rdCI, seRD, newcombe: rdNewcombe },
             nnt: { value: nnt, ci: nntCI, isHarm: rd > 0 },
             chi2, chi2Yates, fisher,
             afExposed, paf,
+            continuityCorrected: orCC || rrCC,
             counts: { a, b, c, d, n }
         };
     }
@@ -1791,7 +2168,12 @@ const Statistics = (() => {
 
     // Direct age-standardization
     function directStandardization(ageRates, ageWeights) {
-        // ageRates = [{rate, se, weight}] or [{events, population, standardPop}]
+        // ageRates = [{events, population, standardPop}]
+        //   or      [{rate, se, standardPop}]
+        //   or      [{rate, se}] / [{events, population}] with the stratum
+        //           weights supplied separately as the ageWeights array.
+        // (The per-stratum weight is read from standardPop, or from
+        //  ageWeights[i] when that argument is given.)
         let stdRate = 0;
         let stdVar = 0;
 

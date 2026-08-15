@@ -335,12 +335,23 @@ describe('Statistics Module', () => {
             expect(result.nnt.isHarm).toBe(false);
         });
 
-        test('handles zeroes in cells for odds ratio (Infinity or NaN depending on cells)', () => {
+        test('applies Haldane-Anscombe 0.5 correction to zero cells for odds ratio', () => {
             const result = Statistics.twoByTwo(10, 0, 10, 90); // b = 0
-            expect(result.or.value).toBe(Infinity);
+            // (10.5 * 90.5) / (0.5 * 10.5) = 181
+            expect(result.or.value).toBeCloseTo(181, 5);
+            expect(result.or.continuityCorrected).toBe(true);
+            expect(Number.isFinite(result.or.ci.lower)).toBe(true);
+            expect(Number.isFinite(result.or.ci.upper)).toBe(true);
 
             const result2 = Statistics.twoByTwo(0, 10, 10, 90); // a = 0
-            expect(result2.or.value).toBe(0);
+            // (0.5 * 90.5) / (10.5 * 10.5) = 0.41043...
+            expect(result2.or.value).toBeGreaterThan(0);
+            expect(result2.or.continuityCorrected).toBe(true);
+
+            // No zero cells: no correction, values unchanged
+            const clean = Statistics.twoByTwo(10, 90, 20, 80);
+            expect(clean.or.continuityCorrected).toBeFalsy();
+            expect(clean.or.value).toBeCloseTo((10 * 80) / (90 * 20), 8);
         });
     });
 
@@ -539,11 +550,9 @@ describe('Additional Statistics Coverage', () => {
             expect(tied.E1).toBeCloseTo(1.5, 5);
             expect(tied.V).toBeCloseTo(0.5833333333333333, 5);
 
+            // No events -> zero log-rank variance: the test is undefined and returns null
             const noEvents = Statistics.logRankTest([10, 20, 30, 40], [0, 0, 0, 0], [1, 1, 2, 2]);
-            expect(noEvents.O1).toBe(0);
-            expect(noEvents.E1).toBe(0);
-            expect(noEvents.V).toBe(0);
-            expect(Number.isNaN(noEvents.chi2)).toBe(true);
+            expect(noEvents).toBeNull();
         });
     });
 

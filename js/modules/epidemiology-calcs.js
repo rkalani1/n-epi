@@ -423,6 +423,9 @@
 
         // Effect measures grid
         html += '<div class="card-title mt-3">Effect Measures (95% CI)</div>';
+        if (res.continuityCorrected) {
+            html += '<div style="font-size:0.8rem;color:var(--warning);margin-bottom:6px;">A cell count of 0 was detected: ratio measures use the Haldane-Anscombe 0.5 continuity correction.</div>';
+        }
         html += '<div class="result-grid">';
 
         html += makeResultItem('RR', res.rr.value.toFixed(3), Statistics.formatCI(res.rr.ci.lower, res.rr.ci.upper, 3));
@@ -590,11 +593,17 @@
         html += '<div class="card-title mt-3">Stratum-Specific Estimates</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Stratum</th><th>a</th><th>b</th><th>c</th><th>d</th><th>' + measure + '</th></tr></thead><tbody>';
         tables.forEach(function (t, i) {
-            var est = measure === 'OR' ? (t.a * t.d) / (t.b * t.c) : (t.a / (t.a + t.b)) / (t.c / (t.c + t.d));
+            var est = (mh.stratumEstimates && mh.stratumEstimates.length === tables.length)
+                ? mh.stratumEstimates[i]
+                : (measure === 'OR' ? (t.a * t.d) / (t.b * t.c) : (t.a / (t.a + t.b)) / (t.c / (t.c + t.d)));
+            var corrected = mh.correctedStrata && mh.correctedStrata.indexOf(i) !== -1;
             html += '<tr><td>' + (i + 1) + '</td><td class="num">' + t.a + '</td><td class="num">' + t.b + '</td><td class="num">' + t.c + '</td><td class="num">' + t.d + '</td>'
-                + '<td class="num highlight">' + est.toFixed(3) + '</td></tr>';
+                + '<td class="num highlight">' + est.toFixed(3) + (corrected ? ' <span title="Haldane-Anscombe 0.5 continuity correction applied (zero cell)">&dagger;</span>' : '') + '</td></tr>';
         });
         html += '</tbody></table></div>';
+        if (mh.correctedStrata && mh.correctedStrata.length > 0) {
+            html += '<div style="font-size:0.78rem;color:var(--text-tertiary);margin-top:4px;">&dagger; Stratum contains a zero cell; the displayed estimate uses the Haldane-Anscombe 0.5 continuity correction.</div>';
+        }
 
         // Breslow-Day
         if (mh.breslowDay) {

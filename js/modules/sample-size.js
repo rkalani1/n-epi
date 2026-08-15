@@ -1355,6 +1355,10 @@
         var icc = parseFloat(document.getElementById('ss_sw_icc').value);
 
         var result = Statistics.sampleSizeSteppedWedge(n, steps, cps, icc);
+        if (!result) {
+            Export.showToast('Stepped-wedge design requires at least 2 steps and valid inputs.', 'error');
+            return;
+        }
 
         var html = '<div class="result-panel animate-in">';
         html += '<div class="result-value">' + result.totalN + ' participants</div>';

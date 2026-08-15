@@ -308,7 +308,8 @@
 
         // OR
         html += '<div class="result-item"><div class="result-item-value">' + or.toFixed(3) + '</div>'
-            + '<div class="result-item-label">OR<br>' + Statistics.formatCI(res.or.ci.lower, res.or.ci.upper, 3) + '</div></div>';
+            + '<div class="result-item-label">OR' + (res.continuityCorrected ? ' &dagger;' : '') + '<br>' + Statistics.formatCI(res.or.ci.lower, res.or.ci.upper, 3)
+            + (res.continuityCorrected ? '<br><span style="font-size:0.72rem;">&dagger; Haldane-Anscombe 0.5 correction (zero cell)</span>' : '') + '</div></div>';
 
         // NNT / NNH
         html += '<div class="result-item"><div class="result-item-value">' + nntDisplay + '</div>'
