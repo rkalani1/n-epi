@@ -1,6 +1,6 @@
 /**
  * Neuro-Epi — Trial Database Module
- * Searchable database of 200+ clinical trials with verified data
+ * Searchable database of clinical trials with PubMed-verified citations
  */
 
 (function() {

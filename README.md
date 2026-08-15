@@ -33,7 +33,7 @@ The public GitHub Pages deployment is for de-identified, aggregate, or synthetic
 - **Results Interpreter** — Paste p-values, CIs, or effect sizes and get plain-English interpretation.
 
 ### Clinical Trials
-- **Trial Database** — 200+ clinical trials with verified data, searchable and filterable. Sort by year/name/size, landmark filter, visual result indicators, side-by-side comparison, CSV export, citation paragraph generator, evidence summary, PubMed/DOI links.
+- **Trial Database** — nearly 200 clinical trials with PubMed-verified citations, searchable and filterable. Sort by year/name/size, landmark filter, visual result indicators, side-by-side comparison, CSV export, citation paragraph generator, evidence summary, PubMed/DOI links.
 - **Critical Appraisal** — RoB 2.0, Newcastle-Ottawa, AMSTAR-2, QUADAS-2, GRADE.
 - **Reporting Guidelines** — Interactive CONSORT, STROBE, PRISMA checklists with progress tracking and export.
 

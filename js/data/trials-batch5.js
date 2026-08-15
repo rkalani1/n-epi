@@ -549,7 +549,7 @@
     {
         name: 'HeMMI',
         fullTitle: 'Hemicraniectomy in Malignant Middle Cerebral Artery Infarction Trial',
-        year: 2014,
+        year: 2015,
         category: 'decompressive',
         journal: 'Acta Medica Philippina',
         design: 'Phase 3 RCT, open-label',

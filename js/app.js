@@ -967,14 +967,22 @@ const App = (() => {
             + '</button>'
             + '</div>';
 
-        // Quick stats
+        // Quick stats — trial count computed from the live database (unique names,
+        // matching the trial-database module's render-time dedupe)
+        var totalTrials = (typeof TrialDatabase !== 'undefined' && TrialDatabase.trials)
+            ? (function () {
+                var names = {};
+                TrialDatabase.trials.forEach(function (t) { names[t.name] = true; });
+                return Object.keys(names).length;
+            })()
+            : 0;
         html += '<div class="dashboard-stats">'
             + '<div class="dashboard-stat">'
             + '<div class="dashboard-stat-value">' + totalModules + '</div>'
             + '<div class="dashboard-stat-label">Modules</div>'
             + '</div>'
             + '<div class="dashboard-stat">'
-            + '<div class="dashboard-stat-value">200+</div>'
+            + '<div class="dashboard-stat-value">' + totalTrials + '</div>'
             + '<div class="dashboard-stat-label">Trials</div>'
             + '</div>'
             + '<div class="dashboard-stat">'
@@ -1082,7 +1090,7 @@ const App = (() => {
             + '<ul class="dashboard-changelog">'
             + '<li><strong>R Script Generation</strong> &mdash; calculators across the suite generate ready-to-run R scripts with one click</li>'
             + '<li><strong>' + totalModules + ' Modules</strong> &mdash; Added R Code Library, Teaching Tools, Quick Reference, and Biobank Cleaning</li>'
-            + '<li><strong>200+ Clinical Trials</strong> &mdash; Expanded database across 21 neurological categories</li>'
+            + '<li><strong>Clinical Trial Database</strong> &mdash; Expanded across 21 neurological categories, with all citations verified against PubMed</li>'
             + '<li><strong>Deeper Modules</strong> &mdash; Every module expanded with new calculators, tables, and educational content</li>'
             + '<li><strong>PRECIS-2 Tool</strong> &mdash; Pragmatic-explanatory spectrum scorer in Study Design Guide</li>'
             + '<li><strong>Life Table Builder</strong> &mdash; Full abridged life table with survivorship curves</li>'
