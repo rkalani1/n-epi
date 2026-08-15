@@ -13,7 +13,7 @@ The public GitHub Pages deployment is for de-identified, aggregate, or synthetic
 ## Features
 
 ### Study Design
-- **Sample Size Calculator** — 8 designs: two proportions, two means, time-to-event, mRS ordinal shift (Whitehead), non-inferiority, cluster RCT, stepped-wedge, multi-arm. Sensitivity tables, power curves, presets, grant-ready methods text.
+- **Sample Size Calculator** — 12 designs: two proportions, two means, time-to-event, mRS ordinal shift (Whitehead), non-inferiority, equivalence, crossover, diagnostic accuracy, cluster RCT, stepped-wedge, multi-arm, group sequential. Sensitivity tables, power curves, presets, grant-ready methods text.
 - **Power Analysis** — Reverse calculator (input N → achieved power), interactive dashboard with real-time sliders, multi-scenario comparison.
 - **Hypothesis Builder** — PICO/PECO framework, study design decision tree, variable classification, analysis plan generator.
 - **Study Design Guide** — Interactive decision tree for selecting study designs, reference tables with Oxford CEBM evidence levels, design templates, bias & confounding quick reference.

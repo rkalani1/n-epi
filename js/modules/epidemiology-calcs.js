@@ -129,7 +129,7 @@
         // TAB F: Case-Control Analysis
         // ============================================================
         html += '<div class="tab-content" id="epi-tab-casecontrol">';
-        html += '<div class="card-subtitle">Compute matched and unmatched odds ratios for case-control studies with Cornfield exact confidence intervals and conditional logistic regression reference.</div>';
+        html += '<div class="card-subtitle">Compute matched and unmatched odds ratios for case-control studies with Cornfield test-based confidence intervals and conditional logistic regression reference.</div>';
 
         // Unmatched section
         html += '<div class="card-title mt-2">Unmatched Case-Control</div>';
@@ -297,8 +297,8 @@
         html += '<div class="result-grid">';
         html += '<div><strong>YLL (Mortality)</strong>'
             + '<div class="form-group"><label class="form-label">Number of Deaths</label><input type="number" class="form-input" id="epi_yll_deaths" value="10"></div>'
-            + '<div class="form-group"><label class="form-label">Avg Age at Death</label><input type="number" class="form-input" id="epi_yll_age" value="65"></div>'
-            + '<div class="form-group"><label class="form-label">Remaining Life Expectancy</label><input type="number" class="form-input" id="epi_yll_le" value="18.5"></div></div>';
+            + '<div class="form-group"><label class="form-label">Remaining Life Expectancy at Age of Death</label><input type="number" class="form-input" id="epi_yll_le" value="18.5">'
+            + '<div style="font-size:0.75rem;color:var(--text-tertiary);margin-top:2px;">From a standard life table (e.g., ~18.5 years at age 65)</div></div></div>';
         html += '<div><strong>YLD (Morbidity)</strong>'
             + '<div class="form-group"><label class="form-label">Number of Cases</label><input type="number" class="form-input" id="epi_yld_cases" value="100"></div>'
             + '<div class="form-group"><label class="form-label">Avg Duration (years)</label><input type="number" class="form-input" id="epi_yld_duration" value="5"></div>'
@@ -340,7 +340,7 @@
             + '<div><strong>PAR%:</strong> p(RR \u2212 1) / [1 + p(RR \u2212 1)] (population)</div>'
             + '<div><strong>PAF (multi-level):</strong> \u03A3 p\u1D62(RR\u1D62 \u2212 1) / [1 + \u03A3 p\u1D62(RR\u1D62 \u2212 1)]</div>'
             + '<div><strong>Matched OR:</strong> b / c (ratio of discordant pairs)</div>'
-            + '<div><strong>Cornfield CI:</strong> Exact CI for OR via iterative solution</div>'
+            + '<div><strong>Cornfield CI:</strong> Approximate test-based CI for OR via iterative solution (truly exact limits come from the conditional/Fisher method)</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Screening Metrics</div>';
@@ -352,7 +352,7 @@
         html += '<div class="card-subtitle" style="font-weight:600;">Common Pitfalls</div>';
         html += '<ul style="margin:0 0 12px 16px;">'
             + '<li><strong>Prevalence vs incidence:</strong> Prevalence includes old and new cases; incidence counts only new cases</li>'
-            + '<li><strong>OR \u2248 RR only when outcome is rare:</strong> When prevalence >10%, OR overestimates RR</li>'
+            + '<li><strong>OR \u2248 RR only when outcome is rare:</strong> When prevalence >10%, the OR is farther from 1.0 than the RR in both directions (larger when RR > 1, smaller when RR < 1)</li>'
             + '<li><strong>Person-time denominators:</strong> Require knowing exact follow-up per individual</li>'
             + '<li><strong>PAR depends on prevalence:</strong> A strong association with a rare exposure has small population impact</li>'
             + '<li><strong>Matched analyses require paired methods:</strong> Standard 2x2 analysis is incorrect for matched data</li>'
@@ -950,7 +950,7 @@
             var woolfLower = Math.exp(lnOR - z * seLnOR);
             var woolfUpper = Math.exp(lnOR + z * seLnOR);
 
-            // Cornfield exact CI (iterative)
+            // Cornfield test-based CI (iterative approximation)
             var cornfield = cornfieldCI(a, b, c, d);
 
             // Chi-squared and Fisher
@@ -1028,7 +1028,7 @@
         Export.addToHistory(MODULE_ID, { tab: 'caseControl' }, 'Case-control analysis');
     }
 
-    // Cornfield exact CI for OR
+    // Cornfield test-based (approximate) CI for OR
     function cornfieldCI(a, b, c, d) {
         var or = (a * d) / (b * c);
         var n = a + b + c + d;
@@ -1115,7 +1115,7 @@
         var text = '';
         if (u) {
             text += 'In the unmatched case-control analysis, the odds ratio was ' + u.or.toFixed(2)
-                + ' (Cornfield exact 95% CI, ' + u.cornfield.lower.toFixed(2) + ' to ' + u.cornfield.upper.toFixed(2) + '). '
+                + ' (Cornfield 95% CI, ' + u.cornfield.lower.toFixed(2) + ' to ' + u.cornfield.upper.toFixed(2) + '). '
                 + 'The chi-squared test gave p ' + Statistics.formatPValue(u.chi2.pValue)
                 + ' and Fisher exact test p ' + Statistics.formatPValue(u.fisher.pValue) + '. ';
         }
@@ -1836,7 +1836,6 @@
 
     function calcDALY() {
         var deaths = parseInt(document.getElementById('epi_yll_deaths').value, 10);
-        var ageAtDeath = parseFloat(document.getElementById('epi_yll_age').value);
         var lifeExpectancy = parseFloat(document.getElementById('epi_yll_le').value);
 
         var cases = parseInt(document.getElementById('epi_yld_cases').value, 10);

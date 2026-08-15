@@ -17,6 +17,13 @@ const App = (() => {
     let commandPaletteReturnFocus = null;
     const collapsedSidebarGroups = new Set();
 
+    // Platform-aware shortcut hint: ⌘K on Apple devices, Ctrl+K elsewhere
+    const IS_APPLE = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(
+        (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || ''
+    );
+    const PALETTE_KEY_HTML = IS_APPLE ? '&#8984;K' : 'Ctrl+K';
+    const PALETTE_KEY_TEXT = IS_APPLE ? 'Cmd+K' : 'Ctrl+K';
+
     // Navigation structure — all data is hardcoded/trusted
     const NAV = [
         {
@@ -412,9 +419,9 @@ const App = (() => {
             + '<span><span class="sidebar-logo-text">n-epi</span>'
             + '<span class="sidebar-logo-version">v2.1</span></span>'
             + '</button>'
-            + '<button class="sidebar-cmd-k-btn" onclick="App.openCommandPalette()" title="Search modules (Cmd+K)">'
-            + '<span style="opacity:0.6;">Search all 25 modules</span>'
-            + '<kbd class="kbd-hint">&#8984;K</kbd>'
+            + '<button class="sidebar-cmd-k-btn" onclick="App.openCommandPalette()" title="Search modules (' + PALETTE_KEY_TEXT + ')">'
+            + '<span style="opacity:0.6;">Search all ' + getAllModules().length + ' modules</span>'
+            + '<kbd class="kbd-hint">' + PALETTE_KEY_HTML + '</kbd>'
             + '</button>'
             + '</div>'
             + '<nav class="sidebar-nav" aria-label="Module categories">';
@@ -719,7 +726,7 @@ const App = (() => {
             return;
         }
 
-        // 1-7 — Quick switch nav groups
+        // 1..NAV.length — Quick switch nav groups
         if (!e.metaKey && !e.ctrlKey && !e.altKey) {
             let num = parseInt(e.key, 10);
             if (num >= 1 && num <= NAV.length) {
@@ -745,7 +752,7 @@ const App = (() => {
             + '<button class="btn btn-ghost btn-sm" onclick="App.closeShortcutsModal()">&times;</button>'
             + '</div>'
             + '<div class="shortcuts-modal-body">'
-            + '<div class="shortcut-row"><kbd>&#8984;K</kbd><span>Open command palette</span></div>'
+            + '<div class="shortcut-row"><kbd>' + PALETTE_KEY_HTML + '</kbd><span>Open command palette</span></div>'
             + '<div class="shortcut-row"><kbd>Esc</kbd><span>Close overlay / modal</span></div>'
             + '<div class="shortcut-row"><kbd>?</kbd><span>Show this help</span></div>'
             + '<div class="shortcut-row"><kbd>1</kbd> - <kbd>' + NAV.length + '</kbd><span>Jump to nav group</span></div>'
@@ -956,7 +963,7 @@ const App = (() => {
             + '<button class="dashboard-search-btn" onclick="App.openCommandPalette()">'
             + '<span style="opacity:0.5;margin-right:8px;">&#128269;</span>'
             + '<span>Search modules...</span>'
-            + '<kbd class="kbd-hint">&#8984;K</kbd>'
+            + '<kbd class="kbd-hint">' + PALETTE_KEY_HTML + '</kbd>'
             + '</button>'
             + '</div>';
 
@@ -1075,7 +1082,7 @@ const App = (() => {
             + '<ul class="dashboard-changelog">'
             + '<li><strong>R Script Generation</strong> &mdash; calculators across the suite generate ready-to-run R scripts with one click</li>'
             + '<li><strong>' + totalModules + ' Modules</strong> &mdash; Added R Code Library, Teaching Tools, Quick Reference, and Biobank Cleaning</li>'
-            + '<li><strong>200+ Clinical Trials</strong> &mdash; Expanded database across 17 neurological categories</li>'
+            + '<li><strong>200+ Clinical Trials</strong> &mdash; Expanded database across 21 neurological categories</li>'
             + '<li><strong>Deeper Modules</strong> &mdash; Every module expanded with new calculators, tables, and educational content</li>'
             + '<li><strong>PRECIS-2 Tool</strong> &mdash; Pragmatic-explanatory spectrum scorer in Study Design Guide</li>'
             + '<li><strong>Life Table Builder</strong> &mdash; Full abridged life table with survivorship curves</li>'

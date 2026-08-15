@@ -43,7 +43,6 @@
         { id: 'sah', label: 'SAH' },
         { id: 'carotid', label: 'Carotid' },
         { id: 'antiplatelets', label: 'Antiplatelets' },
-        { id: 'antiplatelet', label: 'Antiplatelets (legacy)' },
         { id: 'blood-pressure', label: 'Blood Pressure' },
         { id: 'cardiac', label: 'Cardiac / AF' },
         { id: 'anticoagulation', label: 'Anticoagulation' },

@@ -637,7 +637,7 @@ var TrialDatabase = {
       fullTitle: "International Surgical Trial in Intracerebral Haemorrhage",
       year: 2005,
       journal: "The Lancet",
-      pmid: "15680415",
+      pmid: "15680453",
       design: "Phase 3 RCT, open-label with blinded outcome assessment",
       n: 1033,
       population: "Spontaneous supratentorial ICH within 72 hours where clinical equipoise existed",
@@ -765,7 +765,7 @@ var TrialDatabase = {
       fullTitle: "International Subarachnoid Aneurysm Trial",
       year: 2002,
       journal: "The Lancet",
-      pmid: "12383368",
+      pmid: "12414200",
       design: "Phase 3 RCT, open-label with blinded outcome assessment",
       n: 2143,
       population: "Aneurysmal subarachnoid hemorrhage suitable for either coiling or clipping",
@@ -858,7 +858,7 @@ var TrialDatabase = {
         "Small excess of hemorrhagic stroke with aspirin"
       ],
       significance: "Together with IST, established aspirin within 48 hours as standard acute ischemic stroke therapy. Benefit modest but consistent, with low NNT given stroke incidence.",
-      category: "antiplatelet",
+      category: "antiplatelets",
       tags: ["aspirin", "acute stroke", "antiplatelet", "Chinese population"]
     },
     {
@@ -882,7 +882,7 @@ var TrialDatabase = {
         "Heparin showed no net benefit due to bleeding"
       ],
       significance: "With CAST, provided definitive evidence for early aspirin in acute ischemic stroke. Showed no benefit of early heparin anticoagulation in acute stroke.",
-      category: "antiplatelet",
+      category: "antiplatelets",
       tags: ["aspirin", "heparin", "acute stroke", "factorial design"]
     },
     {
@@ -907,7 +907,7 @@ var TrialDatabase = {
         "No increase in moderate-to-severe hemorrhage"
       ],
       significance: "Established dual antiplatelet therapy (DAPT) for 21 days as superior to aspirin alone for minor stroke/TIA. Changed guidelines worldwide for early secondary prevention.",
-      category: "antiplatelet",
+      category: "antiplatelets",
       tags: ["DAPT", "clopidogrel", "aspirin", "minor stroke", "TIA", "landmark"]
     },
     {
@@ -932,7 +932,7 @@ var TrialDatabase = {
         "Most benefit within first 21 days"
       ],
       significance: "Confirmed CHANCE results in a global population. Greater benefit in first 21 days with increasing hemorrhagic risk thereafter, supporting 21-day DAPT duration per CHANCE.",
-      category: "antiplatelet",
+      category: "antiplatelets",
       tags: ["DAPT", "clopidogrel", "aspirin", "minor stroke", "TIA"]
     },
     {
@@ -957,7 +957,7 @@ var TrialDatabase = {
         "Greater benefit in ipsilateral atherosclerosis subgroup"
       ],
       significance: "Ticagrelor plus aspirin reduced recurrent stroke vs aspirin alone, but with increased bleeding. Provides an alternative DAPT regimen, particularly for clopidogrel non-responders.",
-      category: "antiplatelet",
+      category: "antiplatelets",
       tags: ["DAPT", "ticagrelor", "aspirin", "minor stroke", "TIA"]
     },
     {
@@ -982,7 +982,7 @@ var TrialDatabase = {
         "Similar bleeding rates"
       ],
       significance: "Ticagrelor monotherapy was not superior to aspirin in acute minor stroke or TIA. Led to the design of THALES, which tested ticagrelor plus aspirin instead.",
-      category: "antiplatelet",
+      category: "antiplatelets",
       tags: ["ticagrelor", "aspirin", "minor stroke", "TIA", "negative trial"]
     },
 

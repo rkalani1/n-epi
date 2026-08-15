@@ -1089,7 +1089,7 @@
     {
         name: 'FASTEST',
         year: 2023,
-        category: 'hemorrhagic',
+        category: 'ich',
         fullTitle: 'Factor Seven for Acute Hemorrhagic Stroke Treatment',
         journal: 'Stroke',
         doi: '10.1161/STROKEAHA.122.041680',
@@ -1109,7 +1109,7 @@
     {
         name: 'SWITCH',
         year: 2024,
-        category: 'hemorrhagic',
+        category: 'ich',
         fullTitle: 'Swiss Trial of Decompressive Craniectomy versus Best Medical Treatment of Spontaneous Supratentorial Intracerebral Hemorrhage',
         journal: 'The Lancet',
         doi: '10.1016/S0140-6736(24)00702-5',
@@ -1129,7 +1129,7 @@
     {
         name: 'MISTIE II',
         year: 2016,
-        category: 'hemorrhagic',
+        category: 'ich',
         fullTitle: 'Minimally Invasive Surgery Plus rt-PA for Intracerebral Hemorrhage Evacuation Phase II',
         journal: 'Stroke',
         doi: '10.1161/STROKEAHA.115.011415',

@@ -256,12 +256,12 @@
             html += '<strong>Vovk-Sellke Maximum p-Ratio (VS-MPR):</strong> ' + (vsMPR > 999 ? '> 999' : vsMPR.toFixed(1)) + '<br>';
             html += 'This means the data are at most <strong>' + (vsMPR > 999 ? '> 999' : vsMPR.toFixed(1)) + ' times more likely</strong> under the alternative hypothesis than the null. ';
             var bfLabel;
-            if (vsMPR > 100) bfLabel = 'Decisive evidence for H1';
-            else if (vsMPR > 30) bfLabel = 'Very strong evidence for H1';
-            else if (vsMPR > 10) bfLabel = 'Strong evidence for H1';
-            else if (vsMPR > 3) bfLabel = 'Moderate evidence for H1';
+            if (vsMPR > 100) bfLabel = 'At most decisive evidence for H1';
+            else if (vsMPR > 30) bfLabel = 'At most very strong evidence for H1';
+            else if (vsMPR > 10) bfLabel = 'At most strong evidence for H1';
+            else if (vsMPR > 3) bfLabel = 'At most moderate evidence for H1';
             else bfLabel = 'Weak evidence -- barely worth mentioning';
-            html += '(' + bfLabel + ', Jeffreys scale)<br>';
+            html += '(' + bfLabel + ' on the Jeffreys scale; the VS-MPR is an upper bound, so the actual Bayes factor may be much smaller)<br>';
             html += '<span style="font-size:0.82rem;color:var(--text-secondary);">Note: This is an approximate upper bound based on the Sellke et al. (2001) calibration. '
                 + 'A proper Bayes Factor requires specifying a prior on the effect size. With n = ' + Math.round(sampleN) + ', this approximation is '
                 + (sampleN > 50 ? 'reasonable' : 'rough -- small samples make this less reliable') + '.</span>';
@@ -286,7 +286,7 @@
             html += 'Your p-value is '
                 + '<strong style="color:' + (sidakSig ? 'var(--success)' : 'var(--danger)') + ';">'
                 + (sidakSig ? 'still significant' : 'NO LONGER significant') + '</strong> after Sidak correction.<br><br>';
-            html += '<span style="font-size:0.82rem;color:var(--text-secondary);">Bonferroni is very conservative. If comparisons are correlated, consider FDR (Benjamini-Hochberg) or Holm step-down procedure, which are more powerful.</span>';
+            html += '<span style="font-size:0.82rem;color:var(--text-secondary);">Bonferroni is very conservative. The Holm step-down procedure is uniformly more powerful and controls the family-wise error rate under any dependence. If controlling the false discovery rate is acceptable, Benjamini-Hochberg is more powerful still (it assumes independent or positively dependent tests; use Benjamini-Yekutieli under arbitrary dependence).</span>';
             html += '</div></div>';
         }
 
@@ -305,7 +305,7 @@
         }
         html += '<br><br><span style="font-size:0.82rem;color:var(--text-secondary);">To calculate the exact FI, you need a 2x2 table from the original study. '
             + 'Iteratively move one patient from non-event to event in the treatment group and re-test until the p-value crosses the threshold. '
-            + 'Many RCTs in major journals have FI of 0-3 (Walsh et al., JAMA 2014).</span>';
+            + 'Many RCTs in major journals have a low FI &mdash; about a quarter have FI &le; 3 (Walsh et al., J Clin Epidemiol 2014).</span>';
         html += '</div></div>';
 
         // Educational panel: What p-values do and don't tell you
@@ -485,12 +485,22 @@
             html += '<div style="font-size:0.95rem;line-height:1.6;">';
             html += 'Minimum clinically important difference (MCID): <strong>' + mcid + '</strong>. ';
             if (measure === 'rr' || measure === 'or' || measure === 'hr') {
-                if (lower >= mcid) html += 'The entire CI exceeds the MCID. The result is likely <strong>clinically significant</strong>.';
-                else if (point >= mcid) html += 'The point estimate exceeds the MCID, but the lower bound (' + lower.toFixed(2) + ') does not. Clinical significance is <strong>possible but uncertain</strong>.';
-                else html += 'The point estimate is below the MCID. The result is unlikely to be <strong>clinically significant</strong>.';
+                // For ratio measures the MCID may sit on either side of the null (1.0):
+                // an MCID < 1 denotes a protective threshold, so comparisons reverse.
+                var protectiveMcid = mcid < 1;
+                var wholeCIBeyond = protectiveMcid ? (upper <= mcid) : (lower >= mcid);
+                var pointBeyond = protectiveMcid ? (point <= mcid) : (point >= mcid);
+                var nearBound = protectiveMcid ? upper : lower;
+                if (wholeCIBeyond) html += 'The entire CI lies beyond the MCID. The result is likely <strong>clinically significant</strong>.';
+                else if (pointBeyond) html += 'The point estimate is beyond the MCID, but the CI bound closest to the null (' + nearBound.toFixed(2) + ') is not. Clinical significance is <strong>possible but uncertain</strong>.';
+                else html += 'The point estimate does not reach the MCID. The result is unlikely to be <strong>clinically significant</strong>.';
             } else {
-                if (lower >= mcid || (mcid < 0 && upper <= mcid)) html += 'The entire CI exceeds the MCID. The result is likely <strong>clinically significant</strong>.';
-                else if (Math.abs(point) >= Math.abs(mcid)) html += 'The point estimate exceeds the MCID, but the CI includes values below the MCID. Clinical significance is <strong>possible but uncertain</strong>.';
+                // Difference-scale measures: compare magnitudes so negative effects
+                // (e.g., a mean reduction) are assessed correctly against the MCID.
+                var mcidMag = Math.abs(mcid);
+                var wholeCIBeyondDiff = (lower >= mcidMag) || (upper <= -mcidMag);
+                if (wholeCIBeyondDiff) html += 'The entire CI lies beyond the MCID. The result is likely <strong>clinically significant</strong>.';
+                else if (Math.abs(point) >= mcidMag) html += 'The point estimate reaches the MCID, but the CI includes values smaller in magnitude than the MCID. Clinical significance is <strong>possible but uncertain</strong>.';
                 else html += 'The point estimate does not reach the MCID. The result may not be <strong>clinically significant</strong>.';
             }
             html += '</div></div>';
@@ -636,7 +646,7 @@
                 else if ((value > 2 && value <= 4) || (value >= 0.25 && value < 0.5)) { magnitude = 'Medium'; barWidth = 50; barColor = 'var(--primary)'; }
                 else { magnitude = 'Large'; barWidth = 75; barColor = 'var(--success)'; }
                 plainEnglish = value > 1 ? 'An odds ratio of ' + value.toFixed(2) + ' means the odds are ' + value.toFixed(2) + ' times higher in the exposed group.' : value < 1 ? 'An odds ratio of ' + value.toFixed(2) + ' means the odds are ' + ((1 - value) * 100).toFixed(0) + '% lower (protective).' : 'An odds ratio of 1.00 means no difference.';
-                benchmark = 'Chen et al. (2010): OR 1.5 ~ d=0.2, OR 2.5 ~ d=0.5, OR 4.3 ~ d=0.8.';
+                benchmark = 'Logistic conversion OR = exp(pi*d/sqrt(3)): OR 1.4 ~ d=0.2, OR 2.5 ~ d=0.5, OR 4.3 ~ d=0.8. (Chen et al. 2010 report higher equivalents at low baseline risk: OR 1.68/3.47/6.71.)';
                 break;
             case 'rr':
                 if (value >= 0.9 && value <= 1.1) { magnitude = 'Negligible'; barWidth = 10; barColor = 'var(--text-tertiary)'; }
@@ -1036,18 +1046,23 @@
                 pooledHi = pooledEst + 1.96 * pooledSE;
             }
         } else {
-            // Simple average
+            // Simple (unweighted) average. Ratio measures are averaged on the log
+            // scale (geometric mean) so the estimate matches the log-scale CI.
             var sum = 0;
-            for (var sa = 0; sa < studies.length; sa++) sum += studies[sa].es;
-            pooledEst = sum / studies.length;
-            // Approximate pooled CI from individual SEs
+            for (var sa = 0; sa < studies.length; sa++) {
+                sum += (measureType === 'ratio' && studies[sa].es > 0) ? Math.log(studies[sa].es) : studies[sa].es;
+            }
+            var avg = sum / studies.length;
+            // Approximate pooled CI from individual SEs (SEs are on the log scale for ratio measures)
             var seSum = 0;
             for (var sb = 0; sb < studies.length; sb++) seSum += studies[sb].se * studies[sb].se;
             pooledSE = Math.sqrt(seSum) / studies.length;
-            if (measureType === 'ratio' && pooledEst > 0) {
-                pooledLo = Math.exp(Math.log(pooledEst) - 1.96 * pooledSE);
-                pooledHi = Math.exp(Math.log(pooledEst) + 1.96 * pooledSE);
+            if (measureType === 'ratio') {
+                pooledEst = Math.exp(avg);
+                pooledLo = Math.exp(avg - 1.96 * pooledSE);
+                pooledHi = Math.exp(avg + 1.96 * pooledSE);
             } else {
+                pooledEst = avg;
                 pooledLo = pooledEst - 1.96 * pooledSE;
                 pooledHi = pooledEst + 1.96 * pooledSE;
             }
@@ -1559,7 +1574,7 @@
         r2 = r * r;
         lor = d * Math.PI / Math.sqrt(3);
         or_val = Math.exp(lor);
-        g = d * (1 - 3 / (4 * 100 - 1)); // approximate df=100
+        g = d * (1 - 3 / (4 * 100 - 1)); // small-sample correction evaluated at df=100 (see table note)
         eta2 = d * d / (d * d + 4); // approximation for 2 groups
         f2 = eta2 / (1 - eta2);
         var rr_approx = or_val / (1 - baseRisk + baseRisk * or_val);
@@ -1578,7 +1593,7 @@
         rhtml += '<div class="card-title">Conversion Results (' + mag + ' Effect)</div>';
         rhtml += '<div class="table-container"><table class="data-table"><thead><tr><th>Measure</th><th>Value</th><th>Interpretation</th></tr></thead><tbody>';
         rhtml += '<tr><td>Cohen\'s d</td><td><strong>' + d.toFixed(3) + '</strong></td><td>' + mag + ' (Cohen 1988: 0.2/0.5/0.8)</td></tr>';
-        rhtml += '<tr><td>Hedge\'s g</td><td>' + g.toFixed(3) + '</td><td>Bias-corrected d (use for small samples)</td></tr>';
+        rhtml += '<tr><td>Hedge\'s g</td><td>' + g.toFixed(3) + '</td><td>Bias-corrected d, assuming df = 100 here; with small samples compute g = d &times; (1 &minus; 3/(4&middot;df &minus; 1)) using your actual df</td></tr>';
         rhtml += '<tr><td>Correlation r</td><td>' + r.toFixed(3) + '</td><td>Explains ' + (r2 * 100).toFixed(1) + '% of variance</td></tr>';
         rhtml += '<tr><td>R-squared</td><td>' + r2.toFixed(4) + '</td><td>Proportion of shared variance</td></tr>';
         rhtml += '<tr><td>Eta-squared</td><td>' + eta2.toFixed(4) + '</td><td>Variance explained (ANOVA context)</td></tr>';
@@ -1646,15 +1661,15 @@
         html += '<tr><td>2 paired groups, continuous</td><td>Paired t-test</td><td>Wilcoxon signed-rank</td><td>Cohen\'s d (paired)</td></tr>';
         html += '<tr><td>3+ independent groups</td><td>One-way ANOVA</td><td>Kruskal-Wallis</td><td>Eta-squared</td></tr>';
         html += '<tr><td>3+ paired groups</td><td>Repeated-measures ANOVA</td><td>Friedman test</td><td>Partial eta-squared</td></tr>';
-        html += '<tr><td>2 groups, binary outcome</td><td>Chi-square / Fisher exact</td><td>Fisher exact (small n)</td><td>OR, RR, RD, phi</td></tr>';
+        html += '<tr><td>2 groups, binary outcome</td><td>--</td><td>Chi-square; Fisher exact (small n)</td><td>OR, RR, RD, phi</td></tr>';
         html += '<tr><td>Ordered categories</td><td>--</td><td>Chi-square for trend</td><td>Gamma, Kendall tau-b</td></tr>';
         html += '<tr><td>Correlation (continuous)</td><td>Pearson r</td><td>Spearman rho</td><td>r, r-squared</td></tr>';
         html += '<tr><td>Predict continuous outcome</td><td>Linear regression</td><td>Quantile regression</td><td>R-squared</td></tr>';
         html += '<tr><td>Predict binary outcome</td><td>Logistic regression</td><td>--</td><td>OR, AUC</td></tr>';
-        html += '<tr><td>Time-to-event (2 groups)</td><td>Log-rank test</td><td>--</td><td>HR, RMST</td></tr>';
+        html += '<tr><td>Time-to-event (2 groups)</td><td>Weibull / exponential model</td><td>Log-rank test</td><td>HR, RMST</td></tr>';
         html += '<tr><td>Agreement (continuous)</td><td>ICC</td><td>Bland-Altman</td><td>ICC, LoA</td></tr>';
-        html += '<tr><td>Agreement (categorical)</td><td>Cohen kappa</td><td>Weighted kappa</td><td>Kappa</td></tr>';
-        html += '<tr><td>Count data</td><td>Poisson regression</td><td>Negative binomial</td><td>IRR</td></tr>';
+        html += '<tr><td>Agreement (categorical)</td><td>--</td><td>Cohen kappa / weighted kappa</td><td>Kappa</td></tr>';
+        html += '<tr><td>Count data</td><td>Poisson / negative binomial regression</td><td>--</td><td>IRR</td></tr>';
         html += '</tbody></table></div>';
         html += '</div>';
         html += '</div>';
@@ -2248,7 +2263,7 @@
 
         var refs = [
             { id: 'ref-pvalue', title: 'P-value', content: '<strong>Definition:</strong> The probability of observing data as extreme as (or more extreme than) the observed data, assuming the null hypothesis is true.<br><br><strong>Range:</strong> 0 to 1.<br><br><strong>Key point:</strong> A small p-value indicates the data are unlikely under the null hypothesis. It does NOT indicate the probability that the null is true, nor does it measure effect size.<br><br><strong>Common threshold:</strong> alpha = 0.05 (arbitrary).' },
-            { id: 'ref-ci', title: 'Confidence Interval (CI)', content: '<strong>Definition:</strong> A range of values within which the true population parameter is expected to lie with a specified probability (typically 95%).<br><br><strong>Interpretation:</strong> If the study were repeated many times, 95% of computed CIs would contain the true value.<br><br><strong>Key point:</strong> CIs provide more information than p-values alone.' },
+            { id: 'ref-ci', title: 'Confidence Interval (CI)', content: '<strong>Definition:</strong> A range computed by a procedure that, across repeated samples, captures the true population parameter a specified proportion of the time (typically 95%).<br><br><strong>Interpretation:</strong> If the study were repeated many times, 95% of computed CIs would contain the true value. It does NOT mean there is a 95% probability the true value lies within this specific interval.<br><br><strong>Key point:</strong> CIs provide more information than p-values alone.' },
             { id: 'ref-se', title: 'Standard Error (SE)', content: '<strong>Definition:</strong> The standard deviation of a sampling distribution.<br><br><strong>Relationship:</strong> SE = SD / sqrt(n).<br><br><strong>Use:</strong> CIs and test statistics. Do not confuse with SD.' },
             { id: 'ref-or', title: 'Odds Ratio (OR)', content: '<strong>Definition:</strong> Ratio of odds of outcome in exposed vs unexposed.<br><br><strong>Range:</strong> 0 to infinity. OR=1 means no association.<br><br><strong>Key point:</strong> OR approximates RR only when outcome is rare (<10%).' },
             { id: 'ref-rr', title: 'Risk Ratio (RR)', content: '<strong>Definition:</strong> Ratio of risk in exposed vs unexposed.<br><br><strong>Range:</strong> 0 to infinity. RR=1 means no association.<br><br><strong>Key point:</strong> More intuitive than OR. Can be estimated from cohort studies and RCTs.' },

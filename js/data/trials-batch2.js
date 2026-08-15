@@ -405,7 +405,7 @@ TrialDatabase.trials.push(
     fullTitle: "International Surgical Trial in Intracerebral Haemorrhage",
     year: 2005,
     journal: "The Lancet",
-    pmid: "15680007",
+    pmid: "15680453",
     doi: "10.1016/S0140-6736(05)17826-X",
     design: "Phase 3 RCT, open-label with blinded outcome assessment",
     n: 1033,

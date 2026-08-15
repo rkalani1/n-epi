@@ -13,7 +13,7 @@ records, credentials, or confidential institutional data. Not a substitute for a
 biostatistician's review, and not for clinical decision-making or patient care.
 
 ## Study Design
-- Sample Size (#sample-size): sample-size calculators for 8 designs.
+- Sample Size (#sample-size): sample-size calculators for 12 designs.
 - Power Analysis (#power-analysis): power from N, curves, comparisons.
 - Hypothesis Builder (#hypothesis-builder): PICO/PECO, analysis plans.
 - Design Guide (#study-design-guide): study-design selection and references.

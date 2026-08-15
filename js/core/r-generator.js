@@ -2146,6 +2146,8 @@ var RGenerator = (function() {
             '',
             '  # nLx (person-years lived)',
             '  nLx <- widths * (lx - dx) + ax * dx',
+            '  # Open-ended last interval (Chiang): L(open) = l(x) / m(open)',
+            '  nLx[n_intervals] <- ifelse(mx[n_intervals] > 0, lx[n_intervals] / mx[n_intervals], 0)',
             '',
             '  # Tx (total person-years remaining)',
             '  Tx <- rev(cumsum(rev(nLx)))',

@@ -2641,3 +2641,27 @@ body.sidebar-open {
         display: none;
     }
 }
+
+/* Site footer — lives inside .main-content so it clears the fixed sidebar
+   on desktop and the fixed bottom nav on mobile. */
+.site-footer {
+    margin-top: 40px;
+    padding: 20px 0 8px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+}
+
+.site-footer p + p {
+    margin-top: 8px;
+}
+
+.site-footer a {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.site-footer a + a {
+    margin-left: 15px;
+}
