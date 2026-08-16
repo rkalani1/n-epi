@@ -77,14 +77,14 @@
                     ['Variability', 'SD for continuous; baseline rate for proportions']
                 ]},
                 { heading: "Cohen's Conventions", items: [
-                    ['Small effect', 'd=0.2, h=0.2, OR~1.5'],
+                    ['Small effect', 'd=0.2, h=0.2, OR~1.4'],
                     ['Medium effect', 'd=0.5, h=0.5, OR~2.5'],
                     ['Large effect', 'd=0.8, h=0.8, OR~4.3']
                 ]},
                 { heading: 'Common Formulas', items: [
                     ['Two proportions', 'N = (za+zb)^2 * [p1(1-p1) + p2(1-p2)] / (p1-p2)^2'],
                     ['Two means', 'N = 2(za+zb)^2 * s^2 / delta^2'],
-                    ['Survival (Schoenfeld)', 'Events = (za+zb)^2 / (ln(HR))^2'],
+                    ['Survival (Schoenfeld)', 'Events = 4(za+zb)^2 / (ln(HR))^2 (1:1 allocation)'],
                     ['Non-inferiority', 'Add margin delta_NI to standard formula']
                 ]},
                 { heading: 'Adjustments', items: [
@@ -365,15 +365,15 @@
         { id: 'cramers-v', category: 'Effect Size', name: "Cramer's V", formula: 'V = sqrt(chi^2 / [n * (min(r,c) - 1)])', definition: 'Generalization of phi for tables larger than 2x2.', interpretation: 'Small/medium/large thresholds depend on df. Range: 0 to 1.', example: '3x3 table: chi^2 = 25, n = 200. V = sqrt(25/(200*2)) = 0.25' },
 
         // --- Sample Size Formulas ---
-        { id: 'ss-two-prop', category: 'Sample Size', name: 'Two Proportions', formula: 'n = (z_alpha + z_beta)^2 * [p1(1-p1) + p2(1-p2)] / (p1 - p2)^2', definition: 'Sample size per group for comparing two independent proportions.', interpretation: 'Increase n for: smaller difference, smaller alpha, higher power, proportions near 0.5.', example: 'p1=0.30, p2=0.20, alpha=0.05 (z=1.96), power=0.80 (z=0.84): n = (1.96+0.84)^2*[0.30*0.70+0.20*0.80]/(0.10)^2 = 294 per group' },
+        { id: 'ss-two-prop', category: 'Sample Size', name: 'Two Proportions', formula: 'n = (z_alpha + z_beta)^2 * [p1(1-p1) + p2(1-p2)] / (p1 - p2)^2', definition: 'Sample size per group for comparing two independent proportions.', interpretation: 'Increase n for: smaller difference, smaller alpha, higher power, proportions near 0.5.', example: 'p1=0.30, p2=0.20, alpha=0.05 (z=1.96), power=0.80 (z=0.84): n = (1.96+0.84)^2*[0.30*0.70+0.20*0.80]/(0.10)^2 = 291 per group (pooled-variance variant: 294)' },
         { id: 'ss-two-means', category: 'Sample Size', name: 'Two Means', formula: 'n = 2(z_alpha + z_beta)^2 * sigma^2 / delta^2', definition: 'Sample size per group for comparing two independent means.', interpretation: 'sigma = common SD, delta = meaningful difference. Larger variability requires larger n.', example: 'delta=5, sigma=10, alpha=0.05, power=0.80: n = 2*(1.96+0.84)^2*100/25 = 63 per group' },
         { id: 'ss-single-prop', category: 'Sample Size', name: 'Single Proportion', formula: 'n = z_alpha^2 * p(1-p) / E^2', definition: 'Sample size to estimate a proportion with specified precision E (margin of error).', interpretation: 'Maximum n when p=0.5 (most conservative). E is the half-width of the confidence interval.', example: 'p=0.50 (conservative), E=0.05, alpha=0.05: n = (1.96)^2*0.25/0.0025 = 385' },
-        { id: 'ss-survival', category: 'Sample Size', name: 'Survival (Schoenfeld)', formula: 'Events = (z_alpha + z_beta)^2 / [ln(HR)]^2', definition: 'Number of events needed for a survival analysis comparing two groups.', interpretation: 'Divide by event probability and allocation ratio to get total N. HR closer to 1 requires more events.', example: 'HR=0.70, alpha=0.05, power=0.80: Events = (1.96+0.84)^2/(ln(0.70))^2 = 7.84/0.127 = 62 events' },
+        { id: 'ss-survival', category: 'Sample Size', name: 'Survival (Schoenfeld)', formula: 'Events = 4(z_alpha + z_beta)^2 / [ln(HR)]^2 (1:1 allocation)', definition: 'Number of events needed for a survival analysis comparing two groups (Schoenfeld). The 4 comes from 1/(P_A*P_B) with equal allocation.', interpretation: 'Divide by the overall event probability to get total N. HR closer to 1 requires more events.', example: 'HR=0.70, alpha=0.05, power=0.80: Events = 4*(1.96+0.84)^2/(ln(0.70))^2 = 4*7.84/0.127 = 247 events' },
 
         // --- Additional Key Formulas ---
         { id: 'wald-ci', category: 'Confidence Interval', name: 'Wald CI for Proportion', formula: 'p +/- z * sqrt(p(1-p)/n)', definition: 'Approximate confidence interval for a single proportion.', interpretation: 'Simple but can give invalid results near 0 or 1. Wilson or Clopper-Pearson preferred for small n or extreme p.', example: 'p = 0.30, n = 100, z = 1.96: CI = 0.30 +/- 1.96*sqrt(0.21/100) = [0.210, 0.390]' },
         { id: 'ci-mean', category: 'Confidence Interval', name: 'CI for Mean', formula: 'x-bar +/- t_(n-1) * (s / sqrt(n))', definition: 'Confidence interval for a population mean based on sample data.', interpretation: 'Uses t-distribution with n-1 df. Width decreases with larger n.', example: 'x-bar = 120, s = 15, n = 25, t = 2.064: CI = 120 +/- 2.064*(15/5) = [113.8, 126.2]' },
-        { id: 'ci-or', category: 'Confidence Interval', name: 'CI for Odds Ratio', formula: 'exp[ln(OR) +/- z * sqrt(1/a + 1/b + 1/c + 1/d)]', definition: 'Confidence interval for an odds ratio using the log transformation.', interpretation: 'If CI includes 1, OR is not statistically significant. Asymmetric on natural scale.', example: 'OR = 2.5, a=30, b=20, c=15, d=35: SE = sqrt(1/30+1/20+1/15+1/35) = 0.479. CI = exp(0.916+/-1.96*0.479)' },
+        { id: 'ci-or', category: 'Confidence Interval', name: 'CI for Odds Ratio', formula: 'exp[ln(OR) +/- z * sqrt(1/a + 1/b + 1/c + 1/d)]', definition: 'Confidence interval for an odds ratio using the log transformation.', interpretation: 'If CI includes 1, OR is not statistically significant. Asymmetric on natural scale.', example: 'a=30, b=20, c=15, d=35: OR = (30*35)/(20*15) = 3.5. SE = sqrt(1/30+1/20+1/15+1/35) = 0.423. CI = exp(1.253+/-1.96*0.423) = [1.53, 8.02]' },
         { id: 'bayes-theorem', category: 'Diagnostic', name: "Bayes' Theorem (diagnostic)", formula: 'Post-test odds = Pre-test odds * LR', definition: 'Update probability of disease after a test result using likelihood ratios.', interpretation: 'Convert prevalence to pre-test odds, multiply by LR+ (if positive) or LR- (if negative), convert back to probability.', example: 'Prevalence=10% (odds=0.11), LR+=6.0: Post-test odds = 0.11*6 = 0.67, Post-test probability = 0.67/1.67 = 40%' },
         { id: 'i-squared', category: 'Meta-Analysis', name: 'I-squared (heterogeneity)', formula: 'I^2 = 100% * (Q - df) / Q', definition: 'Percentage of variability in effect estimates due to heterogeneity rather than sampling error.', interpretation: 'Low <25%; Moderate 25-75%; High >75%. I^2=0% does not prove homogeneity.', example: 'Q = 20.0, df = 9. I^2 = 100*(20-9)/20 = 55% (moderate heterogeneity)' }
     ];
@@ -575,7 +575,7 @@
         { term: "Cohen's d", def: 'Standardized mean difference effect size. Small = 0.2, Medium = 0.5, Large = 0.8.' },
         { term: "Cohen's Kappa", def: 'Measure of inter-rater agreement beyond chance for categorical data. Ranges from -1 to 1; >0.8 = almost perfect.' },
         { term: 'Collinearity', def: 'High correlation between predictor variables in a regression model, causing unstable coefficient estimates.' },
-        { term: 'Confidence Interval (CI)', def: 'Range of values within which the true population parameter is expected to fall with a given level of confidence (usually 95%).' },
+        { term: 'Confidence Interval (CI)', def: 'Range computed by a procedure that captures the true population parameter in a stated proportion of repeated samples (usually 95%). It does not mean the parameter has a 95% probability of lying in this specific interval.' },
         { term: 'Confounding', def: 'Distortion of the exposure-outcome association caused by a third variable associated with both exposure and outcome.' },
         { term: 'CONSORT', def: 'Consolidated Standards of Reporting Trials. 25-item checklist and flow diagram for reporting RCTs.' },
         { term: 'Cox Proportional Hazards', def: 'Semi-parametric regression model for time-to-event data. Estimates hazard ratios while adjusting for covariates. Assumes proportional hazards.' },
@@ -639,7 +639,7 @@
         { term: 'Overfitting', def: 'Model that fits noise in the training data rather than the true signal, leading to poor prediction on new data.' },
         { term: 'P-value', def: 'Probability of observing a result at least as extreme as the data, assuming the null hypothesis is true. Not the probability that H0 is true.' },
         { term: 'Per-Protocol Analysis', def: 'Analysis including only participants who completed the study as specified in the protocol. Prone to bias but estimates efficacy.' },
-        { term: 'Person-Time', def: 'Sum of time each person is at risk and under observation. Unit of denominaton for incidence rates.' },
+        { term: 'Person-Time', def: 'Sum of time each person is at risk and under observation. Unit of denominator for incidence rates.' },
         { term: 'Poisson Regression', def: 'Regression model for count outcomes. Assumes mean equals variance. Use negative binomial if overdispersed.' },
         { term: 'Population Attributable Fraction (PAF)', def: 'Proportion of disease in the population attributable to the exposure. Combines RR and exposure prevalence.' },
         { term: 'Positive Predictive Value (PPV)', def: 'Probability that a positive test result is a true positive. Increases with higher prevalence.' },
