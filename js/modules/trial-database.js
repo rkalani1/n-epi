@@ -1,6 +1,6 @@
 /**
  * Neuro-Epi — Trial Database Module
- * Searchable database of 200+ clinical trials with verified data
+ * Searchable database of clinical trials with PubMed-verified citations
  */
 
 (function() {
@@ -43,7 +43,6 @@
         { id: 'sah', label: 'SAH' },
         { id: 'carotid', label: 'Carotid' },
         { id: 'antiplatelets', label: 'Antiplatelets' },
-        { id: 'antiplatelet', label: 'Antiplatelets (legacy)' },
         { id: 'blood-pressure', label: 'Blood Pressure' },
         { id: 'cardiac', label: 'Cardiac / AF' },
         { id: 'anticoagulation', label: 'Anticoagulation' },
@@ -215,24 +214,59 @@
         renderTimeline();
     }
 
+    // A p-value carries no direction: a significant primary result can favor
+    // the intervention OR the comparator (i.e., the intervention was harmful/
+    // inferior). Inspect the pValue/result strings (short, outcome-specific)
+    // and, as a fallback, strong unambiguous phrases in the significance text.
+    function detectComparatorFavored(trial) {
+        var po = trial.primaryOutcome || {};
+        var short = (po.pValue || '') + ' | ' + (po.result || '');
+        // "noninferior(ity)"/"non-inferior" must NOT count as "inferior"
+        var shortClean = short.replace(/non[- ]?inferior\w*/gi, '');
+        if (/\binferior/i.test(shortClean)) return true;
+        if (/harm/i.test(short)) return true;
+        if (/wors(e|en|ened|ening)/i.test(short)) return true;
+        if (/favou?r(s|ed|ing)?\s+(the\s+)?(usual\s+care|standard|medical\s+management|control|comparator|placebo|conservative)/i.test(short)) return true;
+        var sig = trial.significance || '';
+        if (/\bharmful\b/i.test(sig)) return true;
+        if (/\bwas\s+inferior\b/i.test(sig)) return true;
+        if (/\bworsened\b/i.test(sig)) return true;
+        return false;
+    }
+
     function inferResult(trial) {
         if (!trial.primaryOutcome) return 'neutral';
         var pv = trial.primaryOutcome.pValue || '';
-        // Check for clear negative
+        // Check for clear negative (not statistically significant)
         if (/p\s*[=>]\s*0\.[1-9]/.test(pv) || /NS/.test(pv) || /not significant/i.test(pv) || /p\s*=\s*0\.0[5-9]/.test(pv)) return 'negative';
         if (/p\s*=\s*0\.277/.test(pv) || /p\s*=\s*0\.18/.test(pv) || /p\s*=\s*0\.1[0-9]/.test(pv)) return 'negative';
-        // Check for clear positive
-        if (/p\s*[<]\s*0\.0[0-5]/.test(pv) || /p\s*=\s*0\.00/.test(pv) || /p\s*<\s*0\.001/.test(pv) || /p\s*=\s*0\.0[0-4]/.test(pv)) return 'positive';
-        if (/p\s*=\s*0\.008/.test(pv) || /p\s*<\s*0\.05/.test(pv)) return 'positive';
+        // Check for clear statistical significance, then apply direction:
+        // significant + comparator-favored = harm, NOT a positive trial.
+        if (/p\s*[<]\s*0\.0[0-5]/.test(pv) || /p\s*=\s*0\.00/.test(pv) || /p\s*<\s*0\.001/.test(pv) || /p\s*=\s*0\.0[0-4]/.test(pv)) {
+            return detectComparatorFavored(trial) ? 'harm' : 'positive';
+        }
+        if (/p\s*=\s*0\.008/.test(pv) || /p\s*<\s*0\.05/.test(pv)) {
+            return detectComparatorFavored(trial) ? 'harm' : 'positive';
+        }
         // Heuristic from significance text
         if (trial.significance && (/negative trial|failed|did not show|no significant|no benefit|not superior/i.test(trial.significance))) return 'negative';
-        if (trial.significance && (/landmark|established|superior|improved|reduced|benefit/i.test(trial.significance))) return 'positive';
+        if (trial.significance && (/landmark|established|superior|improved|reduced|benefit/i.test(trial.significance))) {
+            return detectComparatorFavored(trial) ? 'harm' : 'positive';
+        }
         return 'neutral';
+    }
+
+    function resultColor(trial) {
+        var r = inferResult(trial);
+        if (r === 'positive') return 'var(--success)';
+        if (r === 'negative' || r === 'harm') return 'var(--danger)';
+        return 'var(--accent)';
     }
 
     function resultIcon(trial) {
         var r = inferResult(trial);
-        if (r === 'positive') return '<span style="color:var(--success)" title="Positive result">\u25B2</span>';
+        if (r === 'positive') return '<span style="color:var(--success)" title="Statistically significant favoring intervention">\u25B2</span>';
+        if (r === 'harm') return '<span style="color:var(--danger)" title="Statistically significant favoring comparator (harm from intervention)">\u25BC</span>';
         if (r === 'negative') return '<span style="color:var(--danger)" title="Negative/neutral result">\u25BC</span>';
         return '<span style="color:var(--text-tertiary)" title="Mixed/unclear result">\u25CF</span>';
     }
@@ -337,7 +371,7 @@
             if (trial.fundingSource) html += '<tr><td style="font-weight:500">Funding</td><td>' + escapeHTML(trial.fundingSource) + '</td></tr>';
             if (trial.primaryOutcome) {
                 html += '<tr><td style="font-weight:500">Primary Outcome</td><td>' + escapeHTML(trial.primaryOutcome.measure) + '</td></tr>';
-                html += '<tr><td style="font-weight:500">Result</td><td style="color:' + (inferResult(trial) === 'positive' ? 'var(--success)' : inferResult(trial) === 'negative' ? 'var(--danger)' : 'var(--accent)') + ';font-weight:600">'
+                html += '<tr><td style="font-weight:500">Result</td><td style="color:' + resultColor(trial) + ';font-weight:600">'
                     + escapeHTML(trial.primaryOutcome.result)
                     + (trial.primaryOutcome.ci ? ' ' + escapeHTML(trial.primaryOutcome.ci) : '')
                     + (trial.primaryOutcome.pValue ? ', ' + escapeHTML(trial.primaryOutcome.pValue) : '')
@@ -493,7 +527,7 @@
         html += '<tr><td style="font-weight:500">Primary Outcome</td>';
         trials.forEach(function(t) {
             if (t.primaryOutcome) {
-                var color = inferResult(t) === 'positive' ? 'var(--success)' : inferResult(t) === 'negative' ? 'var(--danger)' : 'var(--accent)';
+                var color = resultColor(t);
                 html += '<td>' + escapeHTML(t.primaryOutcome.measure) + ': <span style="color:' + color + ';font-weight:600">'
                     + escapeHTML(t.primaryOutcome.result) + '</span>'
                     + (t.primaryOutcome.pValue ? ' (' + escapeHTML(t.primaryOutcome.pValue) + ')' : '') + '</td>';
@@ -628,7 +662,10 @@
                 + '<thead><tr><th>Trial</th><th>Year</th><th>N</th><th>Intervention</th><th>Primary Result</th><th>Direction</th></tr></thead><tbody>';
             trials.forEach(function(t) {
                 var dir = inferResult(t);
-                var dirText = dir === 'positive' ? '\u2705 Positive' : dir === 'negative' ? '\u274C Negative' : '\u2796 Neutral';
+                var dirText = dir === 'positive' ? '\u25B2 Positive (favors intervention)'
+                    : dir === 'harm' ? '\u25BC Harm (statistically significant, favors comparator)'
+                    : dir === 'negative' ? '\u25BC Negative (no significant benefit)'
+                    : '\u25CF Neutral/unclear';
                 html += '<tr><td style="font-weight:500">' + escapeHTML(t.name) + '</td><td>' + escapeHTML(t.year || '-') + '</td><td>' + escapeHTML(t.n || '-') + '</td>'
                     + '<td>' + escapeHTML(t.intervention || '-') + '</td>'
                     + '<td>' + (t.primaryOutcome ? escapeHTML(t.primaryOutcome.result) + (t.primaryOutcome.pValue ? ' (' + escapeHTML(t.primaryOutcome.pValue) + ')' : '') : '-') + '</td>'

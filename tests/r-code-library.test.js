@@ -124,9 +124,11 @@ describe('r-code-library.js', () => {
 
         const htmlCall = window.App.setTrustedHTML.mock.calls[0][1];
 
-        // Original code: direction = "<"
-        // Escaped: direction = "&lt;"
-        expect(htmlCall).toContain('direction = "&lt;"');
+        // Original code: n <- 200 (assignment arrow)
+        // Escaped: n &lt;- 200
+        expect(htmlCall).toContain('n &lt;- 200');
+        // The corrected ROC direction (">") must also be escaped
+        expect(htmlCall).toContain('direction = "&gt;"');
     });
 
     test('copyRecipe() calls Export.copyToClipboard with correct code', () => {

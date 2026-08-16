@@ -57,7 +57,7 @@
         html += '<strong style="color:var(--accent);">Regulatory Essentials</strong>';
         html += '<ul style="margin:0.3rem 0 0 1.2rem;font-size:0.85rem;line-height:1.7;">';
         html += '<li>Single IRB for multi-site studies (NIH policy)</li>';
-        html += '<li>Data Safety Monitoring Board required for interventional trials</li>';
+        html += '<li>All clinical trials need a data-and-safety monitoring plan; a formal DSMB is required for NIH multi-site phase III trials (other trials may use a safety officer or internal monitoring)</li>';
         html += '<li>ClinicalTrials.gov registration within 21 days of first enrollment</li>';
         html += '</ul></div>';
 

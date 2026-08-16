@@ -116,7 +116,7 @@
         },
         'diagnostic-accuracy': {
             name: 'Diagnostic Accuracy Study',
-            text: 'Diagnostic accuracy was assessed by comparing the index test ([test name]) against the reference standard ([reference standard]) in a cross-sectional design. Sensitivity, specificity, positive predictive value (PPV), negative predictive value (NPV), and their 95% confidence intervals (Wilson method) were calculated from the 2x2 classification table. Positive and negative likelihood ratios with 95% CIs were derived. The area under the receiver operating characteristic (ROC) curve (AUC) was calculated to assess overall discriminative ability, with 95% CI estimated using the DeLong method. The optimal threshold was determined by maximizing the Youden index (J = sensitivity + specificity - 1). For comparison of two diagnostic tests, the difference in AUC was tested using the DeLong test for paired ROC curves. Calibration was assessed using the Hosmer-Lemeshow goodness-of-fit test and calibration plots. The study was designed and reported in accordance with the STARD (Standards for Reporting Diagnostic Accuracy) guidelines.'
+            text: 'Diagnostic accuracy was assessed by comparing the index test ([test name]) against the reference standard ([reference standard]) in a cross-sectional design. Sensitivity, specificity, positive predictive value (PPV), negative predictive value (NPV), and their 95% confidence intervals (Wilson method) were calculated from the 2x2 classification table. Positive and negative likelihood ratios with 95% CIs were derived. The area under the receiver operating characteristic (ROC) curve (AUC) was calculated to assess overall discriminative ability, with 95% CI estimated using the DeLong method. The optimal threshold was determined by maximizing the Youden index (J = sensitivity + specificity - 1). For comparison of two diagnostic tests, the difference in AUC was tested using the DeLong test for paired ROC curves. The study was designed and reported in accordance with the STARD (Standards for Reporting Diagnostic Accuracy) guidelines.'
         }
     };
 
@@ -933,7 +933,8 @@
         // --- Sample Size Justification ---
         text += 'Sample Size Justification\n\n';
         text += 'A total sample size of ' + n + ' participants (' + perArm + ' per group across ' + arms + ' group' + (parseInt(arms) > 1 ? 's' : '') + ') was determined to provide ' + powerPct + '% power to detect a clinically meaningful difference in ' + outcomeDesc;
-        text += ' at a two-sided significance level of ' + alpha + '.';
+        var sidedness = (alpha === '0.025') ? 'one-sided' : 'two-sided';
+        text += ' at a ' + sidedness + ' significance level of ' + alpha + '.';
 
         if (outcomeType === 'binary') {
             text += ' The sample size calculation was based on a two-sample test of proportions, assuming [control event rate] and a minimum clinically important difference of [absolute risk difference].';
@@ -963,7 +964,7 @@
         } else if (design === 'case-control') {
             text += 'Cases and controls were compared using conditional logistic regression to account for matching factors. ';
         } else if (design === 'cross-sectional') {
-            text += 'Prevalence estimates with 95% confidence intervals were calculated. Associations between exposure and outcome were assessed using ';
+            text += 'Prevalence estimates with 95% confidence intervals were calculated. ';
         } else if (design === 'meta-analysis') {
             text += 'A random-effects meta-analysis was conducted using the DerSimonian-Laird estimator. Heterogeneity was quantified using the I-squared statistic and Cochran\'s Q test. ';
         } else if (design === 'diagnostic') {
@@ -1054,7 +1055,7 @@
         } else if (software === 'sas') {
             text += 'Key procedures included [list procedures, e.g., PROC PHREG, PROC LOGISTIC, PROC MI]. ';
         }
-        text += 'A two-sided P value <' + alpha + ' was considered statistically significant for the primary outcome. All confidence intervals are reported at the 95% level.\n';
+        text += 'A ' + ((alpha === '0.025') ? 'one-sided' : 'two-sided') + ' P value <' + alpha + ' was considered statistically significant for the primary outcome. All confidence intervals are reported at the 95% level.\n';
 
         // Store and display
         window._mgGeneratedText = text;
@@ -1422,7 +1423,7 @@
             effectMeasure = 'Hazard ratio with 95% CI; median survival with 95% CI';
         } else if (outcome === 'ordinal') {
             if (groups === '2') {
-                method = hasCovariates ? 'Ordinal (proportional odds) logistic regression' : 'Wilcoxon rank-sum test or Mann-Whitney U test';
+                method = hasCovariates ? 'Ordinal (proportional odds) logistic regression' : 'Wilcoxon rank-sum (Mann-Whitney U) test';
                 effectMeasure = 'Common OR with 95% CI under proportional odds assumption';
             } else {
                 method = 'Ordinal logistic regression with pairwise comparisons';

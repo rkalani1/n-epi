@@ -20,11 +20,11 @@
         'SPIRIT':    { name: 'SPIRIT 2013',       use: 'Clinical trial protocols' },
         'STARD':     { name: 'STARD 2015',        use: 'Diagnostic accuracy studies' },
         'TRIPOD':    { name: 'TRIPOD',            use: 'Prediction model studies' },
-        'CARE':      { name: 'CARE',              use: 'Case reports' },
-        'CHEERS':    { name: 'CHEERS 2022',       use: 'Health economic evaluations' },
+        'CARE':      { name: 'CARE (adapted)',    use: 'Case reports' },
+        'CHEERS':    { name: 'CHEERS (condensed)', use: 'Health economic evaluations' },
         'ARRIVE':    { name: 'ARRIVE 2.0',        use: 'Animal research' },
         'AGREE-II':  { name: 'AGREE II',          use: 'Clinical practice guidelines appraisal' },
-        'RECORD':    { name: 'RECORD',            use: 'Studies using routinely collected health data' },
+        'RECORD':    { name: 'RECORD (adapted)',  use: 'Studies using routinely collected health data' },
         'MOOSE':     { name: 'MOOSE',             use: 'Meta-analyses of observational studies' }
     };
 
@@ -82,6 +82,7 @@
         { num: '6a', section: 'Methods', text: 'Cohort: Give the eligibility criteria, and the sources and methods of selection of participants. Describe methods of follow-up' },
         { num: '6b', section: 'Methods', text: 'Case-control: Give the eligibility criteria, and the sources and methods of case ascertainment and control selection. Give the rationale for the choice of cases and controls' },
         { num: '6c', section: 'Methods', text: 'Cross-sectional: Give the eligibility criteria, and the sources and methods of selection of participants' },
+        { num: '6d', section: 'Methods', text: 'For matched studies: give matching criteria and number of exposed and unexposed (cohort) or number of controls per case (case-control) [official STROBE item 6(b)]' },
         { num: '7',  section: 'Methods', text: 'Clearly define all outcomes, exposures, predictors, potential confounders, and effect modifiers. Give diagnostic criteria, if applicable' },
         { num: '8',  section: 'Methods', text: 'For each variable of interest, give sources of data and details of methods of assessment (measurement). Describe comparability of assessment methods if there is more than one group' },
         { num: '9',  section: 'Methods', text: 'Describe any efforts to address potential sources of bias' },
@@ -115,13 +116,13 @@
         { num: '2',  section: 'Abstract', text: 'Provide a structured summary per the PRISMA 2020 for Abstracts checklist (background, objectives, eligibility, sources, synthesis methods, results, limitations, conclusions, registration)' },
         { num: '3',  section: 'Introduction', text: 'Describe the rationale for the review in the context of existing knowledge' },
         { num: '4',  section: 'Introduction', text: 'Provide an explicit statement of the objective(s) or question(s) the review addresses' },
-        { num: '5',  section: 'Methods', text: 'Indicate whether a review protocol exists, if and where it can be accessed, and provide registration information including registration number' },
-        { num: '6',  section: 'Methods', text: 'Specify the inclusion and exclusion criteria for the review and how studies were grouped for the syntheses' },
-        { num: '7',  section: 'Methods', text: 'Specify all databases, registers, websites, organisations, reference lists and other sources searched or consulted to identify studies; specify date when each source was last searched' },
-        { num: '8',  section: 'Methods', text: 'Present the full search strategies for all databases, registers and websites, including any filters and limits used' },
-        { num: '9',  section: 'Methods', text: 'Specify methods used to decide whether a study met inclusion criteria, including how many reviewers screened each record, whether they worked independently, and details of any automation tools used' },
-        { num: '10', section: 'Methods', text: 'Specify methods used to collect data from reports, including how many reviewers collected data, whether they worked independently, and any processes for obtaining or confirming data from investigators' },
-        { num: '11', section: 'Methods', text: 'List and define all outcomes for which data were sought; specify whether all results compatible with each outcome domain were sought, and if not, methods used to decide which results to collect' },
+        { num: '5',  section: 'Methods', text: 'Specify the inclusion and exclusion criteria for the review and how studies were grouped for the syntheses' },
+        { num: '6',  section: 'Methods', text: 'Specify all databases, registers, websites, organisations, reference lists and other sources searched or consulted to identify studies; specify date when each source was last searched' },
+        { num: '7',  section: 'Methods', text: 'Present the full search strategies for all databases, registers and websites, including any filters and limits used' },
+        { num: '8',  section: 'Methods', text: 'Specify methods used to decide whether a study met inclusion criteria, including how many reviewers screened each record, whether they worked independently, and details of any automation tools used' },
+        { num: '9',  section: 'Methods', text: 'Specify methods used to collect data from reports, including how many reviewers collected data, whether they worked independently, and any processes for obtaining or confirming data from investigators' },
+        { num: '10', section: 'Methods', text: 'List and define all outcomes and other variables for which data were sought; specify whether all results compatible with each outcome domain were sought, and if not, methods used to decide which results to collect' },
+        { num: '11', section: 'Methods', text: 'Specify the methods used to assess risk of bias in the included studies, including details of the tool(s) used, how many reviewers assessed each study, whether they worked independently, and any automation tools used' },
         { num: '12', section: 'Methods', text: 'Specify for each outcome the effect measure(s) (e.g., risk ratio, mean difference) used in the synthesis or presentation of results' },
         { num: '13', section: 'Methods', text: 'Describe the processes used to decide which studies were eligible for each synthesis; methods to prepare data for presentation or synthesis; methods to tabulate or visually display results; methods to synthesize results; methods to explore heterogeneity; and any sensitivity analyses' },
         { num: '14', section: 'Methods', text: 'Describe any methods used to assess risk of bias due to missing results in a synthesis (arising from reporting biases)' },
@@ -133,11 +134,14 @@
         { num: '20', section: 'Results', text: 'For each synthesis, briefly summarise the characteristics and risk of bias among contributing studies; present results of all statistical syntheses conducted; present results of any investigations of heterogeneity; present results of sensitivity analyses' },
         { num: '21', section: 'Results', text: 'Present results of all assessments of risk of bias due to missing results (reporting biases) in syntheses' },
         { num: '22', section: 'Results', text: 'Present assessments of certainty (or confidence) in the body of evidence for each outcome assessed' },
-        { num: '23', section: 'Discussion', text: 'Provide a general interpretation of the results in the context of other evidence' },
-        { num: '24', section: 'Discussion', text: 'Discuss any limitations of the evidence included in the review' },
-        { num: '25', section: 'Discussion', text: 'Discuss any limitations of the review processes used' },
-        { num: '26', section: 'Discussion', text: 'Provide implications of the results for practice, policy, and future research' },
-        { num: '27', section: 'Other Information', text: 'Provide registration information for the review including register name and registration number; indicate where the review protocol can be accessed; describe sources of financial or non-financial support and the role of funders; declare any competing interests' }
+        { num: '23a', section: 'Discussion', text: 'Provide a general interpretation of the results in the context of other evidence' },
+        { num: '23b', section: 'Discussion', text: 'Discuss any limitations of the evidence included in the review' },
+        { num: '23c', section: 'Discussion', text: 'Discuss any limitations of the review processes used' },
+        { num: '23d', section: 'Discussion', text: 'Provide implications of the results for practice, policy, and future research' },
+        { num: '24', section: 'Other Information', text: 'Provide registration information for the review (register name and registration number) or state that it was not registered; indicate where the review protocol can be accessed or state that one was not prepared; report any amendments to the registration or protocol' },
+        { num: '25', section: 'Other Information', text: 'Describe sources of financial or non-financial support for the review, and the role of the funders or sponsors' },
+        { num: '26', section: 'Other Information', text: 'Declare any competing interests of review authors' },
+        { num: '27', section: 'Other Information', text: 'Report which of the following are publicly available and where they can be found: template data collection forms; data extracted from included studies; data used for all analyses; analytic code; any other materials used in the review' }
     ];
 
     checklists['PRISMA-ScR'] = [
@@ -200,21 +204,23 @@
         { num: '20a', section: 'Methods', text: 'Statistical methods for analysing primary and secondary outcomes' },
         { num: '20b', section: 'Methods', text: 'Methods for any additional analyses (subgroup, adjusted, sensitivity)' },
         { num: '20c', section: 'Methods', text: 'Definition of analysis population (e.g., ITT, per protocol) and any statistical methods to handle missing data' },
-        { num: '21a', section: 'Methods', text: 'Plans for interim analyses and stopping guidelines' },
-        { num: '21b', section: 'Methods', text: 'Composition, role, and reporting structure of the data monitoring committee' },
-        { num: '22', section: 'Methods', text: 'Plans for communicating important protocol amendments to relevant parties' },
-        { num: '23', section: 'Ethics', text: 'Plans for seeking research ethics/IRB approval' },
-        { num: '24', section: 'Ethics', text: 'Plans for seeking informed consent, including any provisions for surrogate consent' },
-        { num: '25', section: 'Ethics', text: 'Plans for collection, laboratory evaluation, and storage of biological specimens' },
-        { num: '26a', section: 'Ethics', text: 'Plans for investigators and sponsor to communicate trial results to participants, healthcare professionals, the public, and other relevant groups' },
-        { num: '26b', section: 'Ethics', text: 'Authorship eligibility guidelines and plans for professional writers' },
+        { num: '21a', section: 'Methods', text: 'Composition of the data monitoring committee (DMC), its role and reporting structure, and statement of whether it is independent from the sponsor (or explanation of why a DMC is not needed)' },
+        { num: '21b', section: 'Methods', text: 'Description of any interim analyses and stopping guidelines, including who will have access to the interim results and make the final decision to terminate the trial' },
+        { num: '22', section: 'Methods', text: 'Plans for collecting, assessing, reporting, and managing solicited and spontaneously reported adverse events and other unintended effects of trial interventions or trial conduct (harms)' },
+        { num: '23', section: 'Methods', text: 'Frequency and procedures for auditing trial conduct, if any, and whether the process will be independent from investigators and the sponsor' },
+        { num: '24', section: 'Ethics', text: 'Plans for seeking research ethics/IRB approval' },
+        { num: '25', section: 'Ethics', text: 'Plans for communicating important protocol amendments to relevant parties (investigators, ethics committees, participants, registries, journals, regulators)' },
+        { num: '26a', section: 'Ethics', text: 'Plans for seeking informed consent or assent, including any provisions for surrogate consent' },
+        { num: '26b', section: 'Ethics', text: 'Additional consent provisions for collection and use of participant data and biological specimens in ancillary studies, if applicable' },
         { num: '27', section: 'Ethics', text: 'How personal information about potential and enrolled participants will be protected (confidentiality)' },
-        { num: '28', section: 'Ethics', text: 'Financial and other competing interests for principal investigators' },
-        { num: '29', section: 'Ethics', text: 'Provisions for post-trial care and compensation for those who suffer harm from participation' },
-        { num: '30', section: 'Appendices', text: 'Informed consent materials and other related documents given to participants' },
-        { num: '31', section: 'Appendices', text: 'Biological specimens: plans for collection, storage, genetic/molecular testing' },
-        { num: '32', section: 'Appendices', text: 'Plans for dissemination of findings: publications, data sharing, repositories' },
-        { num: '33', section: 'Appendices', text: 'Plans for granting public access to the full protocol, participant-level dataset, and statistical code' }
+        { num: '28', section: 'Ethics', text: 'Financial and other competing interests for principal investigators for the overall trial and each study site' },
+        { num: '29', section: 'Ethics', text: 'Statement of who will have access to the final trial dataset, and disclosure of contractual agreements that limit such access for investigators' },
+        { num: '30', section: 'Ethics', text: 'Provisions, if any, for ancillary and post-trial care, and for compensation to those who suffer harm from trial participation' },
+        { num: '31a', section: 'Dissemination', text: 'Plans for investigators and sponsor to communicate trial results to participants, healthcare professionals, the public, and other relevant groups' },
+        { num: '31b', section: 'Dissemination', text: 'Authorship eligibility guidelines and any intended use of professional writers' },
+        { num: '31c', section: 'Dissemination', text: 'Plans for granting public access to the full protocol, participant-level dataset, and statistical code' },
+        { num: '32', section: 'Appendices', text: 'Model consent form and other related documentation given to participants and authorised surrogates' },
+        { num: '33', section: 'Appendices', text: 'Plans for collection, laboratory evaluation, and storage of biological specimens for genetic or molecular analysis in this trial or future use in ancillary studies, if applicable' }
     ];
 
     checklists['STARD'] = [
@@ -242,15 +248,15 @@
         { num: '19', section: 'Results', text: 'Flow of participants, using a diagram' },
         { num: '20', section: 'Results', text: 'Baseline demographic and clinical characteristics of participants' },
         { num: '21', section: 'Results', text: 'Distribution of severity of disease in those with the target condition; other diagnoses in those without' },
-        { num: '22', section: 'Results', text: 'A cross tabulation of the index test results by the results of the reference standard' },
-        { num: '23', section: 'Results', text: 'Estimates of diagnostic accuracy and their precision (e.g., 95% CI)' },
-        { num: '24', section: 'Results', text: 'Any adverse events from performing the index test or the reference standard' },
-        { num: '25', section: 'Discussion', text: 'Study limitations including sources of potential bias, statistical uncertainty, and generalisability' },
-        { num: '26', section: 'Discussion', text: 'Implications for practice, including the intended use and clinical role of the index test' },
-        { num: '27', section: 'Other', text: 'Registration number and name of registry' },
-        { num: '28', section: 'Other', text: 'Where the full study protocol can be accessed' },
-        { num: '29', section: 'Other', text: 'Sources of funding and other support; role of funders' },
-        { num: '30', section: 'Other', text: 'Conflicts of interest' }
+        { num: '22', section: 'Results', text: 'Time interval and any clinical interventions between index test and reference standard' },
+        { num: '23', section: 'Results', text: 'A cross tabulation of the index test results by the results of the reference standard' },
+        { num: '24', section: 'Results', text: 'Estimates of diagnostic accuracy and their precision (e.g., 95% CI)' },
+        { num: '25', section: 'Results', text: 'Any adverse events from performing the index test or the reference standard' },
+        { num: '26', section: 'Discussion', text: 'Study limitations including sources of potential bias, statistical uncertainty, and generalisability' },
+        { num: '27', section: 'Discussion', text: 'Implications for practice, including the intended use and clinical role of the index test' },
+        { num: '28', section: 'Other', text: 'Registration number and name of registry' },
+        { num: '29', section: 'Other', text: 'Where the full study protocol can be accessed' },
+        { num: '30', section: 'Other', text: 'Sources of funding and other support; role of funders' }
     ];
 
     checklists['TRIPOD'] = [
@@ -323,6 +329,8 @@
         { num: '16', section: 'Informed Consent', text: 'The patient should give informed consent for the publication of the report' }
     ];
 
+    // Condensed working list — the official CHEERS 2022 statement (Husereau et
+    // al., BMJ 2022) has 28 items; complete it for journal submission.
     checklists['CHEERS'] = [
         { num: '1',  section: 'Title', text: 'Identify the study as an economic evaluation and specify the interventions being compared' },
         { num: '2',  section: 'Abstract', text: 'Provide a structured summary including objectives, perspective, setting, methods, results, and conclusions' },
@@ -718,8 +726,8 @@
         'animal':             { primary: 'ARRIVE', secondary: [], notes: 'Use ARRIVE 2.0 for animal research. Essential 10 items are mandatory; recommended 11 items improve completeness. Report species, strain, sample size justification, blinding.' },
         'guideline_appraisal': { primary: 'AGREE-II', secondary: [], notes: 'Use AGREE II to appraise clinical practice guidelines. Six domains, 23 items scored 1-7. Calculate domain scores as percentages. Minimum 2 appraisers recommended.' },
         'routinely_collected': { primary: 'RECORD', secondary: ['STROBE'], notes: 'Use RECORD for studies using routinely collected health data (EHR, claims, registries). RECORD extends STROBE with 13 additional items specific to these data sources.' },
-        'quality_improvement': { primary: 'CONSORT', secondary: [], notes: 'Consider SQUIRE 2.0 (Standards for QUality Improvement Reporting Excellence) for quality improvement studies. Not included in this tool but available at squire-statement.org.' },
-        'qualitative':        { primary: 'STROBE', secondary: [], notes: 'Consider SRQR (Standards for Reporting Qualitative Research) or COREQ (Consolidated criteria for reporting qualitative research). Not included in this tool but available at equator-network.org.' }
+        'quality_improvement': { primary: null, secondary: [], notes: 'Use SQUIRE 2.0 (Standards for QUality Improvement Reporting Excellence) for quality improvement studies. Not included in this tool but available at squire-statement.org.' },
+        'qualitative':        { primary: null, secondary: [], notes: 'Use SRQR (Standards for Reporting Qualitative Research) or COREQ (Consolidated criteria for reporting qualitative research). Not included in this tool but available at equator-network.org.' }
     };
 
     function findGuideline() {
@@ -737,10 +745,14 @@
 
         var rhtml = '<div class="result-panel mt-2">';
         rhtml += '<div style="border-left:4px solid var(--success);padding:12px 16px;margin-bottom:12px;background:var(--bg-tertiary);border-radius:0 8px 8px 0;">';
-        rhtml += '<div style="font-weight:700;font-size:1.1rem;color:var(--success);margin-bottom:4px;">Primary: ' + match.primary + '</div>';
-        if (guidelines[match.primary]) {
-            rhtml += '<div style="font-size:0.9rem;">' + guidelines[match.primary].name + ' &mdash; ' + guidelines[match.primary].use + '</div>';
-            rhtml += '<div style="margin-top:8px;"><button class="btn btn-primary btn-sm" onclick="document.getElementById(\'rg-guideline-select\').value=\'' + match.primary + '\';ReportingGuide.selectGuideline();">Load This Checklist</button></div>';
+        if (match.primary) {
+            rhtml += '<div style="font-weight:700;font-size:1.1rem;color:var(--success);margin-bottom:4px;">Primary: ' + match.primary + '</div>';
+            if (guidelines[match.primary]) {
+                rhtml += '<div style="font-size:0.9rem;">' + guidelines[match.primary].name + ' &mdash; ' + guidelines[match.primary].use + '</div>';
+                rhtml += '<div style="margin-top:8px;"><button class="btn btn-primary btn-sm" onclick="document.getElementById(\'rg-guideline-select\').value=\'' + match.primary + '\';ReportingGuide.selectGuideline();">Load This Checklist</button></div>';
+            }
+        } else {
+            rhtml += '<div style="font-weight:700;font-size:1.1rem;margin-bottom:4px;">Primary guideline not included in this tool</div>';
         }
         rhtml += '</div>';
 

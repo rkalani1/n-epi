@@ -110,7 +110,7 @@
             + '<div><strong>NNT:</strong> 1 / |ARR|</div>'
             + '<div><strong>NNT CI:</strong> 1 / Newcombe CI for risk difference</div>'
             + '<div><strong>Fragility Index:</strong> Minimum events to change to add/remove to lose significance</div>'
-            + '<div><strong>NNT(t):</strong> 1 / (S\u2080(t) \u2212 S\u2081(t)), where S(t) = exp(\u2212\u03BBt)</div>'
+            + '<div><strong>NNT(t):</strong> 1 / (S\u2081(t) \u2212 S\u2080(t)) = 1 / (F\u2080(t) \u2212 F\u2081(t)), where S\u2081 = treated survival, S\u2080 = control survival, S(t) = exp(\u2212\u03BBt)</div>'
             + '<div><strong>PEER NNT:</strong> 1 / (PEER \u00D7 RRR)</div>'
             + '</div>';
 
@@ -216,7 +216,10 @@
         var totalN = parseInt(document.getElementById('nnt_pub_n').value, 10);
         if (isNaN(est) || isNaN(cer)) { Export.showToast('Estimate and baseline risk are required', 'error'); return; }
         var t = publishedTo2x2(measure, est, cer, totalN);
-        showResults(t.a, t.b, t.c, t.d, { pubMeasure: measure, pubEst: est, pubLo: lo, pubHi: hi, pubCER: cer });
+        showResults(t.a, t.b, t.c, t.d, {
+            pubMeasure: measure, pubEst: est, pubLo: lo, pubHi: hi, pubCER: cer,
+            nProvided: !isNaN(totalN) && totalN > 0
+        });
     }
 
     // ================================================================
@@ -257,20 +260,62 @@
         var p2 = c / n2; // CER
 
         var arr = p2 - p1; // positive = benefit
-        var newcombe = Statistics.newcombeCI(p2, n2, p1, n1, z);
         var rr = p1 / p2;
         var rrr = 1 - rr;
         var or = res.or.value;
 
-        // Fragility index
-        var frag = Statistics.fragilityIndex(a, b, c, d);
+        pubInfo = pubInfo || null;
+        // In published mode with no total N, the 2x2 counts are an illustrative
+        // reconstruction (assumed 500/arm): point estimates are valid (they
+        // depend only on the rates) but count-based inference is not.
+        var countsReal = !pubInfo || !!pubInfo.nProvided;
+
+        // If a published 95% CI was entered, derive the RR/OR/ARR intervals
+        // from it (Altman 1998) instead of recomputing from reconstructed counts.
+        var pubCI = null;
+        if (pubInfo && isFinite(pubInfo.pubLo) && isFinite(pubInfo.pubHi) && pubInfo.pubLo > 0 && pubInfo.pubHi >= pubInfo.pubLo) {
+            var cer0 = pubInfo.pubCER;
+            var rrLoB, rrHiB, orLoB, orHiB;
+            if (pubInfo.pubMeasure === 'rr') {
+                rrLoB = pubInfo.pubLo; rrHiB = pubInfo.pubHi;
+                orLoB = Statistics.rrToOR(rrLoB, cer0); orHiB = Statistics.rrToOR(rrHiB, cer0);
+            } else {
+                orLoB = pubInfo.pubLo; orHiB = pubInfo.pubHi;
+                rrLoB = Statistics.orToRR(orLoB, cer0); rrHiB = Statistics.orToRR(orHiB, cer0);
+            }
+            pubCI = {
+                rr: { lower: rrLoB, upper: rrHiB },
+                or: { lower: orLoB, upper: orHiB },
+                // ARR = CER x (1 - RR) is decreasing in RR, so bounds swap.
+                arr: { lower: cer0 * (1 - rrHiB), upper: cer0 * (1 - rrLoB) }
+            };
+        }
+
+        var arrCI = pubCI ? pubCI.arr : Statistics.newcombeCI(p2, n2, p1, n1, z);
+        var arrCISource = pubCI ? 'derived from the published 95% CI (Altman 1998)' : 'Newcombe hybrid CI';
+        var rrCI = pubCI ? pubCI.rr : res.rr.ci;
+        var orCI = pubCI ? pubCI.or : res.or.ci;
+
+        // Fragility index — only meaningful for real counts
+        var frag = countsReal ? Statistics.fragilityIndex(a, b, c, d) : null;
+        // FI is defined for significant results; show the core's caveat otherwise.
+        var fragDisplay = null, fragNote = '';
+        if (frag) {
+            if (frag.index === null) {
+                fragDisplay = 'N/A'; fragNote = frag.message || '';
+            } else if (frag.index === 0 && frag.originalP >= 0.05) {
+                fragDisplay = 'N/A'; fragNote = 'Not defined: result is already non-significant (Fisher p ≥ 0.05)';
+            } else {
+                fragDisplay = frag.index;
+            }
+        }
 
         // NNT core
         var nntVal = arr !== 0 ? 1 / Math.abs(arr) : Infinity;
         var isNNH = arr < 0;
         var nntLabel = isNNH ? 'NNH' : 'NNT';
         var nntDisplay = nntVal === Infinity ? '\u221E' : Math.ceil(nntVal);
-        var nntCIStr = formatNNTCI(newcombe.lower, newcombe.upper);
+        var nntCIStr = formatNNTCI(arrCI.lower, arrCI.upper);
 
         // Build output
         var html = '<div class="result-panel animate-in">';
@@ -281,6 +326,10 @@
 
         // 2x2 table visual
         html += '<div class="card-title mt-3">2&times;2 Table</div>';
+        if (!countsReal) {
+            html += '<div class="card-subtitle" style="color:var(--warning)">Illustrative reconstruction only (no total N was provided; an N of 500 per arm was assumed). '
+                + 'Point estimates below are valid, but do not report these counts, and count-based tests are suppressed.</div>';
+        }
         html += '<div class="table-scroll-wrap"><table class="data-table" style="max-width:420px">'
             + '<thead><tr><th></th><th>Event</th><th>No Event</th><th>Total</th></tr></thead>'
             + '<tbody>'
@@ -295,12 +344,13 @@
 
         // ARR
         html += '<div class="result-item"><div class="result-item-value">' + (arr * 100).toFixed(2) + '%</div>'
-            + '<div class="result-item-label">ARR ' + App.tooltip('Absolute Risk Reduction = CER - EER. Newcombe hybrid CI.') + '<br>'
-            + '(' + (newcombe.lower * 100).toFixed(2) + '% to ' + (newcombe.upper * 100).toFixed(2) + '%)</div></div>';
+            + '<div class="result-item-label">ARR ' + App.tooltip('Absolute Risk Reduction = CER - EER. CI ' + arrCISource + '.') + '<br>'
+            + '(' + (arrCI.lower * 100).toFixed(2) + '% to ' + (arrCI.upper * 100).toFixed(2) + '%)</div></div>';
 
         // RR
         html += '<div class="result-item"><div class="result-item-value">' + rr.toFixed(3) + '</div>'
-            + '<div class="result-item-label">RR<br>' + Statistics.formatCI(res.rr.ci.lower, res.rr.ci.upper, 3) + '</div></div>';
+            + '<div class="result-item-label">RR<br>' + Statistics.formatCI(rrCI.lower, rrCI.upper, 3)
+            + (pubCI ? '<br><span style="font-size:0.72rem;">CI from published values</span>' : '') + '</div></div>';
 
         // RRR
         html += '<div class="result-item"><div class="result-item-value">' + (rrr * 100).toFixed(1) + '%</div>'
@@ -308,23 +358,31 @@
 
         // OR
         html += '<div class="result-item"><div class="result-item-value">' + or.toFixed(3) + '</div>'
-            + '<div class="result-item-label">OR<br>' + Statistics.formatCI(res.or.ci.lower, res.or.ci.upper, 3) + '</div></div>';
+            + '<div class="result-item-label">OR' + (!pubCI && res.continuityCorrected ? ' &dagger;' : '') + '<br>' + Statistics.formatCI(orCI.lower, orCI.upper, 3)
+            + (pubCI ? '<br><span style="font-size:0.72rem;">CI from published values</span>' : '')
+            + (!pubCI && res.continuityCorrected ? '<br><span style="font-size:0.72rem;">&dagger; Haldane-Anscombe 0.5 correction (zero cell)</span>' : '') + '</div></div>';
 
         // NNT / NNH
         html += '<div class="result-item"><div class="result-item-value">' + nntDisplay + '</div>'
             + '<div class="result-item-label">' + nntLabel + '<br>' + nntCIStr + '</div></div>';
 
-        // Chi-squared
-        html += '<div class="result-item"><div class="result-item-value">' + res.chi2.chi2.toFixed(2) + '</div>'
-            + '<div class="result-item-label">\u03C7\u00B2 (p = ' + Statistics.formatPValue(res.chi2.pValue) + ')</div></div>';
+        if (countsReal) {
+            // Chi-squared
+            html += '<div class="result-item"><div class="result-item-value">' + res.chi2.chi2.toFixed(2) + '</div>'
+                + '<div class="result-item-label">\u03C7\u00B2 (p = ' + Statistics.formatPValue(res.chi2.pValue) + ')</div></div>';
 
-        // Fisher exact
-        html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(res.fisher.pValue) + '</div>'
-            + '<div class="result-item-label">Fisher exact p</div></div>';
+            // Fisher exact
+            html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(res.fisher.pValue) + '</div>'
+                + '<div class="result-item-label">Fisher exact p</div></div>';
 
-        // Fragility index
-        html += '<div class="result-item"><div class="result-item-value">' + frag.index + '</div>'
-            + '<div class="result-item-label">Fragility Index ' + App.tooltip('Number of events to reclassify to make p > 0.05') + '</div></div>';
+            // Fragility index
+            html += '<div class="result-item"><div class="result-item-value">' + fragDisplay + '</div>'
+                + '<div class="result-item-label">Fragility Index ' + App.tooltip('Fewest patient-outcome reclassifications (single arm) needed to make Fisher p \u2265 0.05. Defined for significant results.')
+                + (fragNote ? '<br><span style="font-size:0.72rem;">' + fragNote + '</span>' : '') + '</div></div>';
+        } else {
+            html += '<div class="result-item"><div class="result-item-value">&mdash;</div>'
+                + '<div class="result-item-label">\u03C7\u00B2 / Fisher / Fragility ' + App.tooltip('Suppressed: these require the actual sample size. Enter Total N in the Published RR/OR tab to compute them.') + '</div></div>';
+        }
 
         html += '</div>'; // end result-grid
 
@@ -362,7 +420,7 @@
 
         // ---- NNT over Time ----
         html += '<div class="card-title mt-3">NNT Over Time (Constant Hazard) '
-            + App.tooltip('Assumes exponential survival. NNT(t) = 1 / (S_control(t) - S_treatment(t)) where S(t) = exp(-lambda*t). Useful when converting NNT from one follow-up duration to another.') + '</div>';
+            + App.tooltip('Assumes exponential survival. NNT(t) = 1 / (S_treatment(t) - S_control(t)) = 1 / (risk_control(t) - risk_treatment(t)), where S(t) = exp(-lambda*t). Useful when converting NNT from one follow-up duration to another.') + '</div>';
         html += '<div class="card-subtitle">NNT changes with follow-up time. Enter the trial duration and compute NNT at other timepoints assuming constant hazard.</div>';
         html += '<div class="form-row form-row--3">'
             + '<div class="form-group"><label class="form-label">Original Trial Duration</label>'
@@ -386,7 +444,13 @@
         // ---- Methods text ----
         html += '<div class="mt-3"><div class="expandable-header" onclick="this.classList.toggle(\'open\')">Methods / Results Text</div>'
             + '<div class="expandable-body"><div class="text-output" id="nnt-methods-text">'
-            + generateMethodsResults(a, b, c, d, res, arr, newcombe, rr, or, nntDisplay, nntLabel, nntCIStr, frag)
+            + generateMethodsResults(a, b, c, d, {
+                res: res, arr: arr, arrCI: arrCI, arrCISource: arrCISource,
+                rr: rr, rrCI: rrCI, or: or, orCI: orCI,
+                nntDisplay: nntDisplay, nntLabel: nntLabel, nntCIStr: nntCIStr,
+                frag: frag, fragDisplay: fragDisplay, fragNote: fragNote,
+                countsReal: countsReal
+            })
             + '<button class="btn btn-xs btn-secondary copy-btn" onclick="Export.copyText(document.getElementById(\'nnt-methods-text\').textContent.replace(\'Copy\',\'\').trim())">Copy</button></div></div></div>';
 
         // ---- Copy all + R Script buttons ----
@@ -413,8 +477,10 @@
         window._nntCurrentResults = {
             a: a, b: b, c: c, d: d,
             p1: p1, p2: p2, arr: arr, rr: rr, rrr: rrr, or: or,
-            newcombe: newcombe, nntDisplay: nntDisplay, nntLabel: nntLabel,
-            nntCIStr: nntCIStr, frag: frag, res: res
+            arrCI: arrCI, arrCISource: arrCISource, rrCI: rrCI, orCI: orCI,
+            nntDisplay: nntDisplay, nntLabel: nntLabel,
+            nntCIStr: nntCIStr, frag: frag, fragDisplay: fragDisplay, fragNote: fragNote,
+            countsReal: countsReal, res: res
         };
 
         Export.addToHistory(MODULE_ID, { a: a, b: b, c: c, d: d }, nntLabel + ' = ' + nntDisplay);
@@ -728,21 +794,33 @@
             + 'This treatment appears to increase the risk of this outcome.';
     }
 
-    function generateMethodsResults(a, b, c, d, res, arr, newcombe, rr, or, nntDisplay, nntLabel, nntCIStr, frag) {
+    function generateMethodsResults(a, b, c, d, info) {
         var n = a + b + c + d;
         var n1 = a + b;
         var n2 = c + d;
-        var text = 'Among ' + n + ' participants (' + n1 + ' treatment, ' + n2 + ' control), '
-            + 'the event rate was ' + ((a / n1) * 100).toFixed(1) + '% in the treatment group and '
-            + ((c / n2) * 100).toFixed(1) + '% in the control group. '
-            + 'The absolute risk reduction was ' + (arr * 100).toFixed(2) + '% (95% Newcombe CI: '
-            + (newcombe.lower * 100).toFixed(2) + '% to ' + (newcombe.upper * 100).toFixed(2) + '%). '
-            + 'The relative risk was ' + rr.toFixed(2) + ' ' + Statistics.formatCI(res.rr.ci.lower, res.rr.ci.upper, 2) + ', '
-            + 'odds ratio ' + or.toFixed(2) + ' ' + Statistics.formatCI(res.or.ci.lower, res.or.ci.upper, 2) + '. '
-            + 'The ' + nntLabel + ' was ' + nntDisplay + ' (' + nntCIStr + '). '
-            + 'The chi-squared test statistic was ' + res.chi2.chi2.toFixed(2) + ' (p ' + Statistics.formatPValue(res.chi2.pValue) + '); '
-            + 'Fisher\'s exact p ' + Statistics.formatPValue(res.fisher.pValue) + '. '
-            + 'The fragility index was ' + frag.index + '.';
+        var text;
+        if (info.countsReal) {
+            text = 'Among ' + n + ' participants (' + n1 + ' treatment, ' + n2 + ' control), '
+                + 'the event rate was ' + ((a / n1) * 100).toFixed(1) + '% in the treatment group and '
+                + ((c / n2) * 100).toFixed(1) + '% in the control group. ';
+        } else {
+            text = 'The event rate was ' + ((a / n1) * 100).toFixed(1) + '% in the treatment group and '
+                + ((c / n2) * 100).toFixed(1) + '% in the control group (rates derived from the published effect estimate and the assumed baseline risk). ';
+        }
+        text += 'The absolute risk reduction was ' + (info.arr * 100).toFixed(2) + '% (95% CI '
+            + (info.arrCI.lower * 100).toFixed(2) + '% to ' + (info.arrCI.upper * 100).toFixed(2) + '%, ' + info.arrCISource + '). '
+            + 'The relative risk was ' + info.rr.toFixed(2) + ' ' + Statistics.formatCI(info.rrCI.lower, info.rrCI.upper, 2) + ', '
+            + 'odds ratio ' + info.or.toFixed(2) + ' ' + Statistics.formatCI(info.orCI.lower, info.orCI.upper, 2) + '. '
+            + 'The ' + info.nntLabel + ' was ' + info.nntDisplay + ' (' + info.nntCIStr + ').';
+        if (info.countsReal) {
+            text += ' The chi-squared test statistic was ' + info.res.chi2.chi2.toFixed(2) + ' (p ' + Statistics.formatPValue(info.res.chi2.pValue) + '); '
+                + 'Fisher\'s exact p ' + Statistics.formatPValue(info.res.fisher.pValue) + '.';
+            if (info.frag && info.frag.index !== null && !(info.frag.index === 0 && info.frag.originalP >= 0.05)) {
+                text += ' The fragility index was ' + info.frag.index + '.';
+            } else if (info.fragNote) {
+                text += ' Fragility index: ' + info.fragNote.toLowerCase() + '.';
+            }
+        }
         return text;
     }
 
@@ -755,17 +833,21 @@
         if (!r) { Export.showToast('No results to copy', 'error'); return; }
         var lines = [
             '=== NNT / NNH Calculator Results ===',
-            '2x2 Table: a=' + r.a + ', b=' + r.b + ', c=' + r.c + ', d=' + r.d,
+            '2x2 Table: a=' + r.a + ', b=' + r.b + ', c=' + r.c + ', d=' + r.d + (r.countsReal ? '' : ' (illustrative reconstruction; no total N provided)'),
             'EER: ' + (r.p1 * 100).toFixed(2) + '%  CER: ' + (r.p2 * 100).toFixed(2) + '%',
-            'ARR: ' + (r.arr * 100).toFixed(2) + '% (Newcombe CI: ' + (r.newcombe.lower * 100).toFixed(2) + '% to ' + (r.newcombe.upper * 100).toFixed(2) + '%)',
-            'RR: ' + r.rr.toFixed(4) + ' ' + Statistics.formatCI(r.res.rr.ci.lower, r.res.rr.ci.upper, 4),
+            'ARR: ' + (r.arr * 100).toFixed(2) + '% (95% CI ' + (r.arrCI.lower * 100).toFixed(2) + '% to ' + (r.arrCI.upper * 100).toFixed(2) + '%, ' + r.arrCISource + ')',
+            'RR: ' + r.rr.toFixed(4) + ' ' + Statistics.formatCI(r.rrCI.lower, r.rrCI.upper, 4),
             'RRR: ' + (r.rrr * 100).toFixed(2) + '%',
-            'OR: ' + r.or.toFixed(4) + ' ' + Statistics.formatCI(r.res.or.ci.lower, r.res.or.ci.upper, 4),
-            r.nntLabel + ': ' + r.nntDisplay + ' (' + r.nntCIStr + ')',
-            'Chi-squared: ' + r.res.chi2.chi2.toFixed(3) + ', p = ' + Statistics.formatPValue(r.res.chi2.pValue),
-            'Fisher exact p = ' + Statistics.formatPValue(r.res.fisher.pValue),
-            'Fragility Index: ' + r.frag.index
+            'OR: ' + r.or.toFixed(4) + ' ' + Statistics.formatCI(r.orCI.lower, r.orCI.upper, 4),
+            r.nntLabel + ': ' + r.nntDisplay + ' (' + r.nntCIStr + ')'
         ];
+        if (r.countsReal) {
+            lines.push('Chi-squared: ' + r.res.chi2.chi2.toFixed(3) + ', p = ' + Statistics.formatPValue(r.res.chi2.pValue));
+            lines.push('Fisher exact p = ' + Statistics.formatPValue(r.res.fisher.pValue));
+            lines.push('Fragility Index: ' + r.fragDisplay + (r.fragNote ? ' (' + r.fragNote + ')' : ''));
+        } else {
+            lines.push('Chi-squared / Fisher / Fragility: not computed (total N not provided)');
+        }
         Export.copyText(lines.join('\n'));
     }
 

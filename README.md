@@ -13,7 +13,7 @@ The public GitHub Pages deployment is for de-identified, aggregate, or synthetic
 ## Features
 
 ### Study Design
-- **Sample Size Calculator** — 8 designs: two proportions, two means, time-to-event, mRS ordinal shift (Whitehead), non-inferiority, cluster RCT, stepped-wedge, multi-arm. Sensitivity tables, power curves, presets, grant-ready methods text.
+- **Sample Size Calculator** — 12 designs: two proportions, two means, time-to-event, mRS ordinal shift (Whitehead), non-inferiority, equivalence, crossover, diagnostic accuracy, cluster RCT, stepped-wedge, multi-arm, group sequential. Sensitivity tables, power curves, presets, grant-ready methods text.
 - **Power Analysis** — Reverse calculator (input N → achieved power), interactive dashboard with real-time sliders, multi-scenario comparison.
 - **Hypothesis Builder** — PICO/PECO framework, study design decision tree, variable classification, analysis plan generator.
 - **Study Design Guide** — Interactive decision tree for selecting study designs, reference tables with Oxford CEBM evidence levels, design templates, bias & confounding quick reference.
@@ -33,7 +33,7 @@ The public GitHub Pages deployment is for de-identified, aggregate, or synthetic
 - **Results Interpreter** — Paste p-values, CIs, or effect sizes and get plain-English interpretation.
 
 ### Clinical Trials
-- **Trial Database** — 200+ clinical trials with verified data, searchable and filterable. Sort by year/name/size, landmark filter, visual result indicators, side-by-side comparison, CSV export, citation paragraph generator, evidence summary, PubMed/DOI links.
+- **Trial Database** — nearly 200 clinical trials with PubMed-verified citations, searchable and filterable. Sort by year/name/size, landmark filter, visual result indicators, side-by-side comparison, CSV export, citation paragraph generator, evidence summary, PubMed/DOI links.
 - **Critical Appraisal** — RoB 2.0, Newcastle-Ottawa, AMSTAR-2, QUADAS-2, GRADE.
 - **Reporting Guidelines** — Interactive CONSORT, STROBE, PRISMA checklists with progress tracking and export.
 

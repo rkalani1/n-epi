@@ -301,7 +301,7 @@
                         '',
                         '# Log-rank test',
                         'lr <- survdiff(Surv(time, status) ~ group, data = df)',
-                        'cat("\\nLog-rank p:", format.pval(lr$chisq, pchisq(lr$chisq, 1, lower.tail = FALSE)), "\\n")',
+                        'cat("\\nLog-rank p:", format.pval(pchisq(lr$chisq, 1, lower.tail = FALSE)), "\\n")',
                         '',
                         '# Publication-quality KM plot',
                         'ggsurvplot(fit, data = df,',
@@ -378,7 +378,8 @@
                         'nihss <- c(rnorm(100, 12, 5), rnorm(100, 18, 6))',
                         'outcome <- c(rep(1, 100), rep(0, 100))',
                         '',
-                        'roc_obj <- roc(outcome, nihss, direction = "<")',
+                        '# Cases (good outcome) have LOWER NIHSS than controls, so direction = ">"',
+                        'roc_obj <- roc(outcome, nihss, direction = ">")',
                         '',
                         '# AUC with CI',
                         'auc_ci <- ci.auc(roc_obj)',
@@ -453,7 +454,7 @@
                         'ggplot(df, aes(x = or, y = study)) +',
                         '  geom_vline(xintercept = 1, linetype = "dashed", color = "grey50") +',
                         '  geom_errorbarh(aes(xmin = lower, xmax = upper), height = 0.2) +',
-                        '  geom_point(aes(size = weight, shape = is_summary), fill = "steelblue") +',
+                        '  geom_point(aes(size = ifelse(is.na(weight), 30, weight), shape = is_summary), fill = "steelblue") +  # summary diamond needs an explicit size or ggplot drops the row',
                         '  scale_shape_manual(values = c(16, 18), guide = "none") +',
                         '  scale_size_continuous(range = c(2, 6), guide = "none") +',
                         '  scale_x_log10() +',
@@ -554,8 +555,7 @@
                         'pooled <- pool(fit)',
                         'summary(pooled)',
                         '',
-                        '# Pool R-squared',
-                        'pool.r.squared(fit)',
+                        '# Note: pool.r.squared() applies to lm fits only (errors on glm)',
                         '',
                         '# Diagnostic: compare observed vs imputed distributions',
                         'densityplot(imp, ~age + nihss)'
@@ -731,7 +731,8 @@
                         'n_patients <- 50',
                         'n_timepoints <- 4',
                         '',
-                        'df <- expand.grid(patient = 1:n_patients, time = 0:(n_timepoints-1))',
+                        '# time first so rows are blocked by patient (expand.grid varies its first argument fastest)',
+                        'df <- expand.grid(time = 0:(n_timepoints-1), patient = 1:n_patients)',
                         'df$treatment <- rep(rbinom(n_patients, 1, 0.5), each = n_timepoints)',
                         '',
                         '# Random intercepts + slopes',
@@ -825,7 +826,7 @@
                         '',
                         '# Model diagnostics',
                         'cat("\\nAIC:", AIC(fit), "\\n")',
-                        'cat("Hosmer-Lemeshow C-statistic (AUC):",',
+                        'cat("C-statistic (AUC):",',
                         '    round(pROC::auc(outcome, predict(fit, type = "response")), 3), "\\n")'
                     ].join('\n')
                 },
@@ -919,7 +920,7 @@
             + '<pre style="background:var(--surface-2);padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.85rem">'
             + 'install.packages(c("pwr", "epiR", "meta", "metafor", "survival",\n'
             + '                    "survminer", "pROC", "ggplot2", "MASS",\n'
-            + '                    "survRM2", "epitools", "tableone"))'
+            + '                    "survRM2", "epitools", "tableone", "performance"))'
             + '</pre>'
             + '<button class="btn btn-secondary" onclick="window.RCodeLibrary.copySetup()">Copy Install Script</button>'
             + '</div>';
@@ -1000,7 +1001,7 @@
             + '                    "survminer", "pROC", "ggplot2", "MASS",\n'
             + '                    "survRM2", "epitools", "tableone", "mice",\n'
             + '                    "MatchIt", "WeightIt", "cobalt", "lme4",\n'
-            + '                    "lmerTest", "fixest", "tidyr"))';
+            + '                    "lmerTest", "fixest", "tidyr", "performance"))';
         Export.copyToClipboard(script);
     }
 

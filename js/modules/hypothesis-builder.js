@@ -145,7 +145,7 @@
             + '<tr><td><strong>H0</strong></td><td>No difference (delta = 0)</td><td>New is worse by at least margin</td><td>Difference exceeds margin</td></tr>'
             + '<tr><td><strong>H1</strong></td><td>There is a difference (delta != 0)</td><td>New is not worse than margin</td><td>Difference is within margin</td></tr>'
             + '<tr><td><strong>Margin</strong></td><td>Not applicable</td><td>Pre-specified NI margin (delta)</td><td>Pre-specified equivalence margin (+/- delta)</td></tr>'
-            + '<tr><td><strong>Sided test</strong></td><td>Two-sided (usually)</td><td>One-sided (lower bound of CI)</td><td>Two one-sided tests (TOST)</td></tr>'
+            + '<tr><td><strong>Sided test</strong></td><td>Two-sided (usually)</td><td>One-sided (CI bound in the direction of harm vs the margin)</td><td>Two one-sided tests (TOST)</td></tr>'
             + '<tr><td><strong>Sample size</strong></td><td>Standard</td><td>Often larger than superiority</td><td>Largest (must exclude both directions)</td></tr>'
             + '<tr><td><strong>When to use</strong></td><td>Expected clinically meaningful benefit</td><td>New treatment has other advantages (safety, cost, convenience)</td><td>Generic vs. branded drug; biosimilars</td></tr>'
             + '<tr><td><strong>Key pitfall</strong></td><td>Underpowered studies falsely conclude "no difference"</td><td>Biocreep (successive NI trials erode efficacy)</td><td>Choosing too wide a margin</td></tr>'
@@ -476,7 +476,7 @@
             h1 = 'Patients ' + ieLabel + ' ' + intervention.toLowerCase() + ' have a significantly better ' + measureLabel + ' of ' + outcome.toLowerCase() + ' compared to those ' + ieLabel + ' ' + comparison.toLowerCase() + '.';
         } else if (direction === 'noninferiority') {
             h0 = intervention + ' is inferior to ' + comparison.toLowerCase() + ' in ' + outcome.toLowerCase() + ' by more than the pre-specified non-inferiority margin.';
-            h1 = intervention + ' is non-inferior to ' + comparison.toLowerCase() + ' in ' + outcome.toLowerCase() + ', with the lower bound of the CI above the non-inferiority margin.';
+            h1 = intervention + ' is non-inferior to ' + comparison.toLowerCase() + ' in ' + outcome.toLowerCase() + ', with the CI bound in the direction of harm not crossing the non-inferiority margin (e.g., upper bound of the HR/OR CI below the margin for harm outcomes; lower bound of the difference CI above −Δ for benefit outcomes).';
         } else if (direction === 'equivalence') {
             h0 = 'The difference in ' + outcome.toLowerCase() + ' between ' + intervention.toLowerCase() + ' and ' + comparison.toLowerCase() + ' exceeds the equivalence margin.';
             h1 = intervention + ' and ' + comparison.toLowerCase() + ' produce equivalent ' + outcome.toLowerCase() + ', with the CI falling entirely within the equivalence margin.';
@@ -491,6 +491,9 @@
             if (direction === 'superiority' || direction === 'noninferiority' || direction === 'equivalence') {
                 designSuggestion = 'Randomized Controlled Trial (RCT)';
                 designNote = 'A parallel-group RCT is the gold standard for intervention questions. Consider adaptive designs for trials where recruitment is challenging.';
+            } else if (direction === 'harm') {
+                designSuggestion = 'Large RCT / meta-analysis of harms, or new-user active-comparator cohort';
+                designNote = 'Safety questions about an intervention are best answered by harms data from large trials or meta-analyses; when trials are infeasible or underpowered for rare harms, use a new-user, active-comparator observational design.';
             }
         } else {
             if (direction === 'harm') {
@@ -503,7 +506,7 @@
         }
 
         if (outcomeType === 'ordinal' && domain === 'acute_stroke') {
-            designNote += ' For acute stroke trials using mRS, ordinal shift analysis (proportional odds model) is the preferred primary analysis, as recommended by regulatory guidance.';
+            designNote += ' For acute stroke trials using mRS, ordinal shift analysis (proportional odds model) is widely recommended in the methodological literature (e.g., OAST, STAIR); note that regulators have often favored a dichotomized mRS as primary.';
         }
 
         var html = '<div class="result-panel animate-in">';
@@ -630,8 +633,8 @@
             },
             noninferiority: {
                 title: 'Non-Inferiority Hypothesis',
-                h0: 'H0: Treatment is inferior by more than margin \u0394 (lower bound of CI below -\u0394)',
-                h1: 'H1: Treatment is not inferior by more than margin \u0394 (lower bound of CI above -\u0394)',
+                h0: 'H0: The new treatment is inferior by more than the margin \u0394. Decision rule: the CI bound in the direction of harm crosses the margin (e.g., upper bound of an HR CI above the margin, or lower bound of a benefit-difference CI below \u2212\u0394).',
+                h1: 'H1: The new treatment is not inferior by more than \u0394. Decision rule: the CI bound in the direction of harm does not cross the margin.',
                 template: 'Among [population], [new treatment] is non-inferior to [standard treatment] in [outcome], with a pre-specified non-inferiority margin of [\u0394 = margin] as measured at [time point].',
                 considerations: [
                     'One-sided alpha = 0.025 (equivalent to two-sided 0.05)',
@@ -1012,8 +1015,8 @@
                 + (outcomes.length > 0 ? outcomes[0].name : 'outcome') + ' without adjustment.</li>';
             html += '<li><strong>Adjusted analysis:</strong> Include confounders: '
                 + confounders.map(function(v) { return v.name; }).join(', ')
-                + '. EPV check: ' + confounders.length + ' confounders require at least '
-                + (confounders.length * 10) + ' events (EPV=10).</li>';
+                + '. EPV check: ' + (exposures.length + confounders.length) + ' model parameters (exposure + confounders) require at least '
+                + ((exposures.length + confounders.length) * 10) + ' events (EPV=10; count every estimated parameter, including precision and interaction terms).</li>';
         } else {
             html += '<li><strong>Primary analysis:</strong> Estimate the association between '
                 + (exposures.length > 0 ? exposures[0].name : 'exposure') + ' and '
@@ -1034,15 +1037,17 @@
 
         // Warnings
         var warnings = [];
-        if (mediators.length > 0 && confounders.length > 0) {
+        if (mediators.length > 0) {
             warnings.push({ type: 'Mediator Adjustment', message: 'Do NOT include mediators (' + mediators.map(function(v) { return v.name; }).join(', ') + ') in primary model for total effect.', severity: 'danger' });
         }
         if (moderators.length > 0) {
             warnings.push({ type: 'Interaction Testing', message: 'Interaction tests require ~4x the sample size. Report as exploratory unless specifically powered.', severity: 'warning' });
         }
-        var totalModelVars = confounders.length + precision.length + (moderators.length > 0 ? moderators.length + exposures.length : 0);
+        // EPV counts every estimated parameter: exposure terms, confounders,
+        // precision variables, and any interaction terms — not confounders alone
+        var totalModelVars = exposures.length + confounders.length + precision.length + (moderators.length > 0 ? moderators.length * (1 + exposures.length) : 0);
         if (totalModelVars > 15) {
-            warnings.push({ type: 'Model Complexity', message: totalModelVars + ' variables require at least ' + (totalModelVars * 10) + ' events (EPV=10). Consider penalized regression.', severity: 'warning' });
+            warnings.push({ type: 'Model Complexity', message: totalModelVars + ' model parameters require at least ' + (totalModelVars * 10) + ' events (EPV=10, counting exposure, confounder, precision, and interaction terms). Consider penalized regression.', severity: 'warning' });
         }
         if (outcomes.length > 1) {
             warnings.push({ type: 'Multiple Outcomes', message: outcomes.length + ' outcomes. Consider multiplicity adjustments or designate one primary.', severity: 'info' });
@@ -1071,7 +1076,7 @@
         var text = 'Analysis Plan\nExposure(s): ' + exposures.map(function(v) { return v.name; }).join(', ')
             + '\nOutcome(s): ' + outcomes.map(function(v) { return v.name; }).join(', ')
             + '\nConfounders: ' + confounders.map(function(v) { return v.name; }).join(', ')
-            + '\nMinimum events needed (EPV=10): ' + (confounders.length * 10);
+            + '\nMinimum events needed (EPV=10, exposure + confounder parameters): ' + ((exposures.length + confounders.length) * 10);
         Export.copyText(text);
     }
 

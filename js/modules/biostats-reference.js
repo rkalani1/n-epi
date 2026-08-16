@@ -24,17 +24,17 @@
         { name: 'Mann-Whitney U test', outcome: 'continuous', groups: '2', paired: 'independent', parametric: false, when: 'Non-parametric alternative to the independent t-test. Compare distributions of two independent groups.', assumptions: 'Independent observations; ordinal or continuous outcome; similarly shaped distributions for testing medians.', effect: 'Rank-biserial correlation r = 1 - (2U / (n1*n2))', formula: 'U = n1*n2 + n1(n1+1)/2 - R1', interpretation: 'Example: "Median onset-to-treatment time was significantly shorter in the mobile stroke unit group (45 vs 72 min, U = 1234, P = 0.008, r = 0.32)."' },
         { name: 'Wilcoxon signed-rank test', outcome: 'continuous', groups: '2', paired: 'paired', parametric: false, when: 'Non-parametric alternative to the paired t-test. Compare paired observations.', assumptions: 'Paired observations; ordinal or continuous outcome; symmetric distribution of differences.', effect: 'r = Z / sqrt(n)', formula: 'T = min(T+, T-), where T+/T- are sums of positive/negative signed ranks', interpretation: 'Example: "mRS improved significantly from baseline to 90 days (median change -1, IQR -2 to 0, Z = -4.12, P < 0.001, r = 0.46)."' },
         { name: 'Friedman test', outcome: 'continuous', groups: '3+', paired: 'paired', parametric: false, when: 'Non-parametric alternative to repeated measures ANOVA. Compare 3+ related groups.', assumptions: 'Related samples (repeated measures or matched); ordinal or continuous outcome.', effect: "Kendall's W = Chi-sq_F / (n*(k-1))", formula: 'Chi-sq_F = (12 / (nk(k+1))) * sum(R_j^2) - 3n(k+1), df=k-1', interpretation: 'Example: "Pain scores differed significantly across the 4 time points (Chi-sq(3) = 18.7, P < 0.001, W = 0.42). Nemenyi post-hoc tests revealed..."' },
-        { name: 'Chi-squared test', outcome: 'binary', groups: '2', paired: 'independent', parametric: true, when: 'Test association between two categorical variables in a contingency table.', assumptions: 'Independent observations; expected cell counts >= 5 in 80% of cells (use Fisher if violated).', effect: "Cramer's V = sqrt(Chi-sq / (n * min(r-1, c-1)))", formula: 'Chi-sq = sum((O-E)^2 / E), df = (r-1)(c-1)', interpretation: 'Example: "The proportion achieving mRS 0-2 was significantly higher in the thrombectomy group (46.0% vs 26.5%, Chi-sq(1) = 12.3, P < 0.001)."' },
+        { name: 'Chi-squared test', outcome: 'binary', groups: '2', paired: 'independent', parametric: false, when: 'Test association between two categorical variables in a contingency table.', assumptions: 'Independent observations; expected cell counts >= 5 in 80% of cells (use Fisher if violated).', effect: "Cramer's V = sqrt(Chi-sq / (n * min(r-1, c-1)))", formula: 'Chi-sq = sum((O-E)^2 / E), df = (r-1)(c-1)', interpretation: 'Example: "The proportion achieving mRS 0-2 was significantly higher in the thrombectomy group (46.0% vs 26.5%, Chi-sq(1) = 12.3, P < 0.001)."' },
         { name: "Fisher's exact test", outcome: 'binary', groups: '2', paired: 'independent', parametric: false, when: 'Test association in a 2x2 table when sample size is small or expected counts are <5.', assumptions: 'Independent observations; fixed marginals; exact probability calculation.', effect: 'Odds ratio from the 2x2 table.', formula: 'P = (a+b)!(c+d)!(a+c)!(b+d)! / (N! a! b! c! d!)', interpretation: 'Example: "sICH occurred in 2/50 (4.0%) treatment vs 0/48 (0%) control patients (Fisher exact P = 0.50)."' },
         { name: "McNemar's test", outcome: 'binary', groups: '2', paired: 'paired', parametric: false, when: 'Test change in a binary outcome for paired data (before-after, matched pairs).', assumptions: 'Paired binary observations; discordant pairs are of primary interest.', effect: 'Odds ratio of discordant pairs = b/c.', formula: 'Chi-sq = (|b-c| - 1)^2 / (b+c), df=1 (with continuity correction)', interpretation: 'Example: "The proportion of patients classified as functionally independent changed significantly from admission to discharge (McNemar Chi-sq = 8.1, P = 0.004)."' },
-        { name: 'Cochran-Armitage trend test', outcome: 'binary', groups: '3+', paired: 'independent', parametric: true, when: 'Test for a linear trend in proportions across ordered groups (dose-response).', assumptions: 'Independent observations; ordinal exposure with binary outcome; linear trend assumption.', effect: 'Trend slope estimate.', formula: 'Z_trend = sum(d_i * (x_i - x-bar)) / sqrt(...), one-sided or two-sided', interpretation: 'Example: "There was a significant linear trend of increasing sICH risk with higher blood glucose tertiles (P-trend = 0.003)."' },
+        { name: 'Cochran-Armitage trend test', outcome: 'binary', groups: '3+', paired: 'independent', parametric: false, when: 'Test for a linear trend in proportions across ordered groups (dose-response).', assumptions: 'Independent observations; ordinal exposure with binary outcome; linear trend assumption.', effect: 'Trend slope estimate.', formula: 'Z_trend = sum(d_i * (x_i - x-bar)) / sqrt(...), one-sided or two-sided', interpretation: 'Example: "There was a significant linear trend of increasing sICH risk with higher blood glucose tertiles (P-trend = 0.003)."' },
         { name: 'Log-rank test', outcome: 'time-to-event', groups: '2', paired: 'independent', parametric: false, when: 'Compare survival distributions between two or more groups.', assumptions: 'Non-informative censoring; survival curves do not cross (most powerful when hazards are proportional).', effect: 'Hazard ratio (from corresponding Cox model).', formula: 'Chi-sq = (sum(O_i - E_i))^2 / sum(V_i), df=k-1', interpretation: 'Example: "Median time to recurrent stroke was longer in the DAPT group (not reached vs 18.4 months, log-rank P = 0.02)."' },
         { name: 'Cox proportional hazards regression', outcome: 'time-to-event', groups: '2', paired: 'independent', parametric: false, when: 'Model the effect of covariates on time-to-event outcomes. Semi-parametric.', assumptions: 'Proportional hazards (constant HR over time); non-informative censoring; correct model specification.', effect: 'Hazard ratio (HR) = exp(beta).', formula: 'h(t|X) = h0(t) * exp(beta1*X1 + ... + betap*Xp)', interpretation: 'Example: "After adjustment for age and NIHSS, thrombectomy was associated with lower hazard of death (HR 0.62, 95% CI 0.44-0.87, P = 0.006)."' },
         { name: 'Logistic regression', outcome: 'binary', groups: '2', paired: 'independent', parametric: true, when: 'Model the relationship between covariates and a binary outcome. Obtain adjusted ORs.', assumptions: 'Binary outcome; independent observations; linearity of log-odds with continuous predictors; no multicollinearity; adequate events per variable (>=10 EPV rule of thumb).', effect: 'Odds ratio = exp(beta).', formula: 'log(p / (1-p)) = beta0 + beta1*X1 + ... + betap*Xp', interpretation: 'Example: "In multivariable logistic regression, diabetes was independently associated with poor outcome (OR 1.82, 95% CI 1.23-2.69, P = 0.003)."' },
         { name: 'Linear regression', outcome: 'continuous', groups: '2', paired: 'independent', parametric: true, when: 'Model the relationship between covariates and a continuous outcome.', assumptions: 'Continuous outcome; linearity; independence of errors; homoscedasticity; normality of residuals; no multicollinearity.', effect: 'Beta coefficient (unstandardized); standardized beta; R-squared.', formula: 'Y = beta0 + beta1*X1 + ... + betap*Xp + epsilon', interpretation: 'Example: "Each 10-year increase in age was associated with a 1.4-point increase in NIHSS at admission (beta = 0.14 per year, 95% CI 0.08-0.20, P < 0.001, R-sq = 0.32)."' },
         { name: 'Poisson regression', outcome: 'count', groups: '2', paired: 'independent', parametric: true, when: 'Model count outcomes or rates. Assumes mean equals variance.', assumptions: 'Count outcome; independence; mean = variance (equidispersion); log-linear relationship; adequate follow-up time.', effect: 'Incidence rate ratio (IRR) = exp(beta).', formula: 'log(mu) = beta0 + beta1*X1 + ... + offset(log(t))', interpretation: 'Example: "The seizure rate was 40% lower in the treatment group (IRR 0.60, 95% CI 0.42-0.86, P = 0.005)."' },
         { name: 'Negative binomial regression', outcome: 'count', groups: '2', paired: 'independent', parametric: true, when: 'Model count outcomes when overdispersion is present (variance > mean).', assumptions: 'Count outcome; independence; overdispersion; gamma-distributed rate parameter.', effect: 'Incidence rate ratio (IRR) = exp(beta).', formula: 'log(mu) = beta0 + beta1*X1 + ... with var(Y) = mu + mu^2/theta', interpretation: 'Example: "After accounting for overdispersion, the number of ED visits was significantly lower in the intervention group (IRR 0.72, 95% CI 0.55-0.94, P = 0.02)."' },
-        { name: 'Cochran-Mantel-Haenszel test', outcome: 'binary', groups: '2', paired: 'independent', parametric: true, when: 'Test association between two binary variables while controlling for a stratifying variable.', assumptions: 'Independent observations within strata; homogeneity of ORs across strata (Breslow-Day test).', effect: 'Common odds ratio (Mantel-Haenszel estimator).', formula: 'Chi-sq_MH = (sum(a_i - E(a_i)))^2 / sum(Var(a_i)), df=1', interpretation: 'Example: "After stratifying by study site, the treatment remained significantly associated with the outcome (CMH OR 1.65, 95% CI 1.12-2.43, P = 0.011, Breslow-Day P = 0.45)."' },
+        { name: 'Cochran-Mantel-Haenszel test', outcome: 'binary', groups: '2', paired: 'independent', parametric: false, when: 'Test association between two binary variables while controlling for a stratifying variable.', assumptions: 'Independent observations within strata; homogeneity of ORs across strata (Breslow-Day test).', effect: 'Common odds ratio (Mantel-Haenszel estimator).', formula: 'Chi-sq_MH = (sum(a_i - E(a_i)))^2 / sum(Var(a_i)), df=1', interpretation: 'Example: "After stratifying by study site, the treatment remained significantly associated with the outcome (CMH OR 1.65, 95% CI 1.12-2.43, P = 0.011, Breslow-Day P = 0.45)."' },
         { name: 'Mixed-effects (multilevel) model', outcome: 'continuous', groups: '2', paired: 'independent', parametric: true, when: 'Model hierarchical/clustered data or repeated measures with both fixed and random effects.', assumptions: 'Correct specification of fixed and random effects; normality of random effects and residuals; correct covariance structure.', effect: 'Fixed effects: beta coefficients. Random effects: variance components. ICC.', formula: 'Y_ij = X_ij*beta + Z_ij*u_j + epsilon_ij, u_j ~ N(0, G), epsilon ~ N(0, R)', interpretation: 'Example: "In a mixed-effects model with random intercepts for facility, thrombectomy was associated with lower 90-day NIHSS (beta = -3.2, 95% CI -4.8 to -1.6, P < 0.001). The ICC was 0.08, indicating 8% of variance was between facilities."' }
     ];
 
@@ -80,13 +80,13 @@
 
     var EFFECT_SIZES = [
         { measure: "Cohen's d", small: '0.2', medium: '0.5', large: '0.8', notes: 'Standardized mean difference. d = (M1-M2)/SD_pooled. Most widely used benchmark (Cohen, 1988). Context-dependent: a "small" effect can be highly clinically meaningful.' },
-        { measure: 'Odds Ratio (OR)', small: '1.5 (or 0.67)', medium: '2.5 (or 0.40)', large: '4.3 (or 0.23)', notes: 'Derived from Cohen d via OR = exp(pi*d/sqrt(3)). These benchmarks are approximate conversions.' },
+        { measure: 'Odds Ratio (OR)', small: '1.4 (or 0.69)', medium: '2.5 (or 0.40)', large: '4.3 (or 0.23)', notes: 'Derived from Cohen d via OR = exp(pi*d/sqrt(3)). These benchmarks are approximate conversions; Chen et al. (2010) give higher equivalents (1.68/3.47/6.71) at low baseline risk.' },
         { measure: 'Risk Ratio (RR)', small: '~1.2 (or ~0.83)', medium: '~1.9 (or ~0.53)', large: '~3.0 (or ~0.33)', notes: 'Depends on baseline risk. Approximations assume moderate baseline risk (~20-30%).' },
         { measure: 'Number Needed to Treat (NNT)', small: '>10', medium: '4-10', large: '<4', notes: 'NNT = 1/ARD. Lower is stronger effect. Context-dependent: NNT of 20 may be excellent for mortality prevention.' },
         { measure: 'Correlation (r)', small: '0.10', medium: '0.30', large: '0.50', notes: 'Pearson or Spearman. r^2 gives proportion of variance explained. r=0.30 explains ~9% of variance.' },
         { measure: 'Eta-squared (eta^2)', small: '0.01', medium: '0.06', large: '0.14', notes: 'Proportion of total variance explained by factor in ANOVA. Analogous to R^2. Tends to overestimate in small samples.' },
         { measure: 'Partial eta-squared', small: '0.01', medium: '0.06', large: '0.14', notes: 'Proportion of variance explained by a factor after removing other factors. More commonly reported than eta-squared in factorial ANOVA.' },
-        { measure: 'R-squared', small: '< 0.10', medium: '0.10 - 0.30', large: '> 0.30', notes: 'Proportion of variance in outcome explained by the model. Context-dependent: R^2=0.15 may be excellent for predicting human behavior.' },
+        { measure: 'R-squared', small: '0.02', medium: '0.13', large: '0.26', notes: 'Proportion of variance in outcome explained by the model. Benchmarks follow Cohen (1988) f^2 = 0.02/0.15/0.35 via R^2 = f^2/(1+f^2). Context-dependent: R^2=0.15 may be excellent for predicting human behavior.' },
         { measure: "Cramer's V", small: '0.10', medium: '0.30', large: '0.50', notes: 'Effect size for chi-squared tests. V = sqrt(chi^2 / (n * min(r-1, c-1))). Range: 0 to 1.' },
         { measure: "Cohen's w", small: '0.10', medium: '0.30', large: '0.50', notes: 'Effect size for chi-squared goodness-of-fit. w = sqrt(sum((P0-P1)^2/P0)).' },
         { measure: "Cohen's f", small: '0.10', medium: '0.25', large: '0.40', notes: 'Effect size for ANOVA. f = sqrt(eta^2 / (1-eta^2)). Related to eta-squared.' }
@@ -938,7 +938,10 @@
         }
 
         var alpha = 1 - level;
-        var z = jStat && jStat.normal ? jStat.normal.inv(1 - alpha / 2, 0, 1) : 1.96;
+        var hasStats = typeof Statistics !== 'undefined';
+        var z = (hasStats && typeof Statistics.normalQuantile === 'function')
+            ? Statistics.normalQuantile(1 - alpha / 2)
+            : (level >= 0.99 ? 2.5758 : (level <= 0.90 ? 1.6449 : 1.96));
         var p = x / n;
 
         // Wald
@@ -960,29 +963,21 @@
         var acLo = Math.max(0, pTilde - z * acSE);
         var acHi = Math.min(1, pTilde + z * acSE);
 
-        // Clopper-Pearson (exact) using beta distribution
-        var cpLo, cpHi;
-        if (typeof jStat !== 'undefined' && jStat.beta) {
-            cpLo = x === 0 ? 0 : jStat.beta.inv(alpha / 2, x, n - x + 1);
-            cpHi = x === n ? 1 : jStat.beta.inv(1 - alpha / 2, x + 1, n - x);
-        } else {
-            cpLo = waldLo;
-            cpHi = waldHi;
-        }
-
-        var hasStats = typeof Statistics !== 'undefined';
+        // Clopper-Pearson (exact) via the core statistics library
+        // (falls back to the Wald bounds only if the library is unavailable)
+        var cpLo = waldLo, cpHi = waldHi;
         if (hasStats && typeof Statistics.wilsonCI === 'function') {
             try {
-                var wCI = Statistics.wilsonCI(x, n, level);
-                wilsonLo = wCI[0];
-                wilsonHi = wCI[1];
+                var wCI = Statistics.wilsonCI(p, n, z);
+                wilsonLo = wCI.lower;
+                wilsonHi = wCI.upper;
             } catch (e) { /* fallback already calculated */ }
         }
         if (hasStats && typeof Statistics.clopperPearsonCI === 'function') {
             try {
-                var cpCI = Statistics.clopperPearsonCI(x, n, level);
-                cpLo = cpCI[0];
-                cpHi = cpCI[1];
+                var cpCI = Statistics.clopperPearsonCI(x, n, alpha);
+                cpLo = cpCI.lower;
+                cpHi = cpCI.upper;
             } catch (e) { /* fallback already calculated */ }
         }
 

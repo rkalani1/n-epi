@@ -74,7 +74,7 @@
 
         // Landmark analysis option
         html += '<div class="form-row form-row--3 mt-2">'
-            + '<div class="form-group"><label class="form-label">Landmark Time (optional) ' + App.tooltip('Analyze only from this timepoint forward. Subjects who had events before the landmark are excluded.') + '</label>'
+            + '<div class="form-group"><label class="form-label">Landmark Time (optional) ' + App.tooltip('Analyze only from this timepoint forward. Only subjects still at risk at the landmark are included: anyone with an event OR censoring before the landmark is excluded, and follow-up times are re-zeroed at the landmark.') + '</label>'
             + '<input type="number" class="form-input" id="sa-landmark" step="any" min="0" value="" placeholder="Leave blank for standard analysis"></div>'
             + '<div class="form-group"><label class="form-label">RMST Truncation Time ' + App.tooltip('Time point at which to truncate the RMST calculation. Defaults to minimum of max follow-up across groups.') + '</label>'
             + '<input type="number" class="form-input" id="sa-rmst-tau" step="any" min="0" value="" placeholder="Auto (min max time)"></div>'
@@ -132,7 +132,7 @@
             + '<div><strong>Log-Rank Test:</strong> \u03C7\u00B2 = (O\u2212E)\u00B2/V (Mantel-Cox, hypergeometric variance), df = 1</div>'
             + '<div><strong>Median Survival:</strong> Smallest t where S(t) \u2264 0.50</div>'
             + '<div><strong>RMST:</strong> \u222B\u2080\u1D40 S(t)dt (area under the KM curve up to time \u03C4)</div>'
-            + '<div><strong>Hazard Ratio:</strong> HR = exp((O\u2081\u2212E\u2081)/V), the log-rank (Peto) one-step estimate; reference = first group. A Cox model (used in the generated R script) gives a close but not identical value.</div>'
+            + '<div><strong>Hazard Ratio:</strong> HR = exp((O\u2081\u2212E\u2081)/V), the log-rank (Peto) one-step estimate of the hazard in the first group relative to the second (reference = second group). A Cox model (used in the generated R script) gives a close but not identical value.</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Assumptions</div>';
@@ -147,7 +147,7 @@
         html += '<ul style="margin:0 0 12px 16px;">'
             + '<li><strong>Late crossing of KM curves:</strong> May indicate non-proportional hazards; consider RMST</li>'
             + '<li><strong>Ignoring competing risks:</strong> Standard KM overestimates cumulative incidence; use Fine-Gray model</li>'
-            + '<li><strong>Median not reached:</strong> When <50% of subjects have events, report milestone rates instead</li>'
+            + '<li><strong>Median not reached:</strong> If S(t) never falls to 0.50, the median is undefined; report milestone survival rates or RMST instead. (Note: with censoring the median can be reached even when fewer than 50% of subjects have events.)</li>'
             + '<li><strong>Landmark bias:</strong> Conditioning on survival to a specific time introduces bias if not handled properly</li>'
             + '</ul>';
 
@@ -439,7 +439,7 @@
         if (landmarkTime !== null && !isNaN(landmarkTime) && landmarkTime > 0) {
             html += '<div style="background:var(--accent-muted);padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:0.9rem;">'
                 + '<strong>Landmark Analysis:</strong> Analysis starts at time ' + landmarkTime.toFixed(1) + '. '
-                + 'Subjects with events before the landmark are excluded. '
+                + 'Only subjects still at risk at the landmark are included (those with an event or censoring before the landmark are excluded); times are measured from the landmark. '
                 + workingData.length + ' subjects included.'
                 + '</div>';
         }
@@ -510,7 +510,7 @@
             html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(logRank.pValue) + '</div>'
                 + '<div class="result-item-label">P-value</div></div>';
             html += '<div class="result-item"><div class="result-item-value">' + logRank.hr.toFixed(3) + '</div>'
-                + '<div class="result-item-label">HR (log-rank/Peto)</div></div>';
+                + '<div class="result-item-label">HR (log-rank/Peto): ' + escAttr(groups[0]) + ' vs ' + escAttr(groups[1]) + '<br>(reference: ' + escAttr(groups[1]) + ')</div></div>';
             html += '<div class="result-item"><div class="result-item-value">[' + logRank.hrCI.lower.toFixed(3) + ', ' + logRank.hrCI.upper.toFixed(3) + ']</div>'
                 + '<div class="result-item-label">HR 95% CI</div></div>';
             html += '</div>';
@@ -667,7 +667,7 @@
         var text = '';
 
         if (landmarkTime !== null && !isNaN(landmarkTime) && landmarkTime > 0) {
-            text += 'A landmark analysis from time ' + landmarkTime.toFixed(1) + ' was performed. ';
+            text += 'A landmark analysis from time ' + landmarkTime.toFixed(1) + ' was performed, including only participants still at risk at the landmark. ';
         }
 
         if (hasGroups && groups.length === 2) {
@@ -710,7 +710,7 @@
             if (logRank) {
                 text += 'The log-rank test ' + (logRank.pValue < 0.05 ? 'showed a statistically significant difference' : 'did not show a statistically significant difference')
                     + ' between groups (chi-squared = ' + logRank.chi2.toFixed(2) + ', P ' + Statistics.formatPValue(logRank.pValue) + '). '
-                    + 'The log-rank (Peto) hazard ratio (reference: first group) was ' + logRank.hr.toFixed(2)
+                    + 'The log-rank (Peto) hazard ratio for ' + groups[0] + ' relative to ' + groups[1] + ' (reference: ' + groups[1] + ') was ' + logRank.hr.toFixed(2)
                     + ' (95% CI, ' + logRank.hrCI.lower.toFixed(2) + ' to ' + logRank.hrCI.upper.toFixed(2) + '). ';
             }
 

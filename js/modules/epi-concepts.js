@@ -52,8 +52,8 @@
 
         html += '<div class="card-subtitle" style="font-weight:600;">Disease Burden Metrics</div>';
         html += '<ul style="margin:0 0 12px 16px; font-size:0.9rem; line-height:1.7;">'
-            + '<li><strong>YLL (Years of Life Lost):</strong> Life expectancy at age of death &times; number of deaths</li>'
-            + '<li><strong>YLD (Years Lived with Disability):</strong> Prevalence &times; disability weight &times; duration</li>'
+            + '<li><strong>YLL (Years of Life Lost):</strong> Number of deaths &times; standard remaining life expectancy at age of death</li>'
+            + '<li><strong>YLD (Years Lived with Disability):</strong> Incident cases &times; disability weight &times; duration (incidence-based), or prevalent cases &times; disability weight (prevalence-based, GBD 2010+)</li>'
             + '<li><strong>DALY = YLL + YLD:</strong> 1 DALY = 1 year of healthy life lost</li>'
             + '<li><strong>Disability weights:</strong> Range 0 (perfect health) to 1 (death); from GBD study</li>'
             + '</ul>';
@@ -216,10 +216,11 @@
 
         // Proportional Mortality Ratio
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
-        html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Proportional Mortality Ratio (PMR)</div>';
+        html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Proportionate Mortality (%)</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
-            + '<strong>Formula:</strong> PMR = Deaths from specific cause / Total deaths x 100. '
-            + 'Note: PMR does not measure risk; it reflects the relative importance of a cause of death.</div>';
+            + '<strong>Formula:</strong> Proportionate mortality = Deaths from specific cause / Total deaths x 100. '
+            + 'Note: this does not measure risk; it reflects the relative importance of a cause of death. '
+            + '(The proportionate mortality <em>ratio</em>, PMR, further divides this proportion by the corresponding proportion in a comparison population.)</div>';
         html += '<div class="form-row form-row--2">';
         html += '<div class="form-group"><label class="form-label">Deaths from Specific Cause</label>'
             + '<input type="number" class="form-input" id="df-pmr-cause" min="0" step="1" value="200"></div>';
@@ -359,11 +360,11 @@
         if (isNaN(causeDeath) || isNaN(totalDeaths) || totalDeaths <= 0) return;
         var pmr = (causeDeath / totalDeaths) * 100;
         var html = '<div class="result-panel">';
-        html += '<div class="result-value">' + pmr.toFixed(1) + '%<div class="result-label">Proportional Mortality Ratio</div></div>';
-        html += '<div class="result-detail">PMR = ' + causeDeath + ' / ' + totalDeaths.toLocaleString()
+        html += '<div class="result-value">' + pmr.toFixed(1) + '%<div class="result-label">Proportionate Mortality</div></div>';
+        html += '<div class="result-detail">Proportionate mortality = ' + causeDeath + ' / ' + totalDeaths.toLocaleString()
             + ' x 100 = ' + pmr.toFixed(1) + '%';
         html += '<br><strong>Interpretation:</strong> ' + pmr.toFixed(1) + '% of all deaths were due to this specific cause.';
-        html += '<br><strong>Caution:</strong> PMR is not a measure of risk. A high PMR can occur because '
+        html += '<br><strong>Caution:</strong> Proportionate mortality is not a measure of risk. A high value can occur because '
             + 'the specific cause is truly more common OR because other causes of death are less common.</div></div>';
         App.setTrustedHTML(document.getElementById('df-pmr-result'), html);
     }
@@ -383,14 +384,17 @@
         html += '<div class="result-grid">'
             + '<div class="result-item"><div class="result-item-value">' + rateRatio.toFixed(3) + '</div><div class="result-item-label">Rate Ratio (IRR)</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + rateDiff.toFixed(3) + '</div><div class="result-item-label">Rate Difference</div></div>'
-            + '<div class="result-item"><div class="result-item-value">' + (afe * 100).toFixed(1) + '%</div><div class="result-item-label">AFe</div></div>'
+            + (rateRatio < 1
+                ? '<div class="result-item"><div class="result-item-value">' + ((1 - rateRatio) * 100).toFixed(1) + '%</div><div class="result-item-label">Prevented Fraction (1 &minus; IRR)</div></div>'
+                : '<div class="result-item"><div class="result-item-value">' + (afe * 100).toFixed(1) + '%</div><div class="result-item-label">AFe</div></div>')
             + '</div>';
         html += '<div class="result-detail mt-1">';
         if (rateRatio > 1) {
             html += 'The exposed group has a ' + rateRatio.toFixed(2) + '-fold higher rate. '
                 + 'The excess rate in exposed is ' + rateDiff.toFixed(2) + ' per unit person-time.';
         } else if (rateRatio < 1) {
-            html += 'The exposed group has ' + ((1 - rateRatio) * 100).toFixed(0) + '% lower rate (protective exposure). '
+            html += 'The exposed group has ' + ((1 - rateRatio) * 100).toFixed(0) + '% lower rate (protective exposure), so the '
+                + 'prevented fraction (1 &minus; IRR) is reported instead of AFe. '
                 + 'Rate difference = ' + rateDiff.toFixed(2) + ' per unit person-time.';
         } else {
             html += 'No difference between groups.';
@@ -491,7 +495,9 @@
             + '<td>' + (isFinite(nnt) ? (rd > 0 ? 'For every ' + Math.ceil(nnt) + ' exposed, 1 additional case' : 'Treat ' + Math.ceil(nnt) + ' to prevent 1 case') : 'No difference') + '</td></tr>';
 
         html += '</tbody></table></div>';
-        html += '<div style="margin-top:12px;font-size:0.8rem;color:var(--text-tertiary);">95% CIs via Wald method (log-transformed for RR/OR). For small counts, use exact methods.</div>';
+        html += '<div style="margin-top:12px;font-size:0.8rem;color:var(--text-tertiary);">95% CIs via Wald method (log-transformed for RR/OR). For small counts, use exact methods. '
+            + '<strong>Study design caveat:</strong> RR, RD, AR%, PAF, and NNT assume cohort or cross-sectional data. For case-control data only the OR is directly estimable; '
+            + 'use the case-based PAF, p<sub>c</sub>(OR&minus;1)/OR, where p<sub>c</sub> is the exposure prevalence among cases.</div>';
 
         html += '<div class="btn-group mt-2">'
             + '<button class="btn btn-xs btn-secondary" onclick="EpiConcepts.copyAssociation()">Copy Results</button>'
@@ -753,7 +759,7 @@
 
     function calcLifeTable() {
         var ltAges = ['0-4', '5-14', '15-44', '45-64', '65-74', '75+'];
-        var widths = [5, 10, 30, 20, 10, 10]; // approx for open-ended
+        var widths = [5, 10, 30, 20, 10, null]; // last interval (75+) is open-ended
         var radix = 100000;
         var intervals = [];
 
@@ -763,11 +769,16 @@
             if (isNaN(deaths) || isNaN(pop) || pop === 0) continue;
             var mx = deaths / pop;
             var n = widths[i];
-            var ax = (i === 0) ? 0.1 * n : 0.5 * n; // ax approximation
-            var qx = (n * mx) / (1 + (n - ax) * mx);
-            if (i === intervals.length && i > 0 && intervals.length > 0 && i === 5) qx = 1; // last open interval
-            if (qx > 1) qx = 1;
-            intervals.push({ age: ltAges[i], n: n, mx: mx, qx: qx });
+            var isOpen = (i === 5); // open-ended 75+ interval: everyone dies within it
+            var qx;
+            if (isOpen) {
+                qx = 1;
+            } else {
+                var ax = (i === 0) ? 0.1 * n : 0.5 * n; // ax approximation
+                qx = (n * mx) / (1 + (n - ax) * mx);
+                if (qx > 1) qx = 1;
+            }
+            intervals.push({ age: ltAges[i], n: n, mx: mx, qx: qx, open: isOpen });
         }
 
         if (intervals.length === 0) { Export.showToast('Enter data for at least one age interval', 'error'); return; }
@@ -778,7 +789,13 @@
         for (var j = 0; j < intervals.length; j++) {
             var iv = intervals[j];
             var dx = lx * iv.qx;
-            var nLx = iv.n * (lx - dx) + (j === 0 ? 0.1 * iv.n * dx : 0.5 * iv.n * dx);
+            var nLx;
+            if (iv.open) {
+                // Chiang abridged life table: L(open) = l(x) / m(open)
+                nLx = iv.mx > 0 ? lx / iv.mx : 0;
+            } else {
+                nLx = iv.n * (lx - dx) + (j === 0 ? 0.1 * iv.n * dx : 0.5 * iv.n * dx);
+            }
             rows.push({ age: iv.age, mx: iv.mx, qx: iv.qx, lx: lx, dx: dx, nLx: nLx });
             lx = lx - dx;
         }
@@ -1033,16 +1050,18 @@
 
         // YLL Calculator
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
-        html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Years of Life Lost (YLL)</div>';
+        html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Years of Life Lost (PYLL method)</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
-            + '<strong>Formula:</strong> YLL = Number of deaths &times; Standard life expectancy at age of death</div>';
+            + '<strong>Formula:</strong> PYLL = Number of deaths &times; (Reference age &minus; average age at death). '
+            + 'GBD-style YLL instead multiplies deaths by the standard <em>remaining</em> life expectancy at the age of death '
+            + '(see the DALY/YLL tab in Epi Calculators).</div>';
 
         html += '<div class="form-row form-row--3">'
             + '<div class="form-group"><label class="form-label">Number of Deaths</label>'
             + '<input type="number" class="form-input" id="daly-yll-deaths" min="0" step="1" value="100"></div>'
             + '<div class="form-group"><label class="form-label">Average Age at Death</label>'
             + '<input type="number" class="form-input" id="daly-yll-age" min="0" step="1" value="65"></div>'
-            + '<div class="form-group"><label class="form-label">Reference Life Expectancy</label>'
+            + '<div class="form-group"><label class="form-label">Reference Age (e.g., life expectancy at birth)</label>'
             + '<input type="number" class="form-input" id="daly-yll-le" min="0" step="0.1" value="80"></div></div>';
 
         html += '<div class="btn-group mt-1"><button class="btn btn-primary btn-xs" onclick="EpiConcepts.calcYLL()">Calculate YLL</button></div>';
@@ -1052,12 +1071,13 @@
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Years Lived with Disability (YLD)</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
-            + '<strong>Formula:</strong> YLD = Number of prevalent cases &times; Disability weight &times; Average duration (years)</div>';
+            + '<strong>Formula (incidence-based):</strong> YLD = Number of incident cases &times; Disability weight &times; Average duration (years). '
+            + 'The prevalence-based alternative (GBD 2010+) is YLD = prevalent cases &times; disability weight, with <em>no</em> duration factor &mdash; duration is already embodied in prevalence.</div>';
 
         html += '<div class="form-row form-row--3">'
-            + '<div class="form-group"><label class="form-label">Prevalent Cases</label>'
+            + '<div class="form-group"><label class="form-label">Incident Cases</label>'
             + '<input type="number" class="form-input" id="daly-yld-cases" min="0" step="1" value="500"></div>'
-            + '<div class="form-group"><label class="form-label">Disability Weight (0-1) ' + App.tooltip('GBD disability weights: mild stroke = 0.019; moderate stroke = 0.070; severe stroke = 0.552; epilepsy = 0.263') + '</label>'
+            + '<div class="form-group"><label class="form-label">Disability Weight (0-1) ' + App.tooltip('GBD disability weights: mild stroke = 0.019; moderate stroke = 0.070; severe stroke = 0.552; less severe epilepsy = 0.263') + '</label>'
             + '<input type="number" class="form-input" id="daly-yld-dw" min="0" max="1" step="0.001" value="0.070"></div>'
             + '<div class="form-group"><label class="form-label">Average Duration (years)</label>'
             + '<input type="number" class="form-input" id="daly-yld-dur" min="0" step="0.1" value="10"></div></div>';
@@ -1087,8 +1107,9 @@
             + '<tr><td>Ischemic Stroke</td><td>Mild (mRS 1-2)</td><td class="num">0.019</td></tr>'
             + '<tr><td>Ischemic Stroke</td><td>Moderate (mRS 3)</td><td class="num">0.070</td></tr>'
             + '<tr><td>Ischemic Stroke</td><td>Severe (mRS 4-5)</td><td class="num">0.552</td></tr>'
-            + '<tr><td>Hemorrhagic Stroke</td><td>Moderate-Severe</td><td class="num">0.316</td></tr>'
-            + '<tr><td>Epilepsy</td><td>Controlled</td><td class="num">0.263</td></tr>'
+            + '<tr><td>Stroke (either type)</td><td>Moderate + cognitive impairment</td><td class="num">0.316</td></tr>'
+            + '<tr><td>Epilepsy</td><td>Seizure-free on treatment</td><td class="num">0.049</td></tr>'
+            + '<tr><td>Epilepsy</td><td>Less severe (occasional seizures)</td><td class="num">0.263</td></tr>'
             + '<tr><td>Dementia</td><td>Mild</td><td class="num">0.069</td></tr>'
             + '<tr><td>Dementia</td><td>Severe</td><td class="num">0.449</td></tr>'
             + '<tr><td>Major Depressive Disorder</td><td>Moderate</td><td class="num">0.396</td></tr>'
@@ -1107,10 +1128,14 @@
         if (isNaN(deaths) || isNaN(age) || isNaN(le)) return;
 
         var yll = deaths * (le - age);
-        if (yll < 0) yll = 0;
+        var note = '';
+        if (yll < 0) {
+            yll = 0;
+            note = '<div class="result-detail" style="color:var(--warning);">Average age at death exceeds the reference age, so PYLL to this reference age is 0. For deaths above the reference age, use GBD-style YLL (deaths &times; remaining life expectancy at the age of death) instead.</div>';
+        }
 
-        var html = '<div class="result-panel"><div class="result-value">' + yll.toLocaleString() + '<div class="result-label">Years of Life Lost (YLL)</div></div>'
-            + '<div class="result-detail">' + deaths + ' deaths x (' + le + ' - ' + age + ') = ' + yll.toLocaleString() + ' YLL</div></div>';
+        var html = '<div class="result-panel"><div class="result-value">' + yll.toLocaleString() + '<div class="result-label">Potential Years of Life Lost (PYLL)</div></div>'
+            + '<div class="result-detail">' + deaths + ' deaths x (' + le + ' - ' + age + ') = ' + yll.toLocaleString() + ' PYLL</div>' + note + '</div>';
         App.setTrustedHTML(document.getElementById('daly-yll-result'), html);
     }
 

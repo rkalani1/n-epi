@@ -265,7 +265,7 @@ const References = {
             }
         ],
         judgmentOptions: ['Low risk', 'Some concerns', 'High risk'],
-        algorithm: 'Overall: Low if all domains Low; High if any domain High; Some concerns otherwise'
+        algorithm: 'Overall: Low if all domains Low; High if any domain High; Some concerns otherwise. A trial with some concerns in multiple domains may also be judged High risk overall if this substantially lowers confidence in the result.'
     },
 
     // AMSTAR-2 items
@@ -288,7 +288,7 @@ const References = {
             { id: 15, text: 'If quantitative synthesis, did the authors carry out adequate investigation of publication bias?', critical: true },
             { id: 16, text: 'Did the authors report any potential sources of conflict of interest?', critical: false }
         ],
-        ratingAlgorithm: 'High: no critical weakness; Moderate: max 1 non-critical weakness; Low: 1 critical weakness; Critically Low: >1 critical weakness'
+        ratingAlgorithm: 'High: no critical flaw, no or one non-critical weakness; Moderate: no critical flaw, more than one non-critical weakness; Low: one critical flaw; Critically Low: more than one critical flaw'
     }
 };
 

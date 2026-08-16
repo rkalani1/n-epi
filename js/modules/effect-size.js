@@ -107,15 +107,16 @@
         html += '<tbody>';
         html += '<tr><td>Cohen\'s d</td><td>&lt; 0.2</td><td>0.2</td><td>0.5</td><td>0.8</td><td>&gt; 1.2</td></tr>';
         html += '<tr><td>Hedge\'s g</td><td>&lt; 0.2</td><td>0.2</td><td>0.5</td><td>0.8</td><td>&gt; 1.2</td></tr>';
-        html += '<tr><td>OR (harmful)</td><td>1.0 - 1.22</td><td>1.22 - 1.86</td><td>1.86 - 3.00</td><td>3.00 - 4.27</td><td>&gt; 4.27</td></tr>';
-        html += '<tr><td>OR (protective)</td><td>0.82 - 1.0</td><td>0.54 - 0.82</td><td>0.33 - 0.54</td><td>0.23 - 0.33</td><td>&lt; 0.23</td></tr>';
-        html += '<tr><td>RR (harmful)</td><td>1.0 - 1.1</td><td>1.1 - 1.5</td><td>1.5 - 2.0</td><td>2.0 - 3.0</td><td>&gt; 3.0</td></tr>';
-        html += '<tr><td>RR (protective)</td><td>0.9 - 1.0</td><td>0.67 - 0.9</td><td>0.5 - 0.67</td><td>0.33 - 0.5</td><td>&lt; 0.33</td></tr>';
+        html += '<tr><td>OR (harmful)</td><td>1.0 - 1.44</td><td>1.44 - 2.48</td><td>2.48 - 4.27</td><td>4.27 - 8.8</td><td>&gt; 8.8</td></tr>';
+        html += '<tr><td>OR (protective)</td><td>0.69 - 1.0</td><td>0.40 - 0.69</td><td>0.23 - 0.40</td><td>0.11 - 0.23</td><td>&lt; 0.11</td></tr>';
+        html += '<tr><td>RR (harmful)</td><td>1.0 - 1.22</td><td>1.22 - 1.86</td><td>1.86 - 3.00</td><td>&gt; 3.00</td><td>&mdash;</td></tr>';
+        html += '<tr><td>RR (protective)</td><td>0.82 - 1.0</td><td>0.54 - 0.82</td><td>0.33 - 0.54</td><td>&lt; 0.33</td><td>&mdash;</td></tr>';
         html += '<tr><td>Risk Difference</td><td>&lt; 2%</td><td>2 - 5%</td><td>5 - 10%</td><td>10 - 20%</td><td>&gt; 20%</td></tr>';
         html += '<tr><td>Correlation (r)</td><td>&lt; 0.1</td><td>0.1</td><td>0.3</td><td>0.5</td><td>&gt; 0.7</td></tr>';
         html += '<tr><td>R\u00B2 (variance explained)</td><td>&lt; 1%</td><td>1%</td><td>9%</td><td>25%</td><td>&gt; 49%</td></tr>';
         html += '<tr><td>NNT</td><td>&gt; 100</td><td>25 - 100</td><td>10 - 25</td><td>5 - 10</td><td>&lt; 5</td></tr>';
         html += '</tbody></table></div>';
+        html += '<div class="card-subtitle" style="font-size:0.8rem;color:var(--text-secondary)">OR bands correspond to Cohen\'s d of 0.2 / 0.5 / 0.8 / 1.2 via ln(OR) = 1.81 &times; d (Chinn 2000), matching the converter. RR bands (1.22 / 1.86 / 3.00) are the risk-ratio benchmarks used in the converter tab; RR benchmarks are conventionally reported as small/medium/large only.</div>';
 
         html += '<div class="card-title mt-3">Domain-Specific Benchmarks</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table">';
@@ -152,7 +153,8 @@
             + '<div><strong>OR \u2192 RR:</strong> RR = OR / (1 \u2212 P\u2080 + P\u2080 \u00D7 OR) [Zhang & Yu]</div>'
             + '<div><strong>RD:</strong> P\u2081 \u2212 P\u2080 (= EER \u2212 CER)</div>'
             + '<div><strong>NNT:</strong> 1 / |RD|</div>'
-            + '<div><strong>U\u2083 (overlap):</strong> 2\u03A6(-|d|/2) = proportion of overlap</div>'
+            + '<div><strong>OVL (overlap coefficient):</strong> 2\u03A6(-|d|/2) = overlapping proportion of the two distributions</div>'
+            + '<div><strong>U\u2083 (Cohen):</strong> \u03A6(d) = proportion of the treated group above the control median</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Interpretation (Cohen Benchmarks)</div>';
@@ -375,29 +377,33 @@
         var absRD = Math.abs(main.rd);
         var nntVal = absRD > 0 ? 1 / absRD : Infinity;
         var nntDisplay = nntVal === Infinity ? '\u221E' : Math.ceil(nntVal);
-        var nntType = main.rd < 0 ? 'NNH' : 'NNT';
-        if (main.rd === 0) nntType = 'NNT';
+        // rd = EER \u2212 CER (P\u2080 = baseline risk of the adverse event), so a
+        // POSITIVE rd means the exposure/treatment INCREASES risk (NNH) and a
+        // negative rd means it reduces risk (NNT/benefit).
+        var nntType = main.rd > 0 ? 'NNH' : 'NNT';
 
         var nntCIStr = '';
         if (ciLow && ciHigh) {
             var rdLo = Math.min(ciLow.rd, ciHigh.rd);
             var rdHi = Math.max(ciLow.rd, ciHigh.rd);
-            // rdLo/rdHi are absolute-risk-reduction bounds (positive = benefit).
+            // rdLo/rdHi are bounds on rd = EER \u2212 CER (positive = harm).
             // A CI that includes 0 gives a discontinuous NNT interval (Altman 1998).
             if (rdLo <= 0 && rdHi >= 0) {
                 if (rdLo < 0 && rdHi > 0) {
-                    nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to \u221E to NNTH ' + Math.ceil(1 / Math.abs(rdLo));
+                    nntCIStr = 'NNTB ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E to NNTH ' + Math.ceil(1 / rdHi);
                 } else if (rdLo < 0 && rdHi === 0) {
-                    nntCIStr = 'NNTH ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E';
+                    nntCIStr = 'NNTB ' + Math.ceil(1 / Math.abs(rdLo)) + ' to \u221E';
                 } else if (rdLo === 0 && rdHi > 0) {
-                    nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to \u221E';
+                    nntCIStr = 'NNTH ' + Math.ceil(1 / rdHi) + ' to \u221E';
                 } else {
                     nntCIStr = '\u221E';
                 }
-            } else if (rdLo > 0) {
-                nntCIStr = 'NNTB ' + Math.ceil(1 / rdHi) + ' to ' + Math.ceil(1 / rdLo);
+            } else if (rdHi < 0) {
+                // Entirely beneficial (risk reduction): ascending NNTB
+                nntCIStr = 'NNTB ' + Math.ceil(1 / Math.abs(rdLo)) + ' to ' + Math.ceil(1 / Math.abs(rdHi));
             } else {
-                nntCIStr = 'NNTH ' + Math.ceil(1 / Math.abs(rdLo)) + ' to ' + Math.ceil(1 / Math.abs(rdHi));
+                // Entirely harmful (risk increase): ascending NNTH
+                nntCIStr = 'NNTH ' + Math.ceil(1 / rdHi) + ' to ' + Math.ceil(1 / rdLo);
             }
         }
 
@@ -410,7 +416,8 @@
             + '<div class="result-item-label">Assumed Baseline Risk</div></div>';
         html += '</div>';
 
-        html += '<div class="card-subtitle" style="font-style:italic;color:var(--text-secondary);font-size:0.85rem">Note: NNT depends on the baseline risk (P\u2080). Change P\u2080 above to see how NNT varies across populations.</div>';
+        html += '<div class="card-subtitle" style="font-style:italic;color:var(--text-secondary);font-size:0.85rem">Note: NNT depends on the baseline risk (P\u2080). Change P\u2080 above to see how NNT varies across populations. '
+            + 'The event is treated as an adverse outcome: RD &lt; 0 (risk reduction, OR/RR &lt; 1) yields an NNT (benefit); RD &gt; 0 yields an NNH.</div>';
 
         // ---- Interpretive benchmarks (compact) ----
         html += '<div class="card-title mt-3">Interpretation Benchmarks</div>';
@@ -418,7 +425,7 @@
         html += '<thead><tr><th>Framework</th><th>Small</th><th>Medium</th><th>Large</th></tr></thead>';
         html += '<tbody>';
         html += '<tr><td>Cohen\'s d</td><td>0.2</td><td>0.5</td><td>0.8</td></tr>';
-        html += '<tr><td>OR</td><td>1.5 / 0.67</td><td>2.5 / 0.4</td><td>4.3 / 0.23</td></tr>';
+        html += '<tr><td>OR</td><td>1.44 / 0.69</td><td>2.48 / 0.40</td><td>4.27 / 0.23</td></tr>';
         html += '<tr><td>RR</td><td>1.22 / 0.82</td><td>1.86 / 0.54</td><td>3.00 / 0.33</td></tr>';
         html += '<tr style="background:var(--accent-muted)"><td><strong>Stroke-specific</strong></td><td>d &lt; 0.4</td><td>d 0.4-0.7</td><td>d &gt; 0.7</td></tr>';
         html += '</tbody></table></div>';

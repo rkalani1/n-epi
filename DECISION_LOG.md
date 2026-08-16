@@ -30,3 +30,8 @@
 
 ---
 *Next Task: Identifying gaps in Biobank data cleaning pipelines.*
+
+## Log Entry: 2026-08-15
+**Operation:** Accuracy audit of this log.
+
+* **Correction:** The 2026-02-07 entry above records `js/modules/nihss-calculator.js` as implemented and approved, but no such module exists in the repository — it was never landed (not present in `js/modules/`, not loaded by `index.html`, not registered in the app navigation). The entry is retained for historical record; treat its "Build APPROVED" result as void.

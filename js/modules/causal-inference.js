@@ -33,7 +33,7 @@
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Frameworks</div>';
         html += '<ul style="margin:0 0 12px 16px; font-size:0.9rem; line-height:1.7;">'
-            + '<li><strong>Bradford Hill criteria (1965):</strong> Nine viewpoints for assessing causation (strength, consistency, specificity, temporality, biological gradient, plausibility, coherence, experiment, analogy). These support arguments for association, not definitive proof of causation.</li>'
+            + '<li><strong>Bradford Hill criteria (1965):</strong> Nine viewpoints for judging whether an observed association is causal (strength, consistency, specificity, temporality, biological gradient, plausibility, coherence, experiment, analogy). They support a judgment of causation; they are not a checklist and do not provide definitive proof.</li>'
             + '<li><strong>Counterfactual / potential outcomes (Rubin):</strong> Defines causal effects as the contrast between what happened and what would have happened under an alternative treatment. Individual causal effects are unobservable; we estimate average effects.</li>'
             + '<li><strong>Directed Acyclic Graphs (Pearl, Greenland):</strong> Graphical tools to encode causal assumptions, identify confounders, mediators, and colliders, and determine the correct adjustment set for estimating causal effects.</li>'
             + '<li><strong>Structural Causal Models (Pearl):</strong> Formal mathematical framework that uses structural equations and DAGs together to define causal quantities (interventional and counterfactual) and derive identification results.</li>'
@@ -61,7 +61,7 @@
         html += '<div class="card-subtitle" style="font-weight:600;">Causal Identification Strategies</div>';
         html += '<ul style="margin:0 0 12px 16px; font-size:0.9rem; line-height:1.7;">'
             + '<li><strong>Backdoor criterion (Pearl):</strong> A set Z satisfies the backdoor criterion if (i) no node in Z is a descendant of treatment, and (ii) Z blocks every path between treatment and outcome that contains an arrow into treatment.</li>'
-            + '<li><strong>Frontdoor criterion:</strong> When confounders are unmeasured but a mediator M fully mediates the effect of X on Y, and M is not directly confounded with Y given X.</li>'
+            + '<li><strong>Frontdoor criterion (Pearl):</strong> A mediator set M identifies the effect of X on Y when (i) M intercepts all directed paths from X to Y, (ii) there is no unblocked backdoor path from X to M, and (iii) all backdoor paths from M to Y are blocked by X.</li>'
             + '<li><strong>Instrumental variable identification:</strong> Exploits an exogenous source of variation that affects treatment but has no direct effect on the outcome.</li>'
             + '</ul>';
 
@@ -258,21 +258,16 @@
         var assessed = 9 - notAssessed;
         var met = strong + moderate;
 
+        // Qualitative profile only: Hill's viewpoints are not a checklist, and
+        // counting criteria cannot establish causation (Rothman & Greenland 2005)
         var overallText = '';
         if (assessed === 0) {
             overallText = 'No criteria have been assessed yet.';
-        } else if (strong >= 6) {
-            overallText = 'Strong support for a causal relationship between ' + exposure + ' and ' + outcome + '. '
-                + 'Multiple Bradford Hill criteria are rated as strong.';
-        } else if (met >= 5) {
-            overallText = 'Moderate-to-strong support for a causal relationship between ' + exposure + ' and ' + outcome + '. '
-                + 'A majority of assessed criteria are met at strong or moderate levels.';
-        } else if (met >= 3) {
-            overallText = 'Moderate support for a causal relationship between ' + exposure + ' and ' + outcome + '. '
-                + 'Some criteria are met, but gaps remain.';
         } else {
-            overallText = 'Limited support for a causal relationship between ' + exposure + ' and ' + outcome + '. '
-                + 'Few Bradford Hill criteria are met at a strong or moderate level.';
+            overallText = 'Profile for ' + exposure + ' and ' + outcome + ': '
+                + strong + ' viewpoint(s) rated strong, ' + moderate + ' moderate, '
+                + (assessed - met) + ' weak/absent (' + notAssessed + ' not assessed). '
+                + 'Interpret this as a qualitative profile — the number of criteria met does not itself establish or refute causation; weigh each viewpoint in context.';
         }
 
         // Check temporality specifically
@@ -368,6 +363,7 @@
             + '<option value="mediator">Mediator (M)</option>'
             + '<option value="collider">Collider (S)</option>'
             + '<option value="unmeasured">Unmeasured Confounder</option>'
+            + '<option value="instrument">Instrument (Z)</option>'
             + '</select></div>';
         html += '<div class="form-group" style="display:flex;align-items:flex-end;">'
             + '<button class="btn btn-primary w-100" onclick="CausalInference.addNode()">Add Node</button></div>';
@@ -437,7 +433,8 @@
             confounder: { x: 350, y: 60 },
             mediator: { x: 350, y: 200 },
             collider: { x: 350, y: 340 },
-            unmeasured: { x: 350, y: 130 }
+            unmeasured: { x: 350, y: 130 },
+            instrument: { x: 100, y: 60 }
         };
         var basePos = positions[type] || { x: 350, y: 200 };
         var count = dagNodes.filter(n => n.type === type).length;
@@ -495,9 +492,14 @@
 
         var exposures = dagNodes.filter(n => n.type === 'exposure').map(n => n.label);
         var outcomes = dagNodes.filter(n => n.type === 'outcome').map(n => n.label);
-        var confounders = dagNodes.filter(n => n.type === 'confounder' || n.type === 'unmeasured').map(n => n.label);
+        // Unmeasured variables cannot be conditioned on, so they are never part of
+        // an adjustment set — they need design-based remedies (IV, negative
+        // controls, sensitivity analysis) instead.
+        var confounders = dagNodes.filter(n => n.type === 'confounder').map(n => n.label);
+        var unmeasured = dagNodes.filter(n => n.type === 'unmeasured').map(n => n.label);
         var mediators = dagNodes.filter(n => n.type === 'mediator').map(n => n.label);
         var colliders = dagNodes.filter(n => n.type === 'collider').map(n => n.label);
+        var instruments = dagNodes.filter(n => n.type === 'instrument').map(n => n.label);
 
         var html = '<div class="result-panel animate-in mt-1">';
         html += '<div class="card-title">Causal Structure Analysis</div>';
@@ -510,8 +512,12 @@
 
         // Adjustment set
         html += '<div>';
-        html += '<div style="font-weight:600;color:var(--success);">Adjust For (Confounders):</div>';
-        html += '<ul>' + (confounders.length ? confounders.map(c => '<li>' + c + '</li>').join('') : '<li>No confounders identified</li>') + '</ul>';
+        html += '<div style="font-weight:600;color:var(--success);">Adjust For (Measured Confounders):</div>';
+        html += '<ul>' + (confounders.length ? confounders.map(c => '<li>' + c + '</li>').join('') : '<li>No measured confounders identified</li>') + '</ul>';
+        if (unmeasured.length) {
+            html += '<div style="font-weight:600;color:var(--warning);">Unmeasured (cannot be adjusted for):</div>';
+            html += '<ul>' + unmeasured.map(c => '<li>' + c + '</li>').join('') + '</ul>';
+        }
         html += '</div>';
 
         // Forbidden set
@@ -526,13 +532,15 @@
 
         html += '</div>';
 
-        // AI Insight
+        // Insight
         var insight = '';
-        if (colliders.length > 0) insight = '<strong>Warning:</strong> Collider bias detected. Adjusting for ' + colliders[0] + ' will open a non-causal path between exposure and outcome.';
-        else if (confounders.length > 0) insight = 'To estimate the total effect, you should perform multivariable adjustment or use propensity score methods for ' + confounders.join(', ') + '.';
+        if (colliders.length > 0) insight = '<strong>Warning:</strong> Collider bias risk. Adjusting for ' + colliders[0] + ' will open a non-causal path between exposure and outcome.';
+        else if (confounders.length > 0) insight = 'To estimate the total effect, adjust for the measured confounders (' + confounders.join(', ') + ') via multivariable regression or propensity score methods.';
         else if (mediators.length > 0) insight = 'Adjusting for ' + mediators[0] + ' will allow you to estimate the Direct Effect, but will bias the Total Effect estimate.';
+        if (unmeasured.length > 0) insight += (insight ? '<br>' : '') + '<strong>Unmeasured variable(s) present (' + unmeasured.join(', ') + '):</strong> adjustment cannot address these. If one confounds the exposure-outcome relationship, consider instrumental variables, negative controls, or quantitative bias/E-value sensitivity analysis.';
+        if (instruments.length > 0) insight += (insight ? '<br>' : '') + '<strong>Instrument (' + instruments.join(', ') + '):</strong> use IV estimation (e.g., two-stage least squares). Validity requires relevance, independence from unmeasured confounders, and the exclusion restriction (no direct path to the outcome); do not adjust for the instrument in a conventional regression.';
 
-        if (insight) html += '<div class="result-detail mt-1" style="border-top:1px solid var(--border);padding-top:0.5rem;">' + insight + '</div>';
+        html += '<div class="result-detail mt-1" style="border-top:1px solid var(--border);padding-top:0.5rem;font-size:0.8rem;color:var(--text-tertiary);">Roles are taken from the node types you assigned; this panel does not derive them from the drawn edges. Verify against the graph (e.g., in an M-bias structure the correct adjustment set is empty).' + (insight ? '<div style="color:var(--text-secondary);margin-top:0.4rem;">' + insight + '</div>' : '') + '</div>';
 
         html += '</div>';
         App.setTrustedHTML(infoEl, html);
@@ -597,8 +605,8 @@
             nodeIdCounter = 3;
         } else if (type === 'iv') {
             dagNodes = [
-                { id: 'n1', label: 'Instrument', type: 'exposure', x: 100, y: 200 },
-                { id: 'n2', label: 'Exposure', type: 'mediator', x: 300, y: 200 },
+                { id: 'n1', label: 'Instrument', type: 'instrument', x: 100, y: 200 },
+                { id: 'n2', label: 'Exposure', type: 'exposure', x: 300, y: 200 },
                 { id: 'n3', label: 'Outcome', type: 'outcome', x: 600, y: 200 },
                 { id: 'n4', label: 'Unmeasured C', type: 'unmeasured', x: 450, y: 60 }
             ];

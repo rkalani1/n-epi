@@ -263,7 +263,9 @@
                 }
 
                 // Ovarian/Uterine checks (only for males)
-                const gynCols = Object.keys(row).filter(k => k.includes('ovarian') || k.includes('uterine') || k.includes('cervical'));
+                // 'cervical' alone is ambiguous in neuro data (cervical artery/spine);
+                // match cervix/cervical-cancer style names only
+                const gynCols = Object.keys(row).filter(k => k.includes('ovarian') || k.includes('uterine') || k.includes('cervix') || k.includes('cervical_cancer') || k.includes('cervical_screen'));
                 if (isMale && gynCols.length > 0) {
                     gynCols.forEach(col => {
                         if (hasConditionData(row[col])) {
@@ -281,7 +283,7 @@
                     if (val < 30) {
                         issues.push(`Line ${lineNum}: [Unit] SBP (${val}) is extremely low. Likely kPa? (30 kPa \u2248 225 mmHg).`);
                     } else if (val >= 30 && val < 60) {
-                        issues.push(`Line ${lineNum}: [Unit] SBP (${val}) is suspicious. Possible kPa?`);
+                        issues.push(`Line ${lineNum}: [Range] SBP (${val}) is implausibly low for mmHg - check for data-entry error or severe hypotension.`);
                     }
                 }
             }
@@ -292,7 +294,7 @@
                     if (val < 20) {
                         issues.push(`Line ${lineNum}: [Unit] DBP (${val}) is extremely low. Likely kPa? (15 kPa \u2248 112 mmHg).`);
                     } else if (val >= 20 && val < 40) {
-                        issues.push(`Line ${lineNum}: [Unit] DBP (${val}) is suspicious. Possible kPa?`);
+                        issues.push(`Line ${lineNum}: [Range] DBP (${val}) is implausibly low for mmHg - check for data-entry error or severe hypotension.`);
                     }
                 }
             }

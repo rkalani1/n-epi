@@ -264,7 +264,7 @@
 
     var JADAD_ITEMS = [
         { id: 'jadad-1', text: 'Was the study described as randomised?', points: 1, category: 'Randomization' },
-        { id: 'jadad-2', text: 'Was the method of randomisation appropriate (e.g., random number table, computer-generated)?', points: 1, bonus: true, category: 'Randomization', deductText: 'Deduct 1 point if the method of randomisation was inappropriate (e.g., allocation by date of birth, facility number)' },
+        { id: 'jadad-2', text: 'Was the method of randomisation appropriate (e.g., random number table, computer-generated)?', points: 1, bonus: true, category: 'Randomization', deductText: 'Deduct 1 point if the method of randomisation was inappropriate (e.g., allocation by date of birth, hospital number)' },
         { id: 'jadad-3', text: 'Was the study described as double-blind?', points: 1, category: 'Blinding' },
         { id: 'jadad-4', text: 'Was the method of blinding appropriate (e.g., identical placebo, active placebo)?', points: 1, bonus: true, category: 'Blinding', deductText: 'Deduct 1 point if the method of blinding was inappropriate (e.g., comparison of tablet vs injection with no double dummy)' },
         { id: 'jadad-5', text: 'Was there a description of withdrawals and dropouts?', points: 1, category: 'Withdrawals' }
@@ -410,7 +410,7 @@
                             id: 'nos-cc-s3',
                             options: [
                                 { text: 'Community controls', star: true },
-                                { text: 'Facility controls', star: false },
+                                { text: 'Hospital controls', star: false },
                                 { text: 'No description', star: false }
                             ]
                         },
@@ -653,7 +653,7 @@
         html += '<div class="card-subtitle" style="font-weight:600;">CASP Checklists</div>';
         html += '<ul style="margin:0 0 12px 16px;">'
             + '<li>CASP provides study-type-specific checklists with Yes / No / Can\'t Tell responses</li>'
-            + '<li>First 2 questions are "screening" questions -- if both "No", consider stopping appraisal</li>'
+            + '<li>First 2 questions are "screening" questions -- proceed only if both are "Yes"; if either is "No", consider whether further appraisal is worthwhile</li>'
             + '<li>Sections cover: validity, results, and applicability</li>'
             + '<li>Widely used in journal clubs, systematic reviews, and evidence-based practice</li>'
             + '</ul>';
@@ -672,7 +672,7 @@
             + '<li>Stars awarded across Selection, Comparability, and Outcome/Exposure sections</li>'
             + '<li>Cohort studies: Selection (4 stars), Comparability (2), Outcome (3) = max 9</li>'
             + '<li>Case-control studies: Selection (4 stars), Comparability (2), Exposure (3) = max 9</li>'
-            + '<li>Thresholds: >= 7 good quality, 5-6 fair quality, < 5 poor quality</li>'
+            + '<li>Common total-star heuristic (not part of the NOS itself): >= 7 good, 5-6 fair, < 5 poor. The AHRQ good/fair/poor standard is domain-based (e.g., "good" requires adequate stars in every domain), not a simple total</li>'
             + '</ul>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">GRADE Domains</div>';
@@ -699,7 +699,7 @@
             + '<li>Moola S, et al. JBI Manual for Evidence Synthesis. 2020.</li>'
             + '<li>CASP (Critical Appraisal Skills Programme). CASP Checklists. <a href="https://casp-uk.net/casp-tools-checklists/" target="_blank" style="color:var(--primary)">casp-uk.net</a>.</li>'
             + '<li>Jadad AR, et al. Assessing the quality of reports of randomized clinical trials. <em>Control Clin Trials</em>. 1996;17(1):1-12.</li>'
-            + '<li>Wells GA, et al. The Newcastle-Ottawa Scale for assessing the quality of nonrandomised studies in meta-analyses. Ottawa Facility Research Institute. 2000.</li>'
+            + '<li>Wells GA, et al. The Newcastle-Ottawa Scale for assessing the quality of nonrandomised studies in meta-analyses. Ottawa Hospital Research Institute. 2000.</li>'
             + '</ul>';
         html += '</div></div>';
 
@@ -763,13 +763,38 @@
 
             var dot = document.getElementById('ca-robins-dot-' + domain.id);
             if (answers.length === domain.questions.length) {
-                var hasNo = answers.some(function(a) { return a === 'No'; });
-                var hasProbNo = answers.some(function(a) { return a === 'Probably No'; });
-                var hasNI = answers.some(function(a) { return a === 'No Information'; });
+                // Directionality per the published ROBINS-I signalling questions:
+                // 'yes' = a Yes answer indicates possible bias; 'no' = a No answer does.
+                // Softened questions suggest at most Moderate (e.g., potential for
+                // confounding is expected in nearly every non-randomized study).
+                var DIRS = {
+                    'RI-D1': { dir: ['yes', 'yes', 'yes', 'no', 'no', 'yes'], soft: [0, 1] },
+                    'RI-D2': { dir: ['yes', 'no', 'no'], soft: [2] },
+                    'RI-D3': { dir: ['no', 'no', 'yes'], soft: [] },
+                    'RI-D4': { dir: ['yes', 'no', 'no', 'no'], soft: [] },
+                    'RI-D5': { dir: ['no', 'yes', 'yes', 'no', 'no'], soft: [3, 4] },
+                    'RI-D6': { dir: ['yes', 'yes', 'no', 'yes'], soft: [1] },
+                    'RI-D7': { dir: ['yes', 'yes', 'yes'], soft: [] }
+                };
+                var conf = DIRS[domain.id];
+                var strongBias = false, probBias = false, hasNI = false;
+                answers.forEach(function(a, qi) {
+                    if (a === 'No Information') { hasNI = true; return; }
+                    var d = conf.dir[qi];
+                    var exact = (d === 'yes' && a === 'Yes') || (d === 'no' && a === 'No');
+                    var prob = (d === 'yes' && a === 'Probably Yes') || (d === 'no' && a === 'Probably No');
+                    if (!exact && !prob) return;
+                    if (exact && conf.soft.indexOf(qi) === -1) strongBias = true;
+                    else probBias = true;
+                });
+                // Nearly-complete outcome data makes the missing-data domain low-risk
+                if (domain.id === 'RI-D5' && (answers[0] === 'Yes' || answers[0] === 'Probably Yes')) {
+                    strongBias = false; probBias = false;
+                }
 
                 var suggested = 'Low';
-                if (hasNo) suggested = 'Serious';
-                else if (hasProbNo) suggested = 'Moderate';
+                if (strongBias) suggested = 'Serious';
+                else if (probBias) suggested = 'Moderate';
                 else if (hasNI) suggested = 'No Information';
 
                 // Auto-set the domain judgment dropdown
@@ -927,11 +952,13 @@
 
         if (answered < checklist.items.length) return;
 
+        // Note: JBI leaves inclusion thresholds to the reviewers' a-priori
+        // decision; these percentage cutoffs are an unofficial heuristic.
         var pct = totalApplicable > 0 ? (yesCount / totalApplicable * 100) : 0;
         var rating, color;
-        if (pct >= 70) { rating = 'Include (High Quality)'; color = 'var(--success)'; }
-        else if (pct >= 50) { rating = 'Include with Caution (Moderate Quality)'; color = 'var(--warning)'; }
-        else { rating = 'Exclude or Low Quality'; color = 'var(--danger)'; }
+        if (pct >= 70) { rating = 'Consider Include (unofficial heuristic: >=70% yes)'; color = 'var(--success)'; }
+        else if (pct >= 50) { rating = 'Consider Include with Caution (unofficial heuristic: 50-69% yes)'; color = 'var(--warning)'; }
+        else { rating = 'Consider Exclude (unofficial heuristic: <50% yes)'; color = 'var(--danger)'; }
 
         var resultEl = document.getElementById('ca-jbi-result');
         var html = '<div class="result-panel animate-in">';
@@ -1101,6 +1128,7 @@
         var resultEl = document.getElementById('ca-casp-result');
         var html = '<div class="result-panel animate-in">';
         html += '<div class="result-value" style="color:' + color + '">' + rating + '</div>';
+        html += '<div style="font-size:0.75rem;color:var(--text-tertiary);margin-top:2px;">Unofficial summary rating &mdash; CASP itself does not define a scoring system; use the itemized answers to inform judgement.</div>';
         html += '<div class="result-label">CASP Quality Assessment</div>';
         html += '<div class="result-detail mt-1">' + explanation + '</div>';
 
@@ -1599,7 +1627,11 @@
             html += '<div class="checklist-question" style="padding:10px 0;border-bottom:1px solid var(--border)">';
             html += '<div class="checklist-question-text"><strong>' + factor.name + ':</strong> ' + factor.desc + '</div>';
             html += '<div class="radio-group">';
-            ['Not present (0)', 'Present (+1)', 'Strongly present (+2)'].forEach(function(opt) {
+            // Only a very large effect (RR >5 or <0.2) justifies a 2-level upgrade in GRADE
+            var profOpts = factor.id === 'large'
+                ? ['Not present (0)', 'Present (+1)', 'Strongly present (+2)']
+                : ['Not present (0)', 'Present (+1)'];
+            profOpts.forEach(function(opt) {
                 html += '<label class="radio-pill"><input type="radio" name="ca-gradep-up-' + factor.id + '" value="' + opt + '" onchange="CritAppraisal.updateGRADEProfile()">' + opt + '</label>';
             });
             html += '</div></div>';
@@ -1838,7 +1870,12 @@
                 + (item.critical ? '<span class="risk-badge risk-badge--high" style="font-size:0.6rem;margin-right:4px">CRITICAL</span>' : '<span class="risk-badge risk-badge--low" style="font-size:0.6rem;margin-right:4px">NON-CRITICAL</span>')
                 + item.id + '. ' + item.text + '</div>';
             html += '<div class="radio-group">';
-            ['Yes', 'Partial Yes', 'No'].forEach(function(opt) {
+            // Items 11, 12, and 15 include a "No meta-analysis conducted" response
+            // in the published instrument (it is not counted as a weakness)
+            var amstarOpts = ([11, 12, 15].indexOf(item.id) !== -1)
+                ? ['Yes', 'Partial Yes', 'No', 'No meta-analysis']
+                : ['Yes', 'Partial Yes', 'No'];
+            amstarOpts.forEach(function(opt) {
                 html += '<label class="radio-pill"><input type="radio" name="ca-amstar-' + item.id + '" value="' + opt + '" onchange="CritAppraisal.updateAMSTAR()">' + opt + '</label>';
             });
             html += '</div></div>';
@@ -1862,7 +1899,7 @@
             { name: 'Patient Selection', questions: ['Was a consecutive or random sample of patients enrolled?', 'Was a case-control design avoided?', 'Did the study avoid inappropriate exclusions?'] },
             { name: 'Index Test', questions: ['Were the index test results interpreted without knowledge of the reference standard?', 'Was a pre-specified threshold used?'] },
             { name: 'Reference Standard', questions: ['Is the reference standard likely to correctly classify the target condition?', 'Were the reference standard results interpreted without knowledge of the index test?'] },
-            { name: 'Flow and Timing', questions: ['Was there an appropriate interval between index test and reference standard?', 'Did all patients receive the same reference standard?', 'Were all patients included in the analysis?'] }
+            { name: 'Flow and Timing', questions: ['Was there an appropriate interval between index test and reference standard?', 'Did all patients receive a reference standard?', 'Did all patients receive the same reference standard?', 'Were all patients included in the analysis?'] }
         ];
 
         var html = '';
@@ -1878,10 +1915,15 @@
                 });
                 html += '</div></div>';
             });
-            html += '<div class="flex items-center gap-1 mt-1"><span style="font-size:0.8rem">Risk of Bias:</span><span class="risk-badge" id="ca-quadas-' + di + '">--</span>'
-                + '<span style="font-size:0.8rem;margin-left:12px">Applicability Concern:</span>'
-                + '<select class="form-select" id="ca-quadas-app-' + di + '" style="width:120px;height:28px;font-size:0.75rem">'
-                + '<option>Low</option><option>High</option><option>Unclear</option></select></div>';
+            html += '<div class="flex items-center gap-1 mt-1"><span style="font-size:0.8rem">Risk of Bias:</span><span class="risk-badge" id="ca-quadas-' + di + '">--</span>';
+            // QUADAS-2 assesses applicability for the first three domains only
+            // (Flow and Timing has no applicability rating)
+            if (di < 3) {
+                html += '<span style="font-size:0.8rem;margin-left:12px">Applicability Concern:</span>'
+                    + '<select class="form-select" id="ca-quadas-app-' + di + '" style="width:120px;height:28px;font-size:0.75rem">'
+                    + '<option>Low</option><option>High</option><option>Unclear</option></select>';
+            }
+            html += '</div>';
             html += '</div>';
         });
 
@@ -1914,7 +1956,10 @@
         References.grade.rateUp.forEach(function(domain, i) {
             html += '<div class="checklist-question"><div class="checklist-question-text">' + domain.domain + ': ' + domain.description + '</div>';
             html += '<div class="radio-group">';
-            ['No', 'Yes (+1)', 'Strong (+2)'].forEach(function(opt) {
+            // GRADE reserves 2-level upgrades for very large effects (RR >5 or <0.2);
+            // dose-response and opposing-confounding are 1-level factors
+            var upOpts = domain.domain === 'Large Effect' ? ['No', 'Yes (+1)', 'Very large (RR >5 or <0.2) (+2)'] : ['No', 'Yes (+1)'];
+            upOpts.forEach(function(opt) {
                 html += '<label class="radio-pill"><input type="radio" name="ca-grade-up-' + i + '" value="' + opt + '" onchange="CritAppraisal.updateGRADE()">' + opt + '</label>';
             });
             html += '</div></div>';
@@ -2336,7 +2381,7 @@
         var domains = References.rob2.domains;
         var nStudies = robStudies.length;
 
-        // Count per domain
+        // Count per domain (unassessed judgments must not be counted as High risk)
         var counts = [];
         for (var di = 0; di < domains.length; di++) {
             var low = 0, some = 0, high = 0;
@@ -2344,7 +2389,7 @@
                 var j = robStudies[si].domains[domains[di].id] || 'Not assessed';
                 if (j === 'Low risk' || j === 'Low') low++;
                 else if (j === 'Some concerns') some++;
-                else high++;
+                else if (j === 'High risk' || j === 'High') high++;
             }
             counts.push({ low: low, some: some, high: high });
         }
@@ -2470,6 +2515,42 @@
        UPDATE FUNCTIONS (original, preserved with enhancements)
        ================================================================ */
 
+    // Suggested RoB 2 domain judgment following the published signalling-question
+    // directionality (Sterne et al., BMJ 2019): for some questions "Yes" indicates
+    // possible bias, for others "No" does. Approximates the published domain
+    // algorithms for this tool's reduced question sets; the badge is a suggestion.
+    function rob2DomainJudgment(id, a) {
+        function Y(i) { return a[i] === 'Yes' || a[i] === 'Probably Yes'; }
+        function N(i) { return a[i] === 'No' || a[i] === 'Probably No'; }
+        function NI(i) { return a[i] === 'No Information'; }
+        switch (id) {
+            case 'D1': // q0 random sequence; q1 concealment; q2 baseline differences suggest problem
+                if (N(1)) return 'High risk';
+                if (N(0) && Y(2)) return 'High risk';
+                if (N(0) || Y(2) || NI(0) || NI(1) || NI(2)) return 'Some concerns';
+                return 'Low risk';
+            case 'D2': // q0/q1 awareness; q2 deviations arose; q3 deviations affected outcome; q4 appropriate analysis
+                if (Y(2) && Y(3)) return 'High risk';
+                if (N(4)) return Y(3) ? 'High risk' : 'Some concerns';
+                if ((Y(2) && NI(3)) || NI(2) || NI(4)) return 'Some concerns';
+                return 'Low risk';
+            case 'D3': // q0 nearly-complete data; q1 evidence result not biased; q2 missingness could depend on true value
+                if (Y(0)) return 'Low risk';
+                if (Y(1)) return 'Low risk';
+                if (Y(2)) return 'High risk';
+                return 'Some concerns';
+            case 'D4': // q0 inappropriate method; q1 measurement differed between groups; q2 assessors aware
+                if (Y(0) || Y(1)) return 'High risk';
+                if (Y(2) || NI(0) || NI(1) || NI(2)) return 'Some concerns';
+                return 'Low risk';
+            case 'D5': // q0 pre-specified plan followed; q1 result selected from multiple analyses
+                if (Y(1)) return 'High risk';
+                if (N(0) || NI(0) || NI(1)) return 'Some concerns';
+                return 'Low risk';
+        }
+        return 'Some concerns';
+    }
+
     function updateRoB() {
         var domainJudgments = {};
         References.rob2.domains.forEach(function(domain) {
@@ -2483,19 +2564,9 @@
             var judgment = 'Not assessed';
             var badgeClass = '';
             if (answers.length === domain.questions.length) {
-                var hasNo = answers.some(function(a) { return a === 'No' || a === 'Probably No'; });
-                var hasNI = answers.some(function(a) { return a === 'No Information'; });
-
-                if (!hasNo && !hasNI) {
-                    judgment = 'Low risk';
-                    badgeClass = 'risk-badge--low';
-                } else if (hasNo) {
-                    judgment = 'High risk';
-                    badgeClass = 'risk-badge--high';
-                } else {
-                    judgment = 'Some concerns';
-                    badgeClass = 'risk-badge--some';
-                }
+                judgment = rob2DomainJudgment(domain.id, answers);
+                badgeClass = judgment === 'Low risk' ? 'risk-badge--low'
+                    : judgment === 'High risk' ? 'risk-badge--high' : 'risk-badge--some';
             }
 
             domainJudgments[domain.id] = judgment;
@@ -2520,10 +2591,15 @@
         var values = Object.values(domainJudgments);
         var overall = 'Not assessed';
         if (values.every(function(v) { return v !== 'Not assessed'; })) {
+            var someCount = values.filter(function(v) { return v === 'Some concerns'; }).length;
             if (values.some(function(v) { return v === 'High risk'; })) {
                 overall = 'High risk of bias';
             } else if (values.every(function(v) { return v === 'Low risk'; })) {
                 overall = 'Low risk of bias';
+            } else if (someCount >= 3) {
+                // Published overall rule: some concerns for multiple domains can
+                // substantially lower confidence and justify an overall High rating
+                overall = 'Some concerns (multiple domains — consider rating overall High risk)';
             } else {
                 overall = 'Some concerns';
             }
@@ -2583,21 +2659,24 @@
             }
         });
 
+        // Shea et al., BMJ 2017: High = no critical flaw, no or one non-critical
+        // weakness; Moderate = no critical flaw, >1 non-critical weakness;
+        // Low = one critical flaw; Critically Low = more than one critical flaw.
         var rating = 'Not Assessed';
         var color = 'var(--text-secondary)';
         var detail = '';
-        if (criticalWeaknesses === 0 && nonCriticalWeaknesses === 0) {
+        if (criticalWeaknesses === 0 && nonCriticalWeaknesses <= 1) {
             rating = 'High'; color = 'var(--success)';
-            detail = 'No critical or non-critical weaknesses.';
-        } else if (criticalWeaknesses === 0 && nonCriticalWeaknesses <= 1) {
-            rating = 'Moderate'; color = 'var(--success)';
-            detail = nonCriticalWeaknesses + ' non-critical weakness(es), no critical weaknesses.';
+            detail = nonCriticalWeaknesses + ' non-critical weakness(es), no critical flaws.';
+        } else if (criticalWeaknesses === 0) {
+            rating = 'Moderate'; color = 'var(--warning)';
+            detail = nonCriticalWeaknesses + ' non-critical weaknesses, no critical flaws.';
         } else if (criticalWeaknesses === 1) {
             rating = 'Low'; color = 'var(--warning)';
-            detail = '1 critical weakness. ' + nonCriticalWeaknesses + ' non-critical weakness(es).';
-        } else if (criticalWeaknesses > 1) {
+            detail = '1 critical flaw. ' + nonCriticalWeaknesses + ' non-critical weakness(es).';
+        } else {
             rating = 'Critically Low'; color = 'var(--danger)';
-            detail = criticalWeaknesses + ' critical weaknesses. ' + nonCriticalWeaknesses + ' non-critical weakness(es).';
+            detail = criticalWeaknesses + ' critical flaws. ' + nonCriticalWeaknesses + ' non-critical weakness(es).';
         }
 
         var el = document.getElementById('ca-amstar-rating');
