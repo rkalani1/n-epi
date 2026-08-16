@@ -343,8 +343,8 @@
         if (da.specificity.value >= 0.95) {
             html += '<div style="margin-bottom:8px;"><strong style="color:var(--success);">SpPIn (Specificity ' + (da.specificity.value * 100).toFixed(0) + '%):</strong> '
                 + 'A highly specific test — when positive, it effectively rules IN disease. '
-                + 'A positive result has a high +LR of ' + da.plr.toFixed(1) + ', meaning disease is '
-                + da.plr.toFixed(1) + 'x more likely in those who test positive.</div>';
+                + 'A positive result has a high +LR of ' + da.plr.toFixed(1) + ', multiplying the pre-test odds of disease by '
+                + da.plr.toFixed(1) + ' (a positive result is ' + da.plr.toFixed(1) + 'x as likely in patients with disease as in those without).</div>';
         } else if (da.specificity.value >= 0.90) {
             html += '<div style="margin-bottom:8px;"><strong>SpPIn (Specificity ' + (da.specificity.value * 100).toFixed(0) + '%):</strong> '
                 + 'Moderately specific test. A positive result increases disease probability (+LR = ' + da.plr.toFixed(1) + ') '
@@ -551,19 +551,34 @@
         var botY = height - 40;
         var scaleH = botY - topY;
 
-        function probToY(p) {
+        // Calibrated so that the three axes have the true Fagan alignment
+        // property: since logit(post) = logit(pre) + ln(LR), an INVERTED
+        // pre-test axis (t = (7 - L)/14), a post-test axis (t = (L + 7)/14),
+        // and an LR axis at half compression (t = (ln LR + 14)/28) make the
+        // pre-test, LR, and post-test points exactly collinear, so the drawn
+        // line is straight, as in Fagan's original nomogram.
+        function logitOf(p) {
             if (p <= 0.001) p = 0.001;
             if (p >= 0.999) p = 0.999;
-            var logOdds = Math.log(p / (1 - p));
-            var t = (logOdds + 6) / 12;
+            return Math.log(p / (1 - p));
+        }
+
+        // Right axis: post-test probability, ascending upward.
+        function probToY(p) {
+            var t = (logitOf(p) + 7) / 14;
+            return botY - t * scaleH;
+        }
+
+        // Left axis: pre-test probability, inverted (ascending downward).
+        function probToYLeft(p) {
+            var t = (7 - logitOf(p)) / 14;
             return botY - t * scaleH;
         }
 
         function lrToY(lr) {
             if (lr <= 0.001) lr = 0.001;
             if (lr > 1000) lr = 1000;
-            var logLR = Math.log10(lr);
-            var t = (logLR + 3) / 6;
+            var t = (Math.log(lr) + 14) / 28;
             return botY - t * scaleH;
         }
 
@@ -581,11 +596,12 @@
         var probLabels = ['0.1', '0.2', '0.5', '1', '2', '5', '10', '20', '30', '40', '50', '60', '70', '80', '90', '95', '99'];
 
         probTicks.forEach(function(p, i) {
-            var y = probToY(p);
-            ctx.beginPath(); ctx.moveTo(leftX - 4, y); ctx.lineTo(leftX, y); ctx.stroke();
-            ctx.textAlign = 'right'; ctx.fillText(probLabels[i], leftX - 7, y + 3);
-            ctx.beginPath(); ctx.moveTo(rightX, y); ctx.lineTo(rightX + 4, y); ctx.stroke();
-            ctx.textAlign = 'left'; ctx.fillText(probLabels[i], rightX + 7, y + 3);
+            var yLeft = probToYLeft(p);   // inverted pre-test axis
+            var yRight = probToY(p);
+            ctx.beginPath(); ctx.moveTo(leftX - 4, yLeft); ctx.lineTo(leftX, yLeft); ctx.stroke();
+            ctx.textAlign = 'right'; ctx.fillText(probLabels[i], leftX - 7, yLeft + 3);
+            ctx.beginPath(); ctx.moveTo(rightX, yRight); ctx.lineTo(rightX + 4, yRight); ctx.stroke();
+            ctx.textAlign = 'left'; ctx.fillText(probLabels[i], rightX + 7, yRight + 3);
         });
 
         var lrTicks = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 1000];
@@ -603,7 +619,7 @@
         ctx.fillText('Likelihood', midX, topY - 15); ctx.fillText('Ratio', midX, topY - 4);
         ctx.fillText('Post-test', rightX, topY - 15); ctx.fillText('Prob (%)', rightX, topY - 4);
 
-        var preY = probToY(fagan.preTestProb);
+        var preY = probToYLeft(fagan.preTestProb);
         var plrY = lrToY(plr);
         var postPosY = probToY(fagan.postTestProbPos);
 

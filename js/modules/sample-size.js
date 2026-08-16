@@ -118,18 +118,26 @@
      * Common alpha/power/ratio/dropout row builder
      * ============================================================ */
 
-    function commonParamsRow(prefix) {
+    // Each tab passes its own unique prefix so that every tab has its own
+    // live alpha/power/ratio/dropout controls (duplicate IDs across tabs
+    // previously made all but the first tab's controls dead).
+    function commonParamsRow(prefix, opts) {
         prefix = prefix || 'ss';
-        return '<div class="form-row form-row--4">'
+        opts = opts || {};
+        var includeRatio = opts.includeRatio !== false;
+        var html = '<div class="form-row ' + (includeRatio ? 'form-row--4' : 'form-row--3') + '">'
             + '<div class="form-group"><label class="form-label">Significance Level (\u03B1)</label>'
             + '<select class="form-select" name="' + prefix + '_alpha" id="' + prefix + '_alpha"><option value="0.05" selected>0.05 (two-sided)</option><option value="0.01">0.01</option><option value="0.10">0.10</option></select></div>'
             + '<div class="form-group"><label class="form-label">Power (1-\u03B2)</label>'
-            + '<select class="form-select" name="' + prefix + '_power" id="' + prefix + '_power"><option value="0.80" selected>80%</option><option value="0.85">85%</option><option value="0.90">90%</option><option value="0.95">95%</option></select></div>'
-            + '<div class="form-group"><label class="form-label">Allocation Ratio ' + App.tooltip('Ratio of treatment to control (1 = equal)') + '</label>'
-            + '<input type="number" class="form-input" name="' + prefix + '_ratio" id="' + prefix + '_ratio" step="0.5" min="0.5" max="4" value="1"></div>'
-            + '<div class="form-group"><label class="form-label">Dropout Rate (%)</label>'
+            + '<select class="form-select" name="' + prefix + '_power" id="' + prefix + '_power"><option value="0.80" selected>80%</option><option value="0.85">85%</option><option value="0.90">90%</option><option value="0.95">95%</option></select></div>';
+        if (includeRatio) {
+            html += '<div class="form-group"><label class="form-label">Allocation Ratio ' + App.tooltip('Ratio of treatment to control (1 = equal)') + '</label>'
+                + '<input type="number" class="form-input" name="' + prefix + '_ratio" id="' + prefix + '_ratio" step="0.5" min="0.5" max="4" value="1"></div>';
+        }
+        html += '<div class="form-group"><label class="form-label">Dropout Rate (%)</label>'
             + '<input type="number" class="form-input" name="' + prefix + '_dropout" id="' + prefix + '_dropout" step="1" min="0" max="50" value="10"></div>'
             + '</div>';
+        return html;
     }
 
     /* ============================================================
@@ -192,7 +200,7 @@
             + '<input type="number" class="form-input" name="ss_sd2" id="ss_sd2" step="0.1" min="0.1" value="8"></div>'
             + '</div>';
 
-        html += commonParamsRow('ss');
+        html += commonParamsRow('ssm');
 
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="SampleSizeModule.calculateMeans()">Calculate</button></div>';
         html += '<div id="ss-means-results"></div>';
@@ -222,7 +230,7 @@
             + '<input type="number" class="form-input" name="ss_followup" id="ss_followup" step="1" value="12"></div>'
             + '</div>';
 
-        html += commonParamsRow('ss');
+        html += commonParamsRow('sssurv');
 
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="SampleSizeModule.calculateSurvival()">Calculate</button></div>';
         html += '<div id="ss-survival-results"></div>';
@@ -260,7 +268,8 @@
             + '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:8px">ESCAPE: OR 2.6 | DAWN: OR 2.0 | MR CLEAN: OR 1.67</div></div>'
             + '</div>';
 
-        html += commonParamsRow('ss');
+        // Whitehead formula assumes 1:1 allocation, so no ratio control here.
+        html += commonParamsRow('ssord', { includeRatio: false });
 
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="SampleSizeModule.calculateOrdinal()">Calculate</button></div>';
         html += '<div id="ss-ordinal-results"></div>';
@@ -286,6 +295,15 @@
             + '<input type="number" class="form-input" name="ss_ni_margin" id="ss_ni_margin" step="0.01" min="0.001" value="0.05"></div>'
             + '<div class="form-group"><label class="form-label">One-Sided \u03B1</label>'
             + '<select class="form-select" name="ss_ni_alpha" id="ss_ni_alpha"><option value="0.025" selected>0.025</option><option value="0.05">0.05</option><option value="0.01">0.01</option></select></div>'
+            + '</div>';
+
+        html += '<div class="form-row form-row--3">'
+            + '<div class="form-group"><label class="form-label">Power (1-\u03B2)</label>'
+            + '<select class="form-select" name="ss_ni_power" id="ss_ni_power"><option value="0.80" selected>80%</option><option value="0.85">85%</option><option value="0.90">90%</option><option value="0.95">95%</option></select></div>'
+            + '<div class="form-group"><label class="form-label">Allocation Ratio ' + App.tooltip('Ratio of treatment to control (1 = equal)') + '</label>'
+            + '<input type="number" class="form-input" name="ss_ni_ratio" id="ss_ni_ratio" step="0.5" min="0.5" max="4" value="1"></div>'
+            + '<div class="form-group"><label class="form-label">Dropout Rate (%)</label>'
+            + '<input type="number" class="form-input" name="ss_ni_dropout" id="ss_ni_dropout" step="1" min="0" max="50" value="10"></div>'
             + '</div>';
 
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="SampleSizeModule.calculateNonInf()">Calculate</button></div>';
@@ -363,9 +381,9 @@
 
         html += '<div class="form-label">Common Presets</div>';
         html += '<div class="preset-group">'
-            + '<button class="preset-btn" onclick="SampleSizeModule.loadDiagPreset(\'screen\')">Screening Test (Se=0.90, width=0.10)</button>'
-            + '<button class="preset-btn" onclick="SampleSizeModule.loadDiagPreset(\'confirm\')">Confirmatory Test (Se=0.95, width=0.05)</button>'
-            + '<button class="preset-btn" onclick="SampleSizeModule.loadDiagPreset(\'imaging\')">Imaging Biomarker (Se=0.85, width=0.10)</button>'
+            + '<button class="preset-btn" onclick="SampleSizeModule.loadDiagPreset(\'screen\')">Screening Test (Se=0.90, half-width=0.05)</button>'
+            + '<button class="preset-btn" onclick="SampleSizeModule.loadDiagPreset(\'confirm\')">Confirmatory Test (Se=0.95, half-width=0.05)</button>'
+            + '<button class="preset-btn" onclick="SampleSizeModule.loadDiagPreset(\'imaging\')">Imaging Biomarker (Se=0.85, half-width=0.05)</button>'
             + '</div>';
 
         html += '<div class="form-row form-row--4">'
@@ -452,7 +470,7 @@
 
     function buildGroupSeqTab() {
         var html = '<div class="tab-content" id="tab-groupseq">';
-        html += '<div class="card-subtitle">Group sequential design with alpha spending. Calculates inflated sample size and stopping boundaries for interim analyses.</div>';
+        html += '<div class="card-subtitle">Group sequential design with classical (O\'Brien-Fleming / Pocock) stopping boundaries. Calculates inflated sample size and boundaries for interim analyses. Boundaries and inflation factors assume two-sided α = 0.05, 80% power, and equally spaced looks.</div>';
 
         html += '<div class="form-label">Common Presets</div>';
         html += '<div class="preset-group">'
@@ -466,7 +484,7 @@
             + '<input type="number" class="form-input" name="ss_gs_fixedn" id="ss_gs_fixedn" step="10" min="10" value="800"></div>'
             + '<div class="form-group"><label class="form-label">Number of Interim Looks</label>'
             + '<input type="number" class="form-input" name="ss_gs_looks" id="ss_gs_looks" step="1" min="2" max="10" value="3"></div>'
-            + '<div class="form-group"><label class="form-label">Spending Function</label>'
+            + '<div class="form-group"><label class="form-label">Boundary Type</label>'
             + '<select class="form-select" name="ss_gs_type" id="ss_gs_type"><option value="obf">O\'Brien-Fleming</option><option value="pocock">Pocock</option></select></div>'
             + '</div>';
 
@@ -493,8 +511,8 @@
             + '<div><strong>Time-to-Event:</strong> Events = 4(z<sub>\u03B1/2</sub> + z<sub>\u03B2</sub>)\u00B2 / (ln HR)\u00B2</div>'
             + '<div><strong>Cluster RCT:</strong> N\u2019 = N \u00D7 [1 + (m\u22121)\u03C1] (design effect)</div>'
             + '<div><strong>Crossover:</strong> N = 2(z<sub>\u03B1/2</sub> + z<sub>\u03B2</sub>)\u00B2\u03C3<sub>w</sub>\u00B2 / \u03B4\u00B2</div>'
-            + '<div><strong>Equivalence:</strong> N/group = (z<sub>\u03B1</sub> + z<sub>\u03B2</sub>)\u00B2 \u00D7 2p(1\u2212p) / \u0394\u00B2 (TOST)</div>'
-            + '<div><strong>Diagnostic:</strong> N = 4z<sub>\u03B1/2</sub>\u00B2 \u00D7 Se(1\u2212Se) / w\u00B2</div>'
+            + '<div><strong>Equivalence:</strong> N/group = (z<sub>\u03B1</sub> + z<sub>\u03B2/2</sub>)\u00B2 \u00D7 2p(1\u2212p) / \u0394\u00B2 (TOST; z<sub>\u03B2/2</sub> = z<sub>1\u2212\u03B2/2</sub> because at zero true difference either one-sided test can fail)</div>'
+            + '<div><strong>Diagnostic:</strong> N = z<sub>\u03B1/2</sub>\u00B2 \u00D7 Se(1\u2212Se) / w\u00B2 (w = 95% CI half-width)</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Considerations</div>';
@@ -706,12 +724,14 @@
      * Helper: get common params
      * ============================================================ */
 
-    function getCommonParams() {
+    function getCommonParams(prefix) {
+        prefix = prefix || 'ss';
+        var ratioEl = document.getElementById(prefix + '_ratio');
         return {
-            alpha: parseFloat(document.getElementById('ss_alpha').value),
-            power: parseFloat(document.getElementById('ss_power').value),
-            ratio: parseFloat(document.getElementById('ss_ratio').value),
-            dropout: parseFloat(document.getElementById('ss_dropout').value) / 100
+            alpha: parseFloat(document.getElementById(prefix + '_alpha').value),
+            power: parseFloat(document.getElementById(prefix + '_power').value),
+            ratio: ratioEl ? (parseFloat(ratioEl.value) || 1) : 1,
+            dropout: (parseFloat(document.getElementById(prefix + '_dropout').value) || 0) / 100
         };
     }
 
@@ -767,7 +787,7 @@
             Export.showToast('Control and treatment rates must differ', 'error');
             return;
         }
-        var params = getCommonParams();
+        var params = getCommonParams('ss');
 
         var normal = Statistics.sampleSizeTwoProportions(p1, p2, params.alpha, params.power, params.ratio, 'normal');
         var fleiss = Statistics.sampleSizeTwoProportions(p1, p2, params.alpha, params.power, params.ratio, 'fleiss');
@@ -789,11 +809,14 @@
             + '<div class="result-item"><div class="result-item-value">' + arcsine.total + '</div><div class="result-item-label">Arcsine Transform</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + ((p1 - p2) * 100).toFixed(1) + '%</div><div class="result-item-label">ARR</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + (p2 / p1).toFixed(2) + '</div><div class="result-item-label">RR</div></div>'
-            + '<div class="result-item"><div class="result-item-value">' + Math.round(1 / Math.abs(p1 - p2)) + '</div><div class="result-item-label">NNT</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + Math.ceil(1 / Math.abs(p1 - p2)) + '</div><div class="result-item-label">NNT</div></div>'
             + '</div>';
 
-        // Sensitivity table (varying p2 x power)
+        // Sensitivity table (varying p2 x power). Preserve the direction of the
+        // observed difference: when p2 > p1 (e.g., a good outcome that treatment
+        // increases), the varied p2 must stay above p1, not mirror below it.
         var arrBase = Math.abs(p1 - p2);
+        var effDir = p1 >= p2 ? 1 : -1;
         var arrValues = [];
         for (var mult = 0.5; mult <= 1.5; mult += 0.125) {
             var testArr = arrBase * mult;
@@ -801,7 +824,7 @@
         }
 
         html += buildSensitivityGrid(function(eff, pw) {
-            var p2v = p1 - eff;
+            var p2v = p1 - effDir * eff;
             if (p2v <= 0 || p2v >= 1) return '--';
             var r = Statistics.sampleSizeTwoProportions(p1, p2v, params.alpha, pw, params.ratio, 'fleiss');
             return r.total;
@@ -885,7 +908,7 @@
         var sd2 = validateField('ss_sd2', 0.1, 10000, 'SD (Group 2)');
         if (delta === null || sd1 === null || sd2 === null) return;
 
-        var params = getCommonParams();
+        var params = getCommonParams('ssm');
         var result = Statistics.sampleSizeTwoMeans(delta, sd1, sd2, params.alpha, params.power, params.ratio);
         var dropoutN = Math.ceil(result.total / (1 - params.dropout));
 
@@ -964,7 +987,7 @@
     function calculateSurvival() {
         var hr = validateField('ss_hr', 0.01, 0.99, 'Hazard ratio');
         if (hr === null) return;
-        var params = getCommonParams();
+        var params = getCommonParams('sssurv');
 
         var schoenfeld = Statistics.sampleSizeSchoenfeld(hr, params.alpha, params.power, params.ratio);
         var freedman = Statistics.sampleSizeFreedman(hr, params.alpha, params.power, params.ratio);
@@ -975,7 +998,15 @@
 
         var lambda = Math.log(2) / medSurv;
         var avgFollowup = accrual / 2 + followup;
-        var pEvent = 1 - Math.exp(-lambda * avgFollowup);
+        // Event probability computed PER ARM (treatment hazard = HR x control
+        // hazard) and averaged with allocation weights; using the control-arm
+        // hazard for everyone overestimates events and underestimates N.
+        function eventProb(h) {
+            var pC = 1 - Math.exp(-lambda * avgFollowup);
+            var pT = 1 - Math.exp(-h * lambda * avgFollowup);
+            return (pC + params.ratio * pT) / (1 + params.ratio);
+        }
+        var pEvent = eventProb(hr);
         var totalN = Math.ceil(schoenfeld.events / pEvent);
         var dropoutN = Math.ceil(totalN / (1 - params.dropout));
 
@@ -985,7 +1016,7 @@
         html += '<div class="result-grid">'
             + '<div class="result-item"><div class="result-item-value">' + schoenfeld.events + '</div><div class="result-item-label">Events (Schoenfeld)</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + freedman.events + '</div><div class="result-item-label">Events (Freedman)</div></div>'
-            + '<div class="result-item"><div class="result-item-value">' + (pEvent * 100).toFixed(1) + '%</div><div class="result-item-label">Est. Event Probability</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + (pEvent * 100).toFixed(1) + '%</div><div class="result-item-label">Est. Event Probability (averaged across arms)</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + totalN + '</div><div class="result-item-label">Total N Required</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + dropoutN + '</div><div class="result-item-label">Dropout-Adjusted</div></div>'
             + '</div>';
@@ -999,7 +1030,7 @@
             html += '<tr' + (isBase ? ' style="background:var(--accent-muted)"' : '') + '>'
                 + '<td class="num">' + h.toFixed(2) + '</td>'
                 + '<td class="num' + (isBase ? ' highlight' : '') + '">' + r.events + '</td>'
-                + '<td class="num">' + Math.ceil(r.events / pEvent) + '</td></tr>';
+                + '<td class="num">' + Math.ceil(r.events / eventProb(h)) + '</td></tr>';
         });
         html += '</tbody></table></div>';
 
@@ -1012,7 +1043,8 @@
             + 'a two-sided significance level of ' + params.alpha + ', and ' + (params.power * 100).toFixed(0) + '% power, '
             + 'the Schoenfeld formula requires ' + schoenfeld.events + ' events. '
             + 'With an estimated event probability of ' + (pEvent * 100).toFixed(1) + '% '
-            + '(based on ' + accrual + '-month accrual and ' + followup + '-month follow-up), '
+            + '(exponential survival, per-arm event probabilities averaged across arms, '
+            + 'based on ' + accrual + '-month accrual and ' + followup + '-month follow-up), '
             + 'a total of ' + totalN + ' participants are needed.'
             + (params.dropout > 0 ? ' Accounting for ' + (params.dropout * 100).toFixed(0) + '% dropout, ' + dropoutN + ' will be enrolled.' : '');
 
@@ -1051,7 +1083,7 @@
             controlDist.push(parseFloat(document.getElementById('ss_mrs_ctrl_' + i).value) || 0);
         }
         var commonOR = parseFloat(document.getElementById('ss_common_or').value);
-        var params = getCommonParams();
+        var params = getCommonParams('ssord');
 
         var sum = controlDist.reduce(function(a, b) { return a + b; }, 0);
         if (Math.abs(sum - 1) > 0.05) {
@@ -1118,7 +1150,13 @@
         var margin = validateField('ss_ni_margin', 0.001, 0.50, 'Non-inferiority margin');
         if (p === null || margin === null) return;
         var alpha = parseFloat(document.getElementById('ss_ni_alpha').value);
-        var params = getCommonParams();
+        // This tab has its own power/ratio/dropout controls (it previously
+        // depended silently on the Two Proportions tab's settings).
+        var params = {
+            power: parseFloat(document.getElementById('ss_ni_power').value) || 0.80,
+            ratio: parseFloat(document.getElementById('ss_ni_ratio').value) || 1,
+            dropout: (parseFloat(document.getElementById('ss_ni_dropout').value) || 0) / 100
+        };
 
         var result = Statistics.sampleSizeNonInferiority(p, p, margin, alpha, params.power, params.ratio);
         var dropoutN = Math.ceil(result.total / (1 - params.dropout));
@@ -1214,7 +1252,10 @@
         var result = Statistics.sampleSizeCrossover(delta, sd, alpha, power, nPeriods);
         var dropoutN = Math.ceil(result.total / (1 - dropout));
 
-        // Compare with parallel design
+        // Compare with parallel design. NOTE: this comparison assumes the
+        // parallel-group total SD equals sqrt(2) x the within-subject SD
+        // (i.e., between-subject variance equal to within-subject variance),
+        // since between-subject SD is not an input here.
         var parallelResult = Statistics.sampleSizeTwoMeans(delta, sd * Math.sqrt(2), sd * Math.sqrt(2), alpha, power, 1);
 
         var html = '<div class="result-panel animate-in">';
@@ -1226,8 +1267,8 @@
 
         html += '<div class="result-grid">'
             + '<div class="result-item"><div class="result-item-value">' + result.total + '</div><div class="result-item-label">Crossover N</div></div>'
-            + '<div class="result-item"><div class="result-item-value">' + parallelResult.total + '</div><div class="result-item-label">Parallel Design N</div></div>'
-            + '<div class="result-item"><div class="result-item-value">' + (result.total / parallelResult.total * 100).toFixed(0) + '%</div><div class="result-item-label">Efficiency Gain</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + parallelResult.total + '</div><div class="result-item-label">Parallel Design N ' + App.tooltip('Assumes parallel-group total SD = √2 × within-subject SD (between-subject variance equal to within-subject variance)') + '</div></div>'
+            + '<div class="result-item"><div class="result-item-value">' + ((1 - result.total / parallelResult.total) * 100).toFixed(0) + '%</div><div class="result-item-label">N Saved vs Parallel</div></div>'
             + '<div class="result-item"><div class="result-item-value">' + nPeriods + '</div><div class="result-item-label">Periods</div></div>'
             + '</div>';
 
@@ -1235,7 +1276,9 @@
             + 'Assuming a mean within-subject difference of ' + delta + ' with within-subject standard deviation of ' + sd
             + ', a two-sided significance level of ' + alpha + ', and ' + (power * 100).toFixed(0) + '% power, '
             + 'a total of ' + result.total + ' participants are required (each serving as their own control). '
-            + 'By comparison, a parallel design would require ' + parallelResult.total + ' participants.'
+            + 'By comparison, a parallel design would require approximately ' + parallelResult.total
+            + ' participants, assuming a parallel-group total SD of √2 × the within-subject SD '
+            + '(i.e., between-subject variance equal to within-subject variance).'
             + (dropout > 0 ? ' Adjusting for ' + (dropout * 100).toFixed(0) + '% dropout, ' + dropoutN + ' will be enrolled.' : '');
 
         html += buildMethodsBlock(methodsText, 'ss-methods-co');
@@ -1251,8 +1294,10 @@
         var prev = validateField('ss_dx_prev', 0.01, 0.99, 'Disease prevalence');
         if (sens === null || spec === null || width === null || prev === null) return;
 
-        var resultSens = Statistics.sampleSizeDiagnosticAccuracy(sens, width, 0.05, prev);
-        var resultSpec = Statistics.sampleSizeDiagnosticAccuracy(spec, width, 0.05, prev);
+        // Statistics.sampleSizeDiagnosticAccuracy expects the FULL CI width
+        // (n = 4z²p(1−p)/w²); the UI collects the half-width, so pass 2×width.
+        var resultSens = Statistics.sampleSizeDiagnosticAccuracy(sens, 2 * width, 0.05, prev);
+        var resultSpec = Statistics.sampleSizeDiagnosticAccuracy(spec, 2 * width, 0.05, prev);
 
         var nDiseased = resultSens.nMetric;
         var nHealthy = resultSpec.nMetric;
@@ -1277,8 +1322,8 @@
         html += '<div class="card-title mt-3">N by Desired Precision</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>CI Half-Width</th><th>N Diseased</th><th>N Healthy</th><th>Total (prev=' + (prev * 100).toFixed(0) + '%)</th></tr></thead><tbody>';
         [0.03, 0.05, 0.07, 0.10, 0.15].forEach(function(w) {
-            var rS = Statistics.sampleSizeDiagnosticAccuracy(sens, w, 0.05, prev);
-            var rSp = Statistics.sampleSizeDiagnosticAccuracy(spec, w, 0.05, prev);
+            var rS = Statistics.sampleSizeDiagnosticAccuracy(sens, 2 * w, 0.05, prev);
+            var rSp = Statistics.sampleSizeDiagnosticAccuracy(spec, 2 * w, 0.05, prev);
             var tot = Math.max(Math.ceil(rS.nMetric / prev), Math.ceil(rSp.nMetric / (1 - prev)));
             var isBase = Math.abs(w - width) < 0.001;
             html += '<tr' + (isBase ? ' style="background:var(--accent-muted)"' : '') + '>'
@@ -1433,8 +1478,9 @@
         });
         html += '</tbody></table></div>';
 
-        var methodsText = 'A group sequential design with ' + nLooks + ' planned analyses was used with '
-            + (type === 'obf' ? "O'Brien-Fleming" : 'Pocock') + ' alpha spending function. '
+        var methodsText = 'A group sequential design with ' + nLooks + ' equally spaced analyses was used with classical '
+            + (type === 'obf' ? "O'Brien-Fleming" : 'Pocock') + ' stopping boundaries '
+            + '(calibrated to an overall two-sided α of 0.05; the maximum-N inflation factor assumes 80% power). '
             + 'The fixed-design sample size of ' + fixedN + ' was inflated by a factor of '
             + gsResult.inflationFactor.toFixed(3) + ' to a maximum of ' + gsResult.nAdjusted
             + ' participants. Interim analyses will be conducted at information fractions of '

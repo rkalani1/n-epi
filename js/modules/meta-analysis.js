@@ -20,6 +20,11 @@
     let useHKSJ = false;
     let lastResults = null;
     let activeTab = 'main'; // 'main', 'subgroup', 'metareg', 'grade', 'prisma', 'pubbias'
+    // Set while the bundled example (mRS 0-2, a favorable outcome, treatment =
+    // EVT) is loaded unmodified; the outcome direction is only known then, so
+    // forest plots get "Favors Control / Favors EVT" labels only in that case.
+    // Any user edit clears it and the plots fall back to neutral labels.
+    let exampleTag = null;
 
     // Subgroup state
     let subgroupVariable = '';
@@ -44,12 +49,14 @@
         { name: 'REVASCAT (2015)',    logEffect: 0.5481, se: 0.2780, subgroup: 'Europe' }
     ];
 
+    // 90-day functional independence (mRS 0-2), EVT arm vs control arm,
+    // per the primary publications (NEJM 2015).
     let EVT_BINARY_EXAMPLE = [
         { name: 'MR CLEAN (2015)',    e1: 76,  n1: 233, e2: 51,  n2: 267, subgroup: 'Europe' },
         { name: 'ESCAPE (2015)',      e1: 87,  n1: 165, e2: 43,  n2: 150, subgroup: 'North America' },
         { name: 'EXTEND-IA (2015)',   e1: 25,  n1: 35,  e2: 14,  n2: 35,  subgroup: 'Oceania' },
-        { name: 'SWIFT PRIME (2015)', e1: 44,  n1: 98,  e2: 27,  n2: 98,  subgroup: 'North America' },
-        { name: 'REVASCAT (2015)',    e1: 39,  n1: 103, e2: 28,  n2: 103, subgroup: 'Europe' }
+        { name: 'SWIFT PRIME (2015)', e1: 59,  n1: 98,  e2: 34,  n2: 98,  subgroup: 'North America' },
+        { name: 'REVASCAT (2015)',    e1: 45,  n1: 103, e2: 29,  n2: 103, subgroup: 'Europe' }
     ];
 
     // ============================================================
@@ -170,7 +177,7 @@
             + '<div><strong>I\u00B2:</strong> I\u00B2 = max(0, (Q \u2212 (k\u22121))/Q \u00D7 100%)</div>'
             + '<div><strong>HKSJ:</strong> Uses t<sub>k\u22121</sub> with adjusted variance q* = \u03A3w*\u1D62(\u03B8\u1D62 \u2212 \u03B8\u0302*)\u00B2/(k\u22121)</div>'
             + '<div><strong>Subgroup Q-between:</strong> Q<sub>between</sub> = Q<sub>overall</sub> - \u03A3 Q<sub>within</sub></div>'
-            + '<div><strong>Begg rank correlation:</strong> Kendall \u03C4 between effect and SE</div>'
+            + '<div><strong>Begg rank correlation:</strong> Kendall \u03C4 between standardized deviations (\u03B8\u1D62 \u2212 \u03B8\u0302)/\u221A(v\u1D62 \u2212 1/\u03A3w\u2C7C) and variances v\u1D62</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Assumptions</div>';
@@ -235,8 +242,9 @@
             html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr>'
                 + '<th>#</th><th>Study Name</th>'
                 + '<th>Effect (log scale) ' + App.tooltip('For OR, RR, HR: enter the natural log. For MD, SMD, RD: enter raw value.') + '</th>'
-                + '<th>SE</th>'
-                + '<th>95% CI Lower</th><th>95% CI Upper</th>'
+                + '<th>SE ' + App.tooltip('Standard error of the (log-scale) effect. If blank, the SE is derived from the CI columns.') + '</th>'
+                + '<th>95% CI Lower ' + App.tooltip('Used only when SE is blank. For OR, RR, HR enter the CI on the RATIO scale (e.g., 1.06), NOT the log scale. For MD, SMD, RD enter the raw value.') + '</th>'
+                + '<th>95% CI Upper ' + App.tooltip('Used only when SE is blank. For OR, RR, HR enter the CI on the RATIO scale (e.g., 2.41), NOT the log scale. For MD, SMD, RD enter the raw value.') + '</th>'
                 + '<th>Subgroup</th>'
                 + '<th></th></tr></thead><tbody>';
             studyData.forEach(function(s, i) {
@@ -284,6 +292,7 @@
     // TABLE MANAGEMENT
     // ============================================================
     function addRow() {
+        exampleTag = null;
         if (inputMode === 'effect') {
             studyData.push({ name: 'Study ' + (studyData.length + 1), logEffect: '', se: '', ciLower: '', ciUpper: '', subgroup: '' });
         } else {
@@ -293,11 +302,13 @@
     }
 
     function removeRow(i) {
+        exampleTag = null;
         studyData.splice(i, 1);
         renderDataTable();
     }
 
     function updateField(i, field, value) {
+        exampleTag = null;
         if (field === 'name' || field === 'subgroup') {
             studyData[i][field] = value;
         } else {
@@ -308,6 +319,7 @@
     function switchInputMode(mode) {
         inputMode = mode;
         studyData = [];
+        exampleTag = null;
         renderDataTable();
     }
 
@@ -336,6 +348,7 @@
                 return { name: d.name, e1: d.e1, n1: d.n1, e2: d.e2, n2: d.n2, subgroup: d.subgroup || '' };
             });
         }
+        exampleTag = 'EVT';
         renderDataTable();
         Export.showToast('Loaded 5 EVT thrombectomy trials');
     }
@@ -387,6 +400,7 @@
                 });
             }
         }
+        exampleTag = null;
         renderDataTable();
         Export.showToast('Parsed ' + studyData.length + ' studies from clipboard');
     }
@@ -400,75 +414,156 @@
         let names = [];
         let seArr = [];
         let subgroups = [];
-        let isLogScale = (selectedMeasure === 'OR' || selectedMeasure === 'RR' || selectedMeasure === 'HR');
+        let excluded = []; // {name, reason} — never drop a row silently
+        // HR cannot be computed from a 2x2 table (and MD/SMD not at all), so in
+        // binary mode those selections fall back to the odds ratio and results
+        // are labeled OR, with a visible notice (measureCoerced).
+        let measureUsed = selectedMeasure;
+        let measureCoerced = false;
+        if (inputMode === 'binary' && selectedMeasure !== 'OR' && selectedMeasure !== 'RR' && selectedMeasure !== 'RD') {
+            measureUsed = 'OR';
+            measureCoerced = true;
+        }
+        let isLogScale = (measureUsed === 'OR' || measureUsed === 'RR' || measureUsed === 'HR');
 
         if (inputMode === 'effect') {
             for (let i = 0; i < studyData.length; i++) {
                 let s = studyData[i];
+                let rowName = s.name || 'Study ' + (i + 1);
                 let eff = parseFloat(s.logEffect);
-                if (isNaN(eff)) continue;
+                if (isNaN(eff)) {
+                    if (s.se !== '' || s.ciLower !== '' || s.ciUpper !== '' || (s.name && s.name.trim() !== '')) {
+                        excluded.push({ name: rowName, reason: 'missing or non-numeric effect' });
+                    }
+                    continue;
+                }
 
                 let se = parseFloat(s.se);
                 if (isNaN(se) || se <= 0) {
                     let lo = parseFloat(s.ciLower);
                     let hi = parseFloat(s.ciUpper);
-                    if (!isNaN(lo) && !isNaN(hi)) {
-                        if (isLogScale) {
-                            se = (Math.log(hi) - Math.log(lo)) / (2 * 1.96);
-                        } else {
-                            se = (hi - lo) / (2 * 1.96);
+                    if (isNaN(lo) || isNaN(hi)) {
+                        excluded.push({ name: rowName, reason: 'no SE and no usable 95% CI' });
+                        continue;
+                    }
+                    if (hi <= lo) {
+                        excluded.push({ name: rowName, reason: 'CI upper must exceed CI lower' });
+                        continue;
+                    }
+                    if (isLogScale) {
+                        // CI columns are on the RATIO scale for OR/RR/HR
+                        if (lo <= 0) {
+                            excluded.push({ name: rowName, reason: 'ratio-scale CI must be > 0 (for ' + measureUsed + ', enter the CI on the ratio scale, e.g., 1.06 to 2.41)' });
+                            continue;
                         }
+                        se = (Math.log(hi) - Math.log(lo)) / (2 * 1.96);
+                    } else {
+                        se = (hi - lo) / (2 * 1.96);
                     }
                 }
-                if (isNaN(se) || se <= 0) continue;
+                if (isNaN(se) || se <= 0) {
+                    excluded.push({ name: rowName, reason: 'SE could not be determined' });
+                    continue;
+                }
 
                 effects.push(eff);
                 variances.push(se * se);
                 seArr.push(se);
-                names.push(s.name || 'Study ' + (i + 1));
+                names.push(rowName);
                 subgroups.push(s.subgroup || '');
             }
         } else {
             for (let j = 0; j < studyData.length; j++) {
                 let d = studyData[j];
+                let rowName = d.name || 'Study ' + (j + 1);
                 let e1 = parseInt(d.e1);
                 let n1 = parseInt(d.n1);
                 let e2 = parseInt(d.e2);
                 let n2 = parseInt(d.n2);
-                if (isNaN(e1) || isNaN(n1) || isNaN(e2) || isNaN(n2)) continue;
-                if (n1 <= 0 || n2 <= 0) continue;
+                if (isNaN(e1) || isNaN(n1) || isNaN(e2) || isNaN(n2)) {
+                    if (!(isNaN(e1) && isNaN(n1) && isNaN(e2) && isNaN(n2))) {
+                        excluded.push({ name: rowName, reason: 'incomplete 2x2 counts' });
+                    }
+                    continue;
+                }
+                if (n1 <= 0 || n2 <= 0) {
+                    excluded.push({ name: rowName, reason: 'group sizes must be > 0' });
+                    continue;
+                }
+                if (e1 > n1 || e2 > n2 || e1 < 0 || e2 < 0) {
+                    excluded.push({ name: rowName, reason: 'event counts must be between 0 and N' });
+                    continue;
+                }
 
                 let a = e1, b = n1 - e1, c = e2, dv = n2 - e2;
+                let isRatio = (measureUsed === 'OR' || measureUsed === 'RR');
+
+                // Standard practice (RevMan/metafor): for ratio measures, a
+                // study with no events (or all events) in BOTH arms has an
+                // undefined OR/RR and is excluded from the pooling.
+                if (isRatio && ((a === 0 && c === 0) || (b === 0 && dv === 0))) {
+                    excluded.push({ name: rowName, reason: (a === 0 && c === 0 ? 'no events' : 'all events') + ' in both arms — ' + measureUsed + ' undefined for this study' });
+                    continue;
+                }
+
                 let cc = 0;
-                if (a === 0 || b === 0 || c === 0 || dv === 0) cc = 0.5;
+                if (isRatio && (a === 0 || b === 0 || c === 0 || dv === 0)) cc = 0.5;
 
                 let eff2, se2;
-                if (selectedMeasure === 'OR') {
-                    let orVal = ((a + cc) * (dv + cc)) / ((b + cc) * (c + cc));
-                    eff2 = Math.log(orVal);
-                    se2 = 1 / (a + cc) + 1 / (b + cc) + 1 / (c + cc) + 1 / (dv + cc);
-                } else if (selectedMeasure === 'RR') {
+                if (measureUsed === 'RR') {
                     let rrVal = ((a + cc) / (n1 + 2 * cc)) / ((c + cc) / (n2 + 2 * cc));
                     eff2 = Math.log(rrVal);
                     se2 = 1 / (a + cc) - 1 / (n1 + 2 * cc) + 1 / (c + cc) - 1 / (n2 + 2 * cc);
-                } else if (selectedMeasure === 'RD') {
-                    eff2 = a / n1 - c / n2;
-                    se2 = (a * b) / (n1 * n1 * n1) + (c * dv) / (n2 * n2 * n2);
-                } else {
-                    let orV2 = ((a + cc) * (dv + cc)) / ((b + cc) * (c + cc));
-                    eff2 = Math.log(orV2);
+                } else if (measureUsed === 'RD') {
+                    // Apply the 0.5 correction only when the variance would
+                    // otherwise be zero (both arms all-events or no-events),
+                    // matching the core statistics engine's policy.
+                    let ra = a, rb = b, rc = c, rd2 = dv;
+                    if (a * b === 0 && c * dv === 0) {
+                        ra += 0.5; rb += 0.5; rc += 0.5; rd2 += 0.5;
+                    }
+                    let m1 = ra + rb, m2 = rc + rd2;
+                    eff2 = ra / m1 - rc / m2;
+                    se2 = (ra * rb) / (m1 * m1 * m1) + (rc * rd2) / (m2 * m2 * m2);
+                } else { // OR
+                    let orVal = ((a + cc) * (dv + cc)) / ((b + cc) * (c + cc));
+                    eff2 = Math.log(orVal);
                     se2 = 1 / (a + cc) + 1 / (b + cc) + 1 / (c + cc) + 1 / (dv + cc);
                 }
 
                 effects.push(eff2);
                 variances.push(se2);
                 seArr.push(Math.sqrt(se2));
-                names.push(d.name || 'Study ' + (j + 1));
+                names.push(rowName);
                 subgroups.push(d.subgroup || '');
             }
         }
 
-        return { effects: effects, variances: variances, se: seArr, names: names, subgroups: subgroups, isLogScale: isLogScale };
+        return {
+            effects: effects, variances: variances, se: seArr, names: names,
+            subgroups: subgroups, isLogScale: isLogScale,
+            measureUsed: measureUsed, measureCoerced: measureCoerced,
+            excluded: excluded
+        };
+    }
+
+    // Visible notices about coerced measures and excluded rows (never silent)
+    function prepNoticesHTML(prep) {
+        let html = '';
+        if (prep.measureCoerced) {
+            html += '<div style="background:var(--warning);color:#000;padding:8px 12px;border-radius:6px;font-size:0.85rem;margin-top:8px;">'
+                + '<strong>Note:</strong> ' + selectedMeasure + ' cannot be computed from 2x2 binary tables. '
+                + 'Results below are pooled <strong>odds ratios (OR)</strong>. For hazard ratios, enter log HR and SE directly in Effect Size mode.</div>';
+        }
+        if (prep.excluded && prep.excluded.length > 0) {
+            html += '<div style="background:var(--warning);color:#000;padding:8px 12px;border-radius:6px;font-size:0.85rem;margin-top:8px;">'
+                + '<strong>' + prep.excluded.length + ' row(s) excluded:</strong><ul style="margin:4px 0 0 16px;">';
+            prep.excluded.forEach(function(x) {
+                html += '<li>' + escAttr(x.name) + ' — ' + escAttr(x.reason) + '</li>';
+            });
+            html += '</ul></div>';
+        }
+        return html;
     }
 
     // ============================================================
@@ -517,6 +612,8 @@
         let resultEl = document.getElementById('ma-results');
         let html = '<div class="result-panel animate-in mt-3">';
 
+        html += prepNoticesHTML(prep);
+
         // Summary
         html += '<div class="card-title">Summary Results (' + k + ' studies)</div>';
         html += '<div class="result-grid">';
@@ -529,13 +626,13 @@
         let feHi = isLog ? Math.exp(fe.ci.upper).toFixed(3) : fe.ci.upper.toFixed(3);
 
         html += '<div class="result-item"><div class="result-item-value">' + reEst + '</div>'
-            + '<div class="result-item-label">RE Pooled ' + selectedMeasure + '</div></div>';
+            + '<div class="result-item-label">RE Pooled ' + prep.measureUsed + '</div></div>';
         html += '<div class="result-item"><div class="result-item-value">[' + reLo + ', ' + reHi + ']</div>'
             + '<div class="result-item-label">RE 95% CI</div></div>';
         html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(re.pValue) + '</div>'
             + '<div class="result-item-label">RE p-value</div></div>';
         html += '<div class="result-item"><div class="result-item-value">' + feEst + '</div>'
-            + '<div class="result-item-label">FE Pooled ' + selectedMeasure + '</div></div>';
+            + '<div class="result-item-label">FE Pooled ' + prep.measureUsed + '</div></div>';
         html += '<div class="result-item"><div class="result-item-value">[' + feLo + ', ' + feHi + ']</div>'
             + '<div class="result-item-label">FE 95% CI</div></div>';
         html += '<div class="result-item"><div class="result-item-value">' + Statistics.formatPValue(fe.pValue) + '</div>'
@@ -579,7 +676,11 @@
         if (egger) {
             html += '<div class="text-secondary" style="font-size:0.85rem;">Egger\'s test: intercept = ' + egger.intercept.toFixed(3)
                 + ', t = ' + egger.t.toFixed(3) + ', p = ' + Statistics.formatPValue(egger.pValue)
-                + (egger.pValue < 0.05 ? ' (suggests publication bias)' : ' (no evidence of publication bias)') + '</div>';
+                + (egger.pValue < 0.10
+                    ? ' (statistically significant funnel-plot asymmetry; may reflect publication bias or other small-study effects)'
+                    : ' (no statistically significant funnel-plot asymmetry)')
+                + (k < 10 ? '. Caution: asymmetry tests have very low power with fewer than 10 studies (k = ' + k + ').' : '')
+                + '</div>';
         }
         html += '<div class="chart-container"><canvas id="ma-funnel-canvas"></canvas></div>';
         html += '<div class="chart-actions">'
@@ -588,7 +689,7 @@
         // Sensitivity: leave-one-out
         html += '<div class="card-title mt-3">Sensitivity Analysis: Leave-One-Out</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr>'
-            + '<th>Excluded Study</th><th>Pooled ' + selectedMeasure + '</th><th>95% CI</th>'
+            + '<th>Excluded Study</th><th>Pooled ' + prep.measureUsed + '</th><th>95% CI</th>'
             + '<th>I' + String.fromCharCode(178) + '</th><th>' + String.fromCharCode(964) + String.fromCharCode(178) + '</th></tr></thead><tbody>';
         loo.forEach(function(r) {
             let est = isLog ? Math.exp(r.pooled).toFixed(3) : r.pooled.toFixed(3);
@@ -605,7 +706,7 @@
         // Cumulative meta-analysis
         html += '<div class="card-title mt-3">Cumulative Meta-Analysis</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr>'
-            + '<th># Studies</th><th>Added Study</th><th>Cumulative ' + selectedMeasure + '</th><th>95% CI</th>'
+            + '<th># Studies</th><th>Added Study</th><th>Cumulative ' + prep.measureUsed + '</th><th>95% CI</th>'
             + '<th>I' + String.fromCharCode(178) + '</th></tr></thead><tbody>';
         cum.forEach(function(r) {
             let est = isLog ? Math.exp(r.pooled).toFixed(3) : r.pooled.toFixed(3);
@@ -666,6 +767,8 @@
         let resultEl = document.getElementById('ma-subgroup-results');
         let html = '<div class="result-panel animate-in mt-3">';
 
+        html += prepNoticesHTML(prep);
+
         html += '<div class="card-title">Subgroup Analysis: ' + escAttr(subgroupVariable) + '</div>';
 
         // Between-group test
@@ -686,7 +789,7 @@
 
         // Subgroup table
         html += '<table class="data-table mt-2"><thead><tr>'
-            + '<th>Subgroup</th><th>k</th><th>Pooled ' + selectedMeasure + '</th><th>95% CI</th>'
+            + '<th>Subgroup</th><th>k</th><th>Pooled ' + prep.measureUsed + '</th><th>95% CI</th>'
             + '<th>I' + String.fromCharCode(178) + '</th><th>' + String.fromCharCode(964) + String.fromCharCode(178) + '</th><th>p</th></tr></thead><tbody>';
 
         let groupIndices = {};
@@ -748,7 +851,11 @@
                 if (!canvas) return;
                 let idx = groupIndices[key] || [];
 
-                let studies = idx.map(function(i) {
+                let sg = subResult.subgroups[key];
+                // sg.weights are the within-subgroup random-effects weights
+                // (normalized to 100), in the order the studies were passed
+                // to the subgroup analysis (= ascending order of idx).
+                let studies = idx.map(function(i, j) {
                     return {
                         name: prep.names[i],
                         estimate: prep.effects[i],
@@ -756,11 +863,10 @@
                             lower: prep.effects[i] - 1.96 * prep.se[i],
                             upper: prep.effects[i] + 1.96 * prep.se[i]
                         },
-                        weight: 100 / idx.length
+                        weight: (sg.weights && sg.weights[j] !== undefined) ? sg.weights[j] : 100 / idx.length
                     };
                 });
 
-                let sg = subResult.subgroups[key];
                 Charts.ForestPlot(canvas, {
                     studies: studies,
                     summary: {
@@ -769,8 +875,9 @@
                         label: key + ' (' + idx.length + ' studies)'
                     },
                     nullValue: isLog ? 0 : 0,
-                    measureLabel: selectedMeasure + (isLog ? ' (log scale)' : ''),
+                    measureLabel: prep.measureUsed + (isLog ? ' (log scale)' : ''),
                     logScale: isLog,
+                    directionLabels: exampleDirectionLabels(),
                     title: 'Subgroup: ' + key,
                     width: 750
                 });
@@ -807,6 +914,14 @@
         let resultEl = document.getElementById('ma-pubbias-results');
         let html = '<div class="result-panel animate-in mt-3">';
 
+        html += prepNoticesHTML(prep);
+
+        if (k < 10) {
+            html += '<div style="background:var(--warning);color:#000;padding:8px 12px;border-radius:6px;font-size:0.85rem;margin-top:8px;">'
+                + '<strong>Caution:</strong> only ' + k + ' studies. Funnel-plot asymmetry tests have very low power with fewer than 10 studies '
+                + 'and are not recommended in that setting (Cochrane Handbook); interpret all results below with caution.</div>';
+        }
+
         // Egger's test (enhanced display)
         html += '<div class="card-title">Egger\'s Regression Test</div>';
         html += '<div class="result-grid">';
@@ -826,7 +941,7 @@
         html += '<div class="text-secondary" style="font-size:0.85rem;margin-top:4px;">' + eggerInterp + '</div>';
 
         // Begg's test
-        html += '<div class="card-title mt-3">Begg\'s Rank Correlation Test ' + App.tooltip('Tests for correlation between effect size and its standard error using Kendall\'s tau. Less powerful than Egger\'s but fewer assumptions.') + '</div>';
+        html += '<div class="card-title mt-3">Begg\'s Rank Correlation Test ' + App.tooltip('Kendall\'s tau between the variance-standardized deviations from the fixed-effect pooled estimate and the study variances (Begg & Mazumdar 1994). Less powerful than Egger\'s but fewer assumptions.') + '</div>';
         html += '<div class="result-grid">';
         html += '<div class="result-item"><div class="result-item-value">' + begg.tau.toFixed(3) + '</div>'
             + '<div class="result-item-label">Kendall\'s ' + String.fromCharCode(964) + '</div></div>';
@@ -854,9 +969,9 @@
         let adjHi = isLog ? Math.exp(tf.adjusted.ci.upper).toFixed(3) : tf.adjusted.ci.upper.toFixed(3);
 
         html += '<div class="result-item"><div class="result-item-value">' + origEst + '</div>'
-            + '<div class="result-item-label">Original ' + selectedMeasure + '</div></div>';
+            + '<div class="result-item-label">Original ' + prep.measureUsed + '</div></div>';
         html += '<div class="result-item"><div class="result-item-value">' + adjEst + '</div>'
-            + '<div class="result-item-label">Adjusted ' + selectedMeasure + '</div></div>';
+            + '<div class="result-item-label">Adjusted ' + prep.measureUsed + '</div></div>';
         html += '<div class="result-item"><div class="result-item-value">[' + adjLo + ', ' + adjHi + ']</div>'
             + '<div class="result-item-label">Adjusted 95% CI</div></div>';
         html += '</div>';
@@ -903,25 +1018,44 @@
         }, 100);
     }
 
-    // Begg's rank correlation test (Kendall's tau)
+    // Begg-Mazumdar rank correlation test (Biometrics 1994).
+    // Kendall's tau between the variance-STANDARDIZED deviations from the
+    // fixed-effect pooled estimate, t_i = (theta_i - theta_hat) / sqrt(v_i - 1/sum(1/v_j)),
+    // and the sampling variances v_i, with a continuity correction on z.
+    // (Correlating raw effects with raw SEs is NOT the Begg test: without
+    // standardization the effect ranks are not exchangeable under the null.)
     function computeBeggTest(effects, se) {
         let k = effects.length;
-        // Compute standardized effects
+        let vi = se.map(function(s) { return s * s; });
+        let wi = vi.map(function(v) { return 1 / v; });
+        let sumW = wi.reduce(function(a, b) { return a + b; }, 0);
+        let pooled = 0;
+        for (let i = 0; i < k; i++) pooled += wi[i] * effects[i];
+        pooled /= sumW;
+
+        let std = effects.map(function(e, i) {
+            let vStar = vi[i] - 1 / sumW;
+            return vStar > 0 ? (e - pooled) / Math.sqrt(vStar) : 0;
+        });
+
         let concordant = 0;
         let discordant = 0;
-
         for (let i = 0; i < k; i++) {
             for (let j = i + 1; j < k; j++) {
-                let diffEffect = effects[i] - effects[j];
-                let diffSE = se[i] - se[j];
-                if (diffEffect * diffSE > 0) concordant++;
-                else if (diffEffect * diffSE < 0) discordant++;
+                let prod = (std[i] - std[j]) * (vi[i] - vi[j]);
+                if (prod > 0) concordant++;
+                else if (prod < 0) discordant++;
             }
         }
 
-        let tau = (concordant - discordant) / (k * (k - 1) / 2);
-        let varTau = (2 * (2 * k + 5)) / (9 * k * (k - 1));
-        let z = tau / Math.sqrt(varTau);
+        let S = concordant - discordant;
+        let tau = S / (k * (k - 1) / 2);
+        // Var(S) under the null (no ties): k(k-1)(2k+5)/18
+        let varS = k * (k - 1) * (2 * k + 5) / 18;
+        // Continuity-corrected z
+        let z = 0;
+        if (S > 0) z = (S - 1) / Math.sqrt(varS);
+        else if (S < 0) z = (S + 1) / Math.sqrt(varS);
         let pValue = 2 * (1 - Statistics.normalCDF(Math.abs(z)));
 
         return { tau: tau, z: z, pValue: pValue, concordant: concordant, discordant: discordant };
@@ -998,7 +1132,7 @@
             + '* Meta-regression in Stata\n'
             + '* Using meta suite (Stata 16+)\n'
             + 'meta set yi sei, studylabel(study)\n'
-            + 'meta regress year, random(dl) se(knha)\n\n'
+            + 'meta regress year, random(dlaird) se(khartung)\n\n'
             + '* Or using older metareg command\n'
             + '* ssc install metareg\n'
             + 'metareg yi year, wsse(sei) mm\n'
@@ -1229,7 +1363,10 @@
     // ============================================================
     function renderPRISMAPanel() {
         let html = '';
-        html += '<div class="card-subtitle">Generate a text-based PRISMA 2020 flow diagram for your systematic review. Enter the numbers at each stage.</div>';
+        html += '<div class="card-subtitle">Generate a text-based PRISMA flow diagram (2009 format) for your systematic review. Enter the numbers at each stage. '
+            + 'Note: PRISMA 2020 (Page et al., BMJ 2021) restructured the diagram — it replaces the qualitative/quantitative synthesis boxes with '
+            + '"Studies included in review" / "Reports of included studies" and moves duplicate removal into "Records removed before screening"; '
+            + 'for PRISMA 2020 submissions, transfer these numbers into the official 2020 template.</div>';
 
         let fields = [
             { id: 'identified', label: 'Records identified through database searching', placeholder: 'e.g., 1250' },
@@ -1274,7 +1411,7 @@
 
         let diagram = '';
         diagram += '=============================================================\n';
-        diagram += '                   PRISMA 2020 Flow Diagram\n';
+        diagram += '              PRISMA Flow Diagram (2009 format)\n';
         diagram += '=============================================================\n\n';
 
         diagram += '  IDENTIFICATION\n';
@@ -1352,6 +1489,17 @@
     // ============================================================
     // FOREST PLOT
     // ============================================================
+    // Direction-of-benefit labels are only known for the bundled EVT example
+    // (outcome = mRS 0-2, a GOOD outcome, so OR > 1 favors EVT). For user data
+    // the outcome direction is unknown; return undefined so the chart uses its
+    // neutral default rather than a possibly wrong "favors" claim.
+    function exampleDirectionLabels() {
+        if (exampleTag === 'EVT') {
+            return { left: '\u2190 Favors Control', right: 'Favors EVT \u2192' };
+        }
+        return undefined;
+    }
+
     function drawForestPlot(studies, re, prep, isLog) {
         let canvas = document.getElementById('ma-forest-canvas');
         if (!canvas) return;
@@ -1367,9 +1515,10 @@
             },
             predInterval: re.predInterval,
             nullValue: nullVal,
-            measureLabel: selectedMeasure + (isLog ? ' (log scale)' : ''),
+            measureLabel: prep.measureUsed + (isLog ? ' (log scale)' : ''),
             logScale: isLog,
-            title: 'Forest Plot: ' + selectedMeasure + ' (' + prep.effects.length + ' studies)',
+            directionLabels: exampleDirectionLabels(),
+            title: 'Forest Plot: ' + prep.measureUsed + ' (' + prep.effects.length + ' studies)',
             width: 850
         });
     }
@@ -1386,7 +1535,7 @@
             se: prep.se,
             pooledEffect: re.pooled,
             eggerLine: egger ? { intercept: egger.intercept, slope: egger.slope } : null,
-            title: 'Funnel Plot: ' + selectedMeasure,
+            title: 'Funnel Plot: ' + prep.measureUsed + (prep.isLogScale ? ' (log scale)' : ''),
             width: 600,
             height: 450
         });
@@ -1406,7 +1555,7 @@
 
         let text = 'A ' + (useHKSJ ? 'DerSimonian-Laird random-effects meta-analysis with Hartung-Knapp-Sidik-Jonkman adjustment' : 'DerSimonian-Laird random-effects meta-analysis')
             + ' of ' + k + ' studies was performed. '
-            + 'The pooled ' + selectedMeasure + ' was ' + reEst
+            + 'The pooled ' + prep.measureUsed + ' was ' + reEst
             + ' (95% CI, ' + reLo + ' to ' + reHi + '; P ' + Statistics.formatPValue(re.pValue) + '). '
             + 'The fixed-effect estimate was ' + feEst + ' (P ' + Statistics.formatPValue(fe.pValue) + '). '
             + 'Statistical heterogeneity was ' + i2interp
@@ -1421,10 +1570,14 @@
         }
 
         if (egger) {
-            text += 'Egger\'s regression test for funnel plot asymmetry '
-                + (egger.pValue < 0.05 ? 'was statistically significant' : 'did not suggest publication bias')
+            text += 'Egger\'s regression test '
+                + (egger.pValue < 0.10
+                    ? 'indicated statistically significant funnel-plot asymmetry, which may reflect publication bias or other small-study effects'
+                    : 'did not detect statistically significant funnel-plot asymmetry')
                 + ' (intercept = ' + egger.intercept.toFixed(2)
-                + ', P ' + Statistics.formatPValue(egger.pValue) + '). ';
+                + ', P ' + Statistics.formatPValue(egger.pValue) + ')'
+                + (k < 10 ? '; asymmetry tests have low power with fewer than 10 studies and should be interpreted with caution' : '')
+                + '. ';
         }
 
         return text;

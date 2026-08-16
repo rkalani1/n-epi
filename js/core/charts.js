@@ -343,6 +343,11 @@ var Charts = (() => {
         var heterogeneity = options.heterogeneity; // {I2, Q, p, tau2}
         var subgroupSummaries = options.subgroupSummaries; // {groupName: {estimate, ci:{lower,upper}, label?}}
         var dropShadow = options.dropShadow || false;
+        // Direction-of-benefit labels. Which side "favors treatment" depends on
+        // whether the plotted outcome is desirable, so callers must say so
+        // explicitly via options.directionLabels = {left, right}. The default is
+        // deliberately neutral (never a claim about benefit).
+        var directionLabels = options.directionLabels || { left: '\u2190 Lower', right: 'Higher \u2192' };
 
         var theme = getTheme();
         var rowH = 28;
@@ -645,10 +650,10 @@ var Charts = (() => {
         var nv = logScale ? Math.exp(nullValue).toFixed(1) : nullValue.toFixed(1);
         ctx.fillText(nv, sx(nullValue), y + 25);
 
-        // Favors labels
+        // Direction labels (neutral unless the caller supplies outcome-specific ones)
         ctx.font = '10px system-ui, -apple-system, sans-serif';
-        ctx.fillText('\u2190 Favors Treatment', (plotLeft + sx(nullValue)) / 2, y + 40);
-        ctx.fillText('Favors Control \u2192', (sx(nullValue) + plotRight) / 2, y + 40);
+        if (directionLabels.left) ctx.fillText(directionLabels.left, (plotLeft + sx(nullValue)) / 2, y + 40);
+        if (directionLabels.right) ctx.fillText(directionLabels.right, (sx(nullValue) + plotRight) / 2, y + 40);
 
         // Heterogeneity statistics below the plot
         if (heterogeneity) {
@@ -830,10 +835,14 @@ var Charts = (() => {
             ctx.lineWidth = 1.5;
             ctx.setLineDash([5, 3]);
             ctx.beginPath();
-            // Egger's regression: effect = intercept + slope * se
+            // Egger's regression is fitted as SND = intercept + slope * precision
+            // (i.e. effect/SE = a + b/SE). Multiplying through by SE gives, in
+            // funnel (effect vs SE) space: effect = slope + intercept * SE.
+            // The line passes through the slope (bias-free effect estimate) at
+            // SE = 0 and tilts by the intercept (the asymmetry term).
             // Plot from se=0 to se=seMax
-            var eff0 = eggerLine.intercept;
-            var eff1 = eggerLine.intercept + eggerLine.slope * seMax;
+            var eff0 = eggerLine.slope;
+            var eff1 = eggerLine.slope + eggerLine.intercept * seMax;
             ctx.moveTo(sx(eff0), sy(0));
             ctx.lineTo(sx(eff1), sy(seMax));
             ctx.stroke();
@@ -1490,13 +1499,15 @@ var Charts = (() => {
                 ctx.font = '11px "SF Mono", monospace';
                 for (let i = 0; i <= nTicks; i++) {
                     const t = (tMax * i) / nTicks;
-                    // Find closest table entry
+                    // Number still at risk at time t: a table row's nRisk is the
+                    // risk set just BEFORE that row's time, so subtract the
+                    // events/censorings at the last row with time <= t.
                     let nRisk = g.table[0].nRisk;
                     for (const r of g.table) {
-                        if (r.time <= t) nRisk = r.nRisk;
+                        if (r.time <= t) nRisk = r.nRisk - r.events - r.censored;
                     }
                     ctx.textAlign = 'center';
-                    ctx.fillText(nRisk.toString(), sx(t), gy);
+                    ctx.fillText(Math.max(0, nRisk).toString(), sx(t), gy);
                 }
             });
         }
