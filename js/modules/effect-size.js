@@ -418,7 +418,7 @@
         html += '<thead><tr><th>Framework</th><th>Small</th><th>Medium</th><th>Large</th></tr></thead>';
         html += '<tbody>';
         html += '<tr><td>Cohen\'s d</td><td>0.2</td><td>0.5</td><td>0.8</td></tr>';
-        html += '<tr><td>OR</td><td>1.5 / 0.67</td><td>2.5 / 0.4</td><td>4.3 / 0.23</td></tr>';
+        html += '<tr><td>OR</td><td>1.4 / 0.69</td><td>2.5 / 0.4</td><td>4.3 / 0.23</td></tr>';
         html += '<tr><td>RR</td><td>1.22 / 0.82</td><td>1.86 / 0.54</td><td>3.00 / 0.33</td></tr>';
         html += '<tr style="background:var(--accent-muted)"><td><strong>Stroke-specific</strong></td><td>d &lt; 0.4</td><td>d 0.4-0.7</td><td>d &gt; 0.7</td></tr>';
         html += '</tbody></table></div>';

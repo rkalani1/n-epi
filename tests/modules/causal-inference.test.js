@@ -151,7 +151,10 @@ describe('Causal Inference Module', () => {
 
             window.CausalInference.assessBH();
             const resultsHtml = document.getElementById('bh-results').innerHTML;
-            expect(resultsHtml).toContain('Strong support for a causal relationship between Smoking and Cancer.');
+            // The assessment reports a qualitative profile rather than a
+            // criteria-count verdict (Hill's viewpoints are not a checklist)
+            expect(resultsHtml).toContain('Profile for Smoking and Cancer: 6 viewpoint(s) rated strong');
+            expect(resultsHtml).toContain('does not itself establish or refute causation');
         });
 
         test('assessBH evaluates Moderate inputs properly', () => {
@@ -164,7 +167,7 @@ describe('Causal Inference Module', () => {
             });
             window.CausalInference.assessBH();
             const resultsHtml = document.getElementById('bh-results').innerHTML;
-            expect(resultsHtml).toContain('Moderate support for a causal relationship');
+            expect(resultsHtml).toContain('0 viewpoint(s) rated strong, 4 moderate');
             // Check temporality warning since temporality is Moderate, not Weak/Unassessed
             expect(resultsHtml).not.toContain('Note: Temporality is weak or unassessed');
         });
@@ -271,7 +274,7 @@ describe('Causal Inference Module', () => {
             expect(window.Charts.DAGDiagram).toHaveBeenCalled();
             const dagInfoHtml = document.getElementById('ci-dag-info').innerHTML;
             expect(dagInfoHtml).toContain('Statin Use');
-            expect(dagInfoHtml).toContain('Collider bias detected');
+            expect(dagInfoHtml).toContain('Collider bias risk');
         });
 
         test('exportDAG copies text to clipboard', () => {

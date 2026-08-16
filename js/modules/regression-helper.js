@@ -182,7 +182,7 @@
             + '<div><strong>Logistic:</strong> logit(P) = \u03B2\u2080 + \u03B2\u2081X\u2081 + \u2026, OR = exp(\u03B2)</div>'
             + '<div><strong>Poisson:</strong> log(\u03BC) = \u03B2\u2080 + \u03B2\u2081X\u2081 + \u2026, IRR = exp(\u03B2)</div>'
             + '<div><strong>Cox PH:</strong> h(t) = h\u2080(t) \u00D7 exp(\u03B2\u2081X\u2081 + \u2026), HR = exp(\u03B2)</div>'
-            + '<div><strong>Ordinal (cloglog):</strong> logit(P(Y\u2264j)) = \u03B1\u2081 \u2212 \u03B2X, common OR</div>'
+            + '<div><strong>Ordinal (proportional odds):</strong> logit(P(Y\u2264j)) = \u03B1\u2C7C \u2212 \u03B2X, common OR</div>'
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Model Selection Rules of Thumb</div>';
@@ -198,7 +198,7 @@
             + '<li><strong>OR interpretation:</strong> exp(\u03B2) gives the multiplicative change in odds for a 1-unit increase in the predictor</li>'
             + '<li><strong>OR to probability:</strong> P = OR / (1 + OR) when baseline odds are 1:1</li>'
             + '<li><strong>ROC/AUC:</strong> AUC = 0.5 (no discrimination) to 1.0 (perfect). AUC > 0.7 is acceptable, > 0.8 is excellent</li>'
-            + '<li><strong>Hosmer-Lemeshow test:</strong> Tests calibration by grouping predicted probabilities; non-significant p means adequate fit</li>'
+            + '<li><strong>Hosmer-Lemeshow test:</strong> Tests calibration by grouping predicted probabilities; a non-significant p means no statistical evidence of miscalibration (not proof of adequate fit &mdash; the test has low power in small samples)</li>'
             + '<li><strong>Calibration plots:</strong> Plot observed vs predicted probabilities; should follow the 45-degree line</li>'
             + '</ul>';
 
@@ -302,7 +302,7 @@
             + 'It divides subjects into deciles of predicted risk and compares observed vs. expected counts using a chi-squared statistic.</p>';
 
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>HL Test Result</th><th>Interpretation</th><th>Action</th></tr></thead><tbody>'
-            + '<tr><td>p > 0.05</td><td style="color:var(--success)">Adequate fit</td><td>Model calibration is acceptable; predicted probabilities align with observed</td></tr>'
+            + '<tr><td>p > 0.05</td><td style="color:var(--success)">No evidence of miscalibration</td><td>Consistent with adequate calibration, but not proof (low power in small samples) &mdash; inspect the calibration plot</td></tr>'
             + '<tr><td>p < 0.05</td><td style="color:var(--danger)">Poor fit</td><td>Model miscalibrated; consider adding non-linear terms, interactions, or recalibrating</td></tr>'
             + '</tbody></table></div>';
 
@@ -324,7 +324,7 @@
             + '<tr><td>Calibration</td><td>Calibration plot, slope &asymp; 1</td><td>Close to 45-degree line</td><td><code>rms::val.prob()</code> / <code>pmcalplot</code></td></tr>'
             + '<tr><td>Calibration</td><td>Hosmer-Lemeshow</td><td>p > 0.05</td><td><code>ResourceSelection::hoslem.test()</code> / <code>estat gof</code></td></tr>'
             + '<tr><td>Overall fit</td><td>Nagelkerke R-squared</td><td>Higher is better</td><td><code>rms::lrm()</code> / <code>fitstat</code></td></tr>'
-            + '<tr><td>Overall fit</td><td>Brier score</td><td>Lower is better (&lt; 0.25)</td><td><code>DescTools::BrierScore()</code></td></tr>'
+            + '<tr><td>Overall fit</td><td>Brier score</td><td>Lower is better; compare against the non-informative benchmark prevalence &times; (1 &minus; prevalence)</td><td><code>DescTools::BrierScore()</code></td></tr>'
             + '<tr><td>Validation</td><td>Optimism-corrected AUC</td><td>Minimal shrinkage</td><td><code>rms::validate()</code></td></tr>'
             + '</tbody></table></div>';
         html += '</div>';
@@ -355,7 +355,7 @@
             {
                 title: 'Backward Elimination',
                 description: 'Start with all candidate variables in the model. Remove the variable with the largest p-value above the threshold (e.g., p > 0.10). Repeat until all remaining variables meet the criterion. Consider using a liberal threshold (p = 0.157 corresponds to AIC).',
-                pros: 'Simple; automated; tends to produce stable models',
+                pros: 'Simple; automated; more stable than forward selection (though selection remains unstable in small samples)',
                 cons: 'May drop confounders; order-dependent; multiple testing issues; p-values unreliable after selection',
                 bestFor: 'Prediction models where parsimony is prioritized'
             },
@@ -583,7 +583,8 @@
         html += '<div class="card-title mt-3">RERI (Additive Interaction) Calculator</div>';
         html += '<div class="result-panel mb-2">';
         html += '<p style="color:var(--text-secondary);font-size:0.85rem;margin:0 0 12px 0">'
-            + 'Calculate the Relative Excess Risk due to Interaction (RERI) from three odds/risk/hazard ratios obtained from a 2x2 factorial arrangement of two binary exposures.</p>';
+            + 'Calculate the Relative Excess Risk due to Interaction (RERI) from three odds/risk/hazard ratios obtained from a 2x2 factorial arrangement of two binary exposures. '
+            + '<strong>Caveats:</strong> RERI/AP/S computed from odds ratios approximate additive interaction on the risk scale only when the outcome is rare &mdash; with common outcomes, use RRs or convert first (Knol &amp; VanderWeele 2012). The synergy index S is unreliable when either exposure is preventive (ratio &lt; 1); recode so both exposures are risk factors before computing S.</p>';
 
         html += '<div class="form-row form-row--3">'
             + '<div class="form-group"><label class="form-label">OR/RR for A alone (vs. neither)</label>'
@@ -620,9 +621,9 @@
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Regression Type</th><th>Minimum Rule</th><th>Modern Recommendation</th><th>Key Reference</th></tr></thead><tbody>'
             + '<tr><td><strong>Linear regression</strong></td><td>N &ge; 10-20 per predictor</td><td>N &ge; 50 + 8k (where k = number of predictors) for testing the overall model; N &ge; 104 + k for testing individual predictors</td><td>Green (1991)</td></tr>'
             + '<tr><td><strong>Logistic regression</strong></td><td>EPV &ge; 10</td><td>EPV &ge; 20 recommended; Riley criteria for prediction models; consider Firth correction for EPV &lt; 10</td><td>Peduzzi et al. (1996); Riley et al. (2020)</td></tr>'
-            + '<tr><td><strong>Cox regression</strong></td><td>EPV &ge; 10 (events)</td><td>EPV &ge; 20; minimum 100 events for stable HRs; more for multiple predictors</td><td>Concato et al. (1995); Vittinghoff & McCulloch (2007)</td></tr>'
+            + '<tr><td><strong>Cox regression</strong></td><td>EPV 5-10 may suffice for adjusted effect estimation (Vittinghoff & McCulloch 2007)</td><td>EPV &ge; 20 or a formal sample-size calculation for prediction models; minimum 100 events for stable HRs</td><td>Concato et al. (1995); Riley et al. (2020)</td></tr>'
             + '<tr><td><strong>Poisson regression</strong></td><td>N &ge; 10 per predictor</td><td>Total events &ge; 10-20 per predictor; ensure adequate person-time in each covariate stratum</td><td>Adapted from logistic regression rules</td></tr>'
-            + '<tr><td><strong>Ordinal logistic</strong></td><td>N &ge; 10 per predictor per outcome level</td><td>Consider effective sample size = min events in any adjacent-category pair; EPV &ge; 10-20</td><td>Adapted from logistic regression</td></tr>'
+            + '<tr><td><strong>Ordinal logistic</strong></td><td>N &ge; 10 per predictor per outcome level</td><td>Use Harrell\'s effective sample size n &minus; (1/n&sup2;)&Sigma;n&#7522;&sup3; (n&#7522; = category counts); EPV &ge; 10-20 on that basis</td><td>Harrell, Regression Modeling Strategies</td></tr>'
             + '<tr><td><strong>Mixed-effects models</strong></td><td>N &ge; 30 clusters; n &ge; 5 per cluster</td><td>50+ clusters preferred for reliable random effects; level-2 variance requires adequate clusters, not observations</td><td>Maas & Hox (2005)</td></tr>'
             + '</tbody></table></div>';
 
@@ -661,15 +662,16 @@
         html += '<div class="card-title mt-3">Riley Criteria for Prediction Models (2020)</div>';
         html += '<div class="result-panel">';
         html += '<p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.7;margin:0 0 12px 0">'
-            + 'Riley et al. (2020) proposed four criteria for minimum sample size in multivariable prediction model development. '
-            + 'The required sample size is the <strong>maximum</strong> across all four criteria:</p>';
+            + 'Riley et al. (BMJ 2020;368:m441) define minimum sample-size criteria for multivariable prediction model development (as implemented in <code>pmsampsize</code>). '
+            + 'For binary and survival outcomes the required sample size is the <strong>maximum</strong> across these criteria:</p>';
 
         html += '<ol style="margin:0 0 12px 20px;color:var(--text-secondary);font-size:0.9rem;line-height:1.8">'
-            + '<li><strong>Criterion 1 (overall fit):</strong> Small optimism in the overall fit statistic (Nagelkerke R-squared shrinkage &lt; 10%)</li>'
-            + '<li><strong>Criterion 2 (individual coefficients):</strong> Small absolute difference in individual coefficient estimates (shrinkage factor &gt; 0.9)</li>'
-            + '<li><strong>Criterion 3 (overall significance):</strong> Adequate power to detect the overall model fit (typically 80%)</li>'
-            + '<li><strong>Criterion 4 (calibration):</strong> Precise estimation of the intercept (within &plusmn; 0.05 of the true overall risk)</li>'
+            + '<li><strong>Criterion 1 (coefficient shrinkage):</strong> Expected uniform shrinkage of predictor effects &ge; 0.9 (i.e., &le; 10% overfitting of the linear predictor)</li>'
+            + '<li><strong>Criterion 2 (overall fit optimism):</strong> Small absolute difference (&le; 0.05) between apparent and optimism-adjusted Nagelkerke R-squared</li>'
+            + '<li><strong>Criterion 3 (baseline risk):</strong> Precise estimation of the overall outcome proportion (margin of error &le; 0.05)</li>'
             + '</ol>';
+        html += '<p style="color:var(--text-secondary);font-size:0.85rem;line-height:1.6;margin:0 0 12px 0">'
+            + 'For continuous outcomes a fourth criterion applies: precise estimation of the residual standard deviation and mean outcome value.</p>';
         html += '<p style="color:var(--text-secondary);font-size:0.85rem;line-height:1.6;margin:0">'
             + 'Use the R package <code style="background:var(--surface);padding:2px 6px;border-radius:4px;">pmsampsize</code> to calculate Riley criteria-based sample sizes.</p>';
         html += '</div>';
@@ -1062,8 +1064,6 @@
         if (isNaN(beta)) { Export.showToast('Enter a valid coefficient', 'error'); return; }
 
         var or_val = Math.exp(beta * unit);
-        var or_lo = Math.exp((beta - 0.5) * unit); // approximate SE=0.5
-        var or_hi = Math.exp((beta + 0.5) * unit);
 
         var interp = '';
         if (or_val > 1) {
@@ -1168,7 +1168,7 @@
         html += '<div class="result-detail mt-1">';
         if (reri > 0) {
             html += '<strong style="color:var(--danger)">Positive additive interaction (synergism):</strong> The joint effect of both exposures exceeds what would be expected from the sum of individual effects. '
-                + ap.toFixed(1) + '% of the risk among doubly-exposed is attributable to the interaction.';
+                + (ap * 100).toFixed(1) + '% of the risk among doubly-exposed is attributable to the interaction.';
         } else if (reri < 0) {
             html += '<strong style="color:var(--success)">Negative additive interaction (antagonism):</strong> The joint effect is less than what would be expected from the sum of individual effects.';
         } else {

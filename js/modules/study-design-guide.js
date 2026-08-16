@@ -94,7 +94,7 @@
         },
         {
             name: 'Ecological',
-            level: '5',
+            level: '2c',
             strengths: 'Uses readily available data; inexpensive; can study population-level exposures (e.g., policy, pollution); generates hypotheses',
             limitations: 'Ecological fallacy; cannot make individual-level inferences; confounding at group level; data quality varies',
             when: 'Studying population-level exposures; comparing geographic regions; hypothesis generation',
@@ -383,7 +383,7 @@
             advantages: 'Efficient (tests two questions for the price of one); can detect interactions; maximizes use of sample size.',
             disadvantages: 'Assumes no interaction between treatments (or must be powered for interaction); more complex randomization and analysis; participant burden with multiple treatments.',
             when: 'Two interventions can be combined; no expected interaction; limited resources for separate trials.',
-            example: 'CHANCE trial: factorial testing of clopidogrel + aspirin vs aspirin alone AND simvastatin vs placebo in TIA/minor stroke patients.',
+            example: 'FASTER trial: 2x2 factorial testing of clopidogrel vs placebo AND simvastatin vs placebo in TIA/minor stroke patients (Kennedy et al., Lancet Neurol 2007).',
             analysis: 'Main effects analyzed at the margins (ignoring the other factor). Interaction tested separately. If no interaction, efficient; if interaction present, must interpret cautiously.'
         },
         {
@@ -437,7 +437,7 @@
             advantages: 'Highly generalizable; reflects real-world practice; can use existing clinical infrastructure; lower per-patient cost; informs policy decisions.',
             disadvantages: 'Less controlled; harder to detect small effects; contamination between groups; protocol adherence may be lower; may have more missing data.',
             when: 'Treatment efficacy is established but real-world effectiveness is unknown; policy-relevant questions; comparing existing treatments.',
-            example: 'POINT trial: pragmatic approach to dual antiplatelet therapy after minor stroke/TIA in the real-world clinical setting.',
+            example: 'TASTE trial: registry-based randomized trial of thrombus aspiration in myocardial infarction, run inside an existing clinical registry with routine-care follow-up.',
             analysis: 'ITT analysis is primary. Consider PRECIS-2 tool to characterize where the trial sits on the pragmatic-explanatory spectrum.'
         },
         {
@@ -446,7 +446,7 @@
             advantages: 'Preserves effective treatments; allows simpler or safer alternatives; uses active comparator (no placebo ethical concerns).',
             disadvantages: 'Non-inferiority margin selection is subjective; requires larger sample sizes; biocreep concern over time; per-protocol analysis is co-primary; assay sensitivity assumption.',
             when: 'New treatment has potential advantages beyond efficacy (e.g., fewer side effects, oral vs IV); ethical concerns about placebo; effective treatments already exist.',
-            example: 'NAVIGATE ESUS: non-inferiority trial comparing rivaroxaban to aspirin for secondary stroke prevention in embolic stroke of undetermined source.',
+            example: 'ROCKET AF: non-inferiority trial of rivaroxaban vs warfarin for stroke prevention in atrial fibrillation (NI margin 1.46 for the hazard ratio).',
             analysis: 'Both ITT and per-protocol analyses required. Pre-specified non-inferiority margin. One-sided test or 95% CI approach. Switching to superiority testing is allowed if NI is established.'
         }
     ];
@@ -561,7 +561,7 @@
 
         // Evidence pyramid
         html += '<div class="result-panel mt-2">';
-        html += '<div class="card-subtitle">Oxford CEBM Levels of Evidence (2011)</div>';
+        html += '<div class="card-subtitle">Oxford CEBM Levels of Evidence (2009)</div>';
         html += '<div style="font-size:0.85rem;line-height:1.7">';
         var levels = [
             { label: '1a', desc: 'Systematic reviews of RCTs (with homogeneity)' },
@@ -572,10 +572,11 @@
             { label: '2c', desc: 'Outcomes research; ecological studies' },
             { label: '3a', desc: 'Systematic review of case-control studies' },
             { label: '3b', desc: 'Individual case-control study' },
-            { label: '4', desc: 'Case series, cross-sectional studies' },
-            { label: '5', desc: 'Expert opinion, bench research, case reports' }
+            { label: '4', desc: 'Case series (and poor-quality cohort and case-control studies)' },
+            { label: '5', desc: 'Expert opinion, bench research' }
         ];
         levels.forEach(function(l) { html += '<strong>Level ' + l.label + ':</strong> ' + l.desc + '<br>'; });
+        html += '<div style="margin-top:6px;color:var(--text-tertiary)">Note: the OCEBM 2011 revision replaced this scheme with five levels organized by question type (no a/b/c sublevels; "mechanism-based reasoning" at Level 5).</div>';
         html += '</div></div>';
 
         // Evidence hierarchy visual
@@ -1176,6 +1177,8 @@
         var html = '<div class="result-panel animate-in mt-2">';
         html += '<div class="result-value">' + avg.toFixed(1) + '<div class="result-label">'
             + 'Mean PRECIS-2 Score (' + classification + ')</div></div>';
+        html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:4px">'
+            + 'Note: the mean score and classification are an unofficial heuristic. PRECIS-2 itself reports the nine domain scores as a wheel and does not define a summary score.</div>';
 
         // Spider/radar chart approximation using bar chart
         html += '<div class="card-title mt-2">Domain Scores</div>';

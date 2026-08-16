@@ -165,7 +165,7 @@
             when: 'Small to moderate datasets; when you need optimism-corrected estimates.',
             pros: 'Optimism-corrected; uses all data; .632+ handles overfitting better.',
             cons: 'More complex; .632 can underestimate error with overfit models; computationally intensive.',
-            recommendation: 'Excellent for small clinical datasets. .632+ recommended by Harrell for clinical prediction models. Use 200+ bootstrap resamples.'
+            recommendation: 'Excellent for small clinical datasets. Harrell recommends the Efron-Gong optimism-corrected bootstrap for clinical prediction models; .632+ (Efron & Tibshirani 1997) is an alternative. Use 200+ bootstrap resamples.'
         },
         {
             name: 'External Validation',
@@ -195,7 +195,7 @@
         { name: 'Specificity', desc: 'Proportion of true negatives correctly identified. TN / (TN + FP).', range: '0 to 1.0', notes: 'Important when false positives are costly (e.g., unnecessary surgery).' },
         { name: 'F1 Score', desc: 'Harmonic mean of precision and recall. 2 * (precision * recall) / (precision + recall).', range: '0 to 1.0', notes: 'Useful for imbalanced classes; balances precision and recall.' },
         { name: 'Brier Score', desc: 'Mean squared difference between predicted probabilities and actual outcomes.', range: '0 (perfect) to 1.0 (worst)', notes: 'Combines discrimination and calibration. Decomposable into reliability and resolution.' },
-        { name: 'Calibration: Hosmer-Lemeshow', desc: 'Goodness-of-fit test comparing observed and predicted event rates across risk groups.', range: 'p > 0.05 indicates adequate fit', notes: 'Sensitive to sample size and number of groups. Supplement with calibration plots.' },
+        { name: 'Calibration: Hosmer-Lemeshow', desc: 'Goodness-of-fit test comparing observed and predicted event rates across risk groups.', range: 'p > 0.05: no statistical evidence of miscalibration (does not prove adequate fit; low power in small samples)', notes: 'Sensitive to sample size and number of groups. Supplement with calibration plots.' },
         { name: 'Calibration Slope', desc: 'Slope of logistic recalibration model (logit of predicted vs. actual). Perfect calibration = 1.0.', range: '<1 indicates overfitting, >1 indicates underfitting', notes: 'More informative than H-L test. Report with calibration-in-the-large (intercept).' }
     ];
 
@@ -211,7 +211,7 @@
         { name: 'Time-dependent AUC', desc: 'AUC evaluated at specific time points, accounting for censoring.', range: '0.5 to 1.0', notes: 'Useful when discrimination varies over time. Report at clinically meaningful time points.' },
         { name: 'Calibration Plot (Survival)', desc: 'Plot of predicted vs. observed survival probabilities at a specific time point.', range: 'Perfect: 45-degree line', notes: 'Use bootstrap-corrected calibration. Report at multiple time points.' },
         { name: 'Net Reclassification Index (NRI)', desc: 'Measures improvement in classification when a new predictor or model is added. Sums improvement in event and non-event categories.', range: '-2 to +2', notes: 'Report category-based or continuous NRI. Always report event and non-event components separately.' },
-        { name: 'Integrated Discrimination Improvement (IDI)', desc: 'Difference in mean predicted probabilities between events and non-events for new vs. old model.', range: '0 (no improvement) to 1.0', notes: 'Complementary to NRI. Does not require predefined risk categories.' }
+        { name: 'Integrated Discrimination Improvement (IDI)', desc: 'Difference in discrimination slope (mean predicted probability in events minus non-events) between new and old model.', range: '-1 to +1 in practice; negative = new model discriminates worse', notes: 'Complementary to NRI. Does not require predefined risk categories.' }
     ];
 
     /* ------------------------------------------------------------------ */
@@ -258,7 +258,7 @@
                 + '<ul style="margin:0.5rem 0;padding-left:1.5rem;">'
                 + '<li>Using future information to predict current outcomes (e.g., using 30-day lab results to predict mortality at admission)</li>'
                 + '<li>Performing feature selection or normalization on the full dataset before splitting into train/test</li>'
-                + '<li>Including variables that are consequences of the outcome (e.g., using ICU admission as a predictor of inpatient mortality when ICU admission happens after the outcome)</li>'
+                + '<li>Including predictors measured after the prediction time point (e.g., using a palliative-care consultation or code-status change that occurred during the admission as a predictor of inpatient mortality "at admission")</li>'
                 + '<li>Patient-level data appearing in both training and test sets (e.g., multiple visits from the same patient)</li>'
                 + '</ul>'
                 + '<strong>Prevention:</strong> Always split data before any preprocessing. Use temporal splits when possible. Carefully review each feature for potential causal path to outcome.'
@@ -268,10 +268,10 @@
             content: 'Clinical outcomes are often rare (e.g., 1-5% event rate), causing models to predict the majority class.\n\n'
                 + '<strong>Approaches:</strong>\n'
                 + '<ul style="margin:0.5rem 0;padding-left:1.5rem;">'
-                + '<li><strong>Resampling:</strong> SMOTE, random oversampling, random undersampling (apply only to training data, never test data)</li>'
+                + '<li><strong>Threshold tuning:</strong> Optimize the classification threshold for the specific clinical use case</li>'
                 + '<li><strong>Cost-sensitive learning:</strong> Assign higher misclassification costs to the minority class</li>'
-                + '<li><strong>Appropriate metrics:</strong> Use AUC-PR instead of AUC-ROC; use F1 instead of accuracy</li>'
-                + '<li><strong>Threshold tuning:</strong> Optimize classification threshold for the specific clinical use case</li>'
+                + '<li><strong>Appropriate metrics:</strong> Report AUC-PR alongside AUC-ROC (ROC-AUC remains a valid discrimination measure under imbalance); prefer proper metrics over accuracy</li>'
+                + '<li><strong>Resampling (use with caution):</strong> SMOTE and over/undersampling change the effective outcome prevalence and systematically distort calibration of predicted probabilities (van den Goorbergh et al., JAMIA 2022 recommend against them for clinical risk models); if used, apply to training data only and recalibrate afterwards</li>'
                 + '</ul>'
                 + '<strong>Key point:</strong> Do NOT use accuracy as a metric for imbalanced data. A model predicting "no event" always would have 95% accuracy with 5% event rate.'
         },
@@ -336,9 +336,9 @@
                 + '<strong>Approaches (from worst to best):</strong>\n'
                 + '<ul style="margin:0.5rem 0;padding-left:1.5rem;">'
                 + '<li><strong>Complete-case analysis:</strong> Deletes rows with missing values. Introduces bias if data is not MCAR; loses statistical power.</li>'
+                + '<li><strong>Indicator method:</strong> Adding a "missing" indicator variable. Can sometimes be useful but biased in many settings.</li>'
                 + '<li><strong>Single imputation (mean/median):</strong> Underestimates variance; introduces bias toward the mean.</li>'
                 + '<li><strong>Multiple imputation:</strong> Creates multiple plausible datasets, analyses each, and combines results. Gold standard for statistical models.</li>'
-                + '<li><strong>Indicator method:</strong> Adding a "missing" indicator variable. Can sometimes be useful but biased in many settings.</li>'
                 + '</ul>'
                 + '<strong>Key:</strong> Report the proportion of missing data per variable. Use multiple imputation (e.g., MICE) when possible. Perform sensitivity analyses comparing approaches.'
         }
@@ -680,8 +680,8 @@
             var html = '';
             /* === Card 4: TRIPOD+AI Checklist === */
             html += '<div class="card">';
-            html += '<div class="card-title">TRIPOD+AI Checklist</div>';
-            html += '<div class="card-subtitle">Checklist for reporting prediction model studies with AI/ML components. Based on TRIPOD with AI extensions.</div>';
+            html += '<div class="card-title">Prediction-Model Reporting Checklist (adapted from TRIPOD / TRIPOD+AI)</div>';
+            html += '<div class="card-subtitle">Condensed working checklist for prediction model studies with AI/ML components. This is NOT the official 27-item TRIPOD+AI statement (Collins et al., BMJ 2024;385:e078378) &mdash; for journal submission, complete the official checklist at tripod-statement.org.</div>';
 
             /* Progress bar */
             html += '<div style="margin-bottom:1rem;">';
@@ -712,7 +712,7 @@
             if (lastTripodSection !== '') html += '</div>';
 
             html += '<div class="btn-group mt-2">';
-            html += '<button class="btn btn-secondary" onclick="MLPrediction.copyTripod()">Copy TRIPOD+AI Checklist</button>';
+            html += '<button class="btn btn-secondary" onclick="MLPrediction.copyTripod()">Copy Checklist</button>';
             html += '<button class="btn btn-secondary" onclick="MLPrediction.resetTripod()">Reset</button>';
             html += '</div>';
             html += '</div>';
@@ -752,7 +752,7 @@
             html += '<div class="form-group"><label class="form-label">Validation Method</label>';
             html += '<select class="form-select" id="ml-val-method">';
             html += '<option value="kfold">k-Fold Cross-Validation</option>';
-            html += '<option value="bootstrap">Bootstrap (.632+)</option>';
+            html += '<option value="bootstrap">Bootstrap (.632)</option>';
             html += '<option value="traintestsplit">Train/Test Split</option>';
             html += '</select></div>';
             html += '<div class="form-group"><label class="form-label">Total Sample Size (N)</label>';
@@ -1104,7 +1104,7 @@
     }
 
     function copyTripod() {
-        var lines = ['TRIPOD+AI Checklist', '='.repeat(40), ''];
+        var lines = ['Prediction-Model Reporting Checklist (adapted from TRIPOD / TRIPOD+AI; not the official statement)', '='.repeat(40), ''];
         var lastSection = '';
         for (var i = 0; i < tripodItems.length; i++) {
             var item = tripodItems[i];
@@ -1202,26 +1202,28 @@
             html += '<tr><td>Training set per fold</td><td>~' + trainSize + '</td></tr>';
             html += '<tr><td>Events per fold (test)</td><td>~' + Math.round(events / k) + '</td></tr>';
             html += '<tr><td>Apparent AUC</td><td>' + apparentAUC.toFixed(3) + '</td></tr>';
-            html += '<tr><td>Estimated optimism</td><td>' + (optimismEst * 0.3).toFixed(3) + '</td></tr>';
-            html += '<tr><td>Expected CV AUC</td><td>~' + correctedAUC.toFixed(3) + '</td></tr>';
+            html += '<tr><td>Illustrative optimism (toy heuristic)</td><td>' + (optimismEst * 0.3).toFixed(3) + '</td></tr>';
+            html += '<tr><td>Illustrative CV AUC (toy heuristic)</td><td>~' + correctedAUC.toFixed(3) + '</td></tr>';
             html += '</tbody></table></div>';
+            html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:0.3rem;">The optimism figures above are illustrative only (a simple EPV-based heuristic, not a published estimator). Actual optimism depends on the model, signal strength, and case mix &mdash; run the real cross-validation on your data.</div>';
 
             var kAdvice = k === 10 ? '10-fold CV is the standard choice.' : k === 5 ? '5-fold is acceptable but 10-fold generally preferred.' : k > 15 ? 'High k gives low bias but high variance. Consider k=10.' : 'Non-standard k value. 5 or 10 are most common.';
             html += '<div style="font-size:0.85rem;margin-top:0.5rem;"><strong>Recommendation:</strong> ' + kAdvice + ' Repeat CV 10-100 times for stable estimates. Use stratified k-fold for imbalanced outcomes.</div>';
 
         } else if (method === 'bootstrap') {
             var b632AUC = 0.368 * apparentAUC + 0.632 * Math.max(0.5, apparentAUC - (predictors / events) * 0.25);
-            html += '<div class="card-subtitle" style="font-weight:600;">Bootstrap Validation (.632+)</div>';
+            html += '<div class="card-subtitle" style="font-weight:600;">Bootstrap Validation (.632)</div>';
             html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
             html += '<tr><td>Bootstrap resamples (B)</td><td>' + k + '</td></tr>';
             html += '<tr><td>Apparent AUC</td><td>' + apparentAUC.toFixed(3) + '</td></tr>';
-            html += '<tr><td>Estimated .632 AUC</td><td>~' + b632AUC.toFixed(3) + '</td></tr>';
+            html += '<tr><td>Illustrative .632 AUC (toy heuristic)</td><td>~' + b632AUC.toFixed(3) + '</td></tr>';
             html += '<tr><td>OOB sample fraction</td><td>~36.8%</td></tr>';
             html += '<tr><td>OOB samples per iteration</td><td>~' + Math.round(n * 0.368) + '</td></tr>';
             html += '</tbody></table></div>';
+            html += '<div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:0.3rem;">The .632 figure shown uses an illustrative EPV-based stand-in for the out-of-bag AUC, not a published estimator; run the real bootstrap on your data. (.632+ additionally reweights by the relative overfitting rate; the Efron-Gong optimism bootstrap is what Harrell recommends for clinical models.)</div>';
 
             var bAdvice = k >= 200 ? 'Adequate number of bootstrap resamples.' : 'Increase to at least 200 resamples for stable estimates.';
-            html += '<div style="font-size:0.85rem;margin-top:0.5rem;"><strong>Recommendation:</strong> ' + bAdvice + ' .632+ is recommended by Harrell for clinical prediction models. It corrects for optimism better than apparent performance.</div>';
+            html += '<div style="font-size:0.85rem;margin-top:0.5rem;"><strong>Recommendation:</strong> ' + bAdvice + ' Bootstrap validation corrects for optimism better than apparent performance.</div>';
 
         } else {
             var trainN = Math.round(n * trainFrac);
@@ -1389,7 +1391,7 @@
         html += '<div class="table-scroll-wrap"><table class="data-table"><thead><tr><th>Measure</th><th>Old Model</th><th>New Model</th><th>Difference</th></tr></thead><tbody>';
         html += '<tr><td>Mean predicted prob (events)</td><td class="num">' + oldEventProb.toFixed(3) + '</td><td class="num">' + newEventProb.toFixed(3) + '</td><td class="num">' + (newEventProb - oldEventProb).toFixed(3) + '</td></tr>';
         html += '<tr><td>Mean predicted prob (non-events)</td><td class="num">' + oldNoneventProb.toFixed(3) + '</td><td class="num">' + newNoneventProb.toFixed(3) + '</td><td class="num">' + (newNoneventProb - oldNoneventProb).toFixed(3) + '</td></tr>';
-        html += '<tr><td>Integrated Sensitivity (IS)</td><td class="num">' + isOld.toFixed(3) + '</td><td class="num">' + isNew.toFixed(3) + '</td><td class="num" style="font-weight:700;color:' + (idi > 0 ? 'var(--success)' : 'var(--danger)') + '">' + idi.toFixed(3) + '</td></tr>';
+        html += '<tr><td>Discrimination slope (IS &minus; IP)</td><td class="num">' + isOld.toFixed(3) + '</td><td class="num">' + isNew.toFixed(3) + '</td><td class="num" style="font-weight:700;color:' + (idi > 0 ? 'var(--success)' : 'var(--danger)') + '">' + idi.toFixed(3) + '</td></tr>';
         html += '</tbody></table></div>';
 
         html += '<div style="margin-top:0.8rem;font-size:0.85rem;line-height:1.7;">';
