@@ -42,7 +42,7 @@ describe('Meta-Analysis Module', () => {
             FunnelPlot: jest.fn()
         };
 
-        const statsCode = fs.readFileSync('js/core/statistics.js', 'utf8');
+        const statsCode = ['constants.js', 'special-functions.js', 'normal-distribution.js', 'students-t-distribution.js', 'chi-squared-distribution.js', 'f-distribution.js', 'binomial-distribution.js', 'poisson-distribution.js', 'hypergeometric-distribution.js', 'confidence-intervals-for-proportions.js', 'hypothesis-tests.js', 'sample-size-formulas.js', 'meta-analysis.js', 'survival-analysis.js', 'diagnostic-accuracy.js', 'epidemiology-2x2-table.js', 'effect-size-conversions.js', 'utility-functions.js'].map(f => fs.readFileSync('js/core/stats/' + f, 'utf8')).join('\n');
         window.eval(statsCode + '; window.Statistics = Statistics;');
 
         const code = fs.readFileSync('js/modules/meta-analysis.js', 'utf8');

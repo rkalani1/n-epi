@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Load modules by evaluating them into the JSDOM window
-const statsCode = fs.readFileSync(path.join(__dirname, '../../js/core/statistics.js'), 'utf8');
+const statsCode = ['constants.js', 'special-functions.js', 'normal-distribution.js', 'students-t-distribution.js', 'chi-squared-distribution.js', 'f-distribution.js', 'binomial-distribution.js', 'poisson-distribution.js', 'hypergeometric-distribution.js', 'confidence-intervals-for-proportions.js', 'hypothesis-tests.js', 'sample-size-formulas.js', 'meta-analysis.js', 'survival-analysis.js', 'diagnostic-accuracy.js', 'epidemiology-2x2-table.js', 'effect-size-conversions.js', 'utility-functions.js'].map(f => fs.readFileSync(path.join(__dirname, '../../js/core/stats/' + f), 'utf8')).join('\n');
 
 beforeAll(() => {
     // Evaluate statistics which assigns to const Statistics.
