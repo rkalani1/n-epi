@@ -244,6 +244,55 @@ describe('Statistics Module', () => {
         });
     });
 
+    describe('chiSquaredQuantile', () => {
+        test('returns 0 for p <= 0', () => {
+            expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(-0.1, 5)).toBe(0);
+        });
+
+        test('returns Infinity for p >= 1', () => {
+            expect(Statistics.chiSquaredQuantile(1, 1)).toBe(Infinity);
+            expect(Statistics.chiSquaredQuantile(1.5, 5)).toBe(Infinity);
+        });
+
+        test('matches known chi-squared quantile table values', () => {
+            // df = 1
+            expect(Statistics.chiSquaredQuantile(0.95, 1)).toBeCloseTo(3.8414588, 5);
+            expect(Statistics.chiSquaredQuantile(0.99, 1)).toBeCloseTo(6.6348966, 5);
+
+            // df = 2 (exact formula: -2 * ln(1-p))
+            expect(Statistics.chiSquaredQuantile(0.50, 2)).toBeCloseTo(1.38629436, 5);
+            expect(Statistics.chiSquaredQuantile(0.95, 2)).toBeCloseTo(5.9914645, 5);
+            expect(Statistics.chiSquaredQuantile(0.99, 2)).toBeCloseTo(9.2103404, 5);
+
+            // df = 5
+            expect(Statistics.chiSquaredQuantile(0.95, 5)).toBeCloseTo(11.0704977, 5);
+
+            // df = 10
+            expect(Statistics.chiSquaredQuantile(0.95, 10)).toBeCloseTo(18.3070381, 5);
+            expect(Statistics.chiSquaredQuantile(0.99, 10)).toBeCloseTo(23.2092512, 5);
+        });
+
+        test('handles small probabilities correctly', () => {
+            const val = Statistics.chiSquaredQuantile(0.0001, 1);
+            expect(val).toBeGreaterThan(0);
+            expect(Statistics.chiSquaredCDF(val, 1)).toBeCloseTo(0.0001, 6);
+        });
+
+        test('inverts chiSquaredCDF accurately across various probabilities and df', () => {
+            const probabilities = [0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99];
+            const dfs = [1, 2, 5, 10, 30];
+
+            probabilities.forEach((p) => {
+                dfs.forEach((df) => {
+                    const q = Statistics.chiSquaredQuantile(p, df);
+                    const calculatedP = Statistics.chiSquaredCDF(q, df);
+                    expect(calculatedP).toBeCloseTo(p, 5);
+                });
+            });
+        });
+    });
+
     describe('waldCI', () => {
         test('calculates Wald CI correctly with specified z', () => {
             const p = 0.5;
