@@ -66,6 +66,7 @@ describe('App Favorites System', () => {
             }).not.toThrow();
 
             expect(setItemSpy).toHaveBeenCalled();
+            setItemSpy.mockRestore();
         });
     });
 });
@@ -139,5 +140,45 @@ describe('Navigation structure counts', () => {
         const ids = App.NAV.flatMap((g) => g.items.map((i) => i.id));
         expect(ids.length).toBe(25);
         expect(new Set(ids).size).toBe(25);
+    });
+});
+
+describe('App Dashboard Rendering', () => {
+    beforeEach(() => {
+        localStorage.clear();
+        document.body.innerHTML = '<div id="sidebar"></div><div id="mobile-nav"></div><div id="module-content"></div>';
+        const createDOMPurify = require('../js/core/dompurify.min.js');
+        global.DOMPurify = createDOMPurify(window);
+    });
+
+    afterEach(() => {
+        delete global.DOMPurify;
+    });
+
+    it('renders dashboard with stats, categories, launch cards, and recent calculations', () => {
+        // Set up dummy favorites and recent calculation history
+        localStorage.setItem('neuroepi_favorites', JSON.stringify(['sample-size']));
+        localStorage.setItem('ne-calc-history', JSON.stringify([
+            { module: 'sample-size', calc: 'sample-size', result: 'n = 100', timestamp: Date.now() - 5000 }
+        ]));
+
+        App.navigate('home');
+
+        const content = document.getElementById('module-content');
+        expect(content.querySelector('.dashboard')).not.toBeNull();
+        expect(content.querySelector('.dashboard-hero-title').textContent).toBe('n-epi');
+        expect(content.querySelector('.dashboard-stats')).not.toBeNull();
+
+        // Check favorites section rendered
+        expect(content.innerText || content.textContent).toContain('Your Favorites');
+        expect(content.querySelector('[data-continue-module]')).not.toBeNull();
+
+        // Check categories section rendered
+        expect(content.querySelectorAll('.dashboard-category-card').length).toBe(App.NAV.length);
+
+        // Check recent calculations rendered
+        expect(content.querySelector('.dashboard-recent-calcs')).not.toBeNull();
+        expect(content.innerText || content.textContent).toContain('Sample Size');
+        expect(content.innerText || content.textContent).toContain('n = 100');
     });
 });
