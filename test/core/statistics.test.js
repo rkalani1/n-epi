@@ -435,6 +435,36 @@ describe('Additional Statistics Coverage', () => {
         });
     });
 
+    describe('sampleSizeSchoenfeld', () => {
+        test('computes sample size and events with default alpha, power, and ratio', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.7);
+            expect(res.hr).toBe(0.7);
+            expect(res.lnHR).toBeCloseTo(Math.log(0.7), 10);
+            expect(res.events).toBe(247);
+            expect(res.totalN).toBeNull();
+        });
+
+        test('computes totalN when event rate (pEvent) is provided', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.7, 0.05, 0.80, 1, 0.5);
+            expect(res.events).toBe(247);
+            expect(res.totalN).toBe(494);
+        });
+
+        test('handles custom alpha, power, ratio, and pEvent parameters', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.5, 0.01, 0.90, 2, 0.4);
+            expect(res.hr).toBe(0.5);
+            expect(res.lnHR).toBeCloseTo(Math.log(0.5), 10);
+            expect(res.events).toBe(140);
+            expect(res.totalN).toBe(350);
+        });
+
+        test('yields identical required events for HR and 1/HR', () => {
+            const resLower = Statistics.sampleSizeSchoenfeld(0.7, 0.05, 0.80, 1);
+            const resUpper = Statistics.sampleSizeSchoenfeld(1 / 0.7, 0.05, 0.80, 1);
+            expect(resLower.events).toBe(resUpper.events);
+        });
+    });
+
     describe('sampleSizeTwoProportions', () => {
         test('computes supported methods and rejects invalid methods', () => {
             expect(Statistics.sampleSizeTwoProportions(0.5, 0.4)).toEqual({ n1: 388, n2: 388, total: 776 });
