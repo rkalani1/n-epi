@@ -141,3 +141,49 @@ describe('Navigation structure counts', () => {
         expect(new Set(ids).size).toBe(25);
     });
 });
+
+describe('Dashboard rendering', () => {
+    beforeAll(() => {
+        const createDOMPurify = require('../js/core/dompurify.min.js');
+        global.DOMPurify = createDOMPurify(window);
+    });
+
+    beforeEach(() => {
+        jest.restoreAllMocks();
+        document.body.innerHTML = '<div id="module-content"></div><div id="sidebar"></div>';
+        localStorage.clear();
+    });
+
+    afterAll(() => {
+        delete global.DOMPurify;
+    });
+
+    it('renders basic dashboard structure correctly', () => {
+        App.navigate('home', false);
+        const container = document.getElementById('module-content');
+        expect(container.querySelector('.dashboard')).not.toBeNull();
+        expect(container.querySelector('.dashboard-hero-title').textContent).toBe('n-epi');
+        expect(container.querySelector('.dashboard-stats')).not.toBeNull();
+        expect(container.querySelector('.dashboard-continue-section')).not.toBeNull();
+        expect(container.querySelector('.dashboard-categories')).not.toBeNull();
+        expect(container.querySelector('.dashboard-whats-new')).not.toBeNull();
+    });
+
+    it('renders favorites on dashboard when favorites exist', () => {
+        App.saveFavorites(['sample-size']);
+        App.navigate('home', false);
+        const container = document.getElementById('module-content');
+        const favHeading = Array.from(container.querySelectorAll('.dashboard-section-title'))
+            .find(el => el.textContent.includes('Favorites'));
+        expect(favHeading).not.toBeUndefined();
+    });
+
+    it('renders recent calculations on dashboard when calculation history exists', () => {
+        App.addToHistory('Sample Size', 'n_calc', 'N = 100 per group');
+        App.navigate('home', false);
+        const container = document.getElementById('module-content');
+        const calcHeading = Array.from(container.querySelectorAll('.dashboard-section-title'))
+            .find(el => el.textContent.includes('Recent Calculations'));
+        expect(calcHeading).not.toBeUndefined();
+    });
+});

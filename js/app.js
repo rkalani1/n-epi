@@ -939,26 +939,8 @@ const App = (() => {
     // WELCOME / DASHBOARD PAGE
     // ============================================================
 
-    function renderDashboard(container) {
-        let allMods = getAllModules();
-        let recentVisits = getRecentModules();
-        let favs = getFavorites();
-
-        // Count total modules
-        let totalModules = allMods.length;
-        let popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
-        let continueIds = [];
-        recentVisits.forEach(function (visit) {
-            if (continueIds.length < 6 && !continueIds.includes(visit.id)) continueIds.push(visit.id);
-        });
-        popularIds.forEach(function (moduleId) {
-            if (continueIds.length < 6 && !continueIds.includes(moduleId)) continueIds.push(moduleId);
-        });
-
-        let html = '<div class="dashboard">';
-
-        // Hero section
-        html += '<div class="dashboard-hero">'
+    function buildDashboardHero() {
+        return '<div class="dashboard-hero">'
             + '<h1 class="dashboard-hero-title">n-epi</h1>'
             + '<button class="dashboard-search-btn" onclick="App.openCommandPalette()">'
             + '<span style="opacity:0.5;margin-right:8px;">&#128269;</span>'
@@ -966,9 +948,9 @@ const App = (() => {
             + '<kbd class="kbd-hint">' + PALETTE_KEY_HTML + '</kbd>'
             + '</button>'
             + '</div>';
+    }
 
-        // Quick stats — trial count computed from the live database (unique names,
-        // matching the trial-database module's render-time dedupe)
+    function buildDashboardStats(totalModules) {
         var totalTrials = (typeof TrialDatabase !== 'undefined' && TrialDatabase.trials)
             ? (function () {
                 var names = {};
@@ -976,7 +958,7 @@ const App = (() => {
                 return Object.keys(names).length;
             })()
             : 0;
-        html += '<div class="dashboard-stats">'
+        return '<div class="dashboard-stats">'
             + '<div class="dashboard-stat">'
             + '<div class="dashboard-stat-value">' + totalModules + '</div>'
             + '<div class="dashboard-stat-label">Modules</div>'
@@ -994,33 +976,44 @@ const App = (() => {
             + '<div class="dashboard-stat-label">Categories</div>'
             + '</div>'
             + '</div>';
+    }
 
-        // Favorites section (if any)
-        if (favs.length > 0) {
-            html += '<div class="dashboard-section">'
-                + '<h2 class="dashboard-section-title">&#9733; Your Favorites</h2>'
-                + '<div class="dashboard-module-grid">';
-            favs.forEach(function (favId) {
-                let mod = null;
-                for (let i = 0; i < allMods.length; i++) {
-                    if (allMods[i].id === favId) { mod = allMods[i]; break; }
-                }
-                if (mod) {
-                    html += '<div class="dashboard-module-card" onclick="App.navigate(\'' + mod.id + '\')">'
-                        + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
-                        + '<div class="dashboard-module-label">' + mod.label + '</div>'
-                        + '<div class="dashboard-module-desc">' + mod.description + '</div>'
-                        + '</div>';
-                }
-            });
-            html += '</div></div>';
-        }
+    function buildDashboardFavorites(favs, allMods) {
+        if (!favs || favs.length === 0) return '';
+        let html = '<div class="dashboard-section">'
+            + '<h2 class="dashboard-section-title">&#9733; Your Favorites</h2>'
+            + '<div class="dashboard-module-grid">';
+        favs.forEach(function (favId) {
+            let mod = null;
+            for (let i = 0; i < allMods.length; i++) {
+                if (allMods[i].id === favId) { mod = allMods[i]; break; }
+            }
+            if (mod) {
+                html += '<div class="dashboard-module-card" onclick="App.navigate(\'' + mod.id + '\')">'
+                    + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
+                    + '<div class="dashboard-module-label">' + mod.label + '</div>'
+                    + '<div class="dashboard-module-desc">' + mod.description + '</div>'
+                    + '</div>';
+            }
+        });
+        html += '</div></div>';
+        return html;
+    }
 
-        // One recent-first, deduplicated launch row.
-        html += '<div class="dashboard-section dashboard-continue-section">'
+    function buildDashboardContinue(recentVisits, allMods) {
+        let popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
+        let continueIds = [];
+        recentVisits.forEach(function (visit) {
+            if (continueIds.length < 6 && !continueIds.includes(visit.id)) continueIds.push(visit.id);
+        });
+        popularIds.forEach(function (moduleId) {
+            if (continueIds.length < 6 && !continueIds.includes(moduleId)) continueIds.push(moduleId);
+        });
+
+        let html = '<div class="dashboard-section dashboard-continue-section">'
             + '<div class="dashboard-section-heading">'
             + '<h2 class="dashboard-section-title">&#8594; Continue or start</h2>'
-            + '<button type="button" class="dashboard-browse-all" onclick="App.openCommandPalette()">Browse all ' + totalModules + '</button>'
+            + '<button type="button" class="dashboard-browse-all" onclick="App.openCommandPalette()">Browse all ' + allMods.length + '</button>'
             + '</div>'
             + '<div class="dashboard-module-grid">';
         continueIds.forEach(function (moduleId) {
@@ -1034,44 +1027,47 @@ const App = (() => {
             }
         });
         html += '</div></div>';
+        return html;
+    }
 
-        // Recent Calculations
+    function buildDashboardRecentCalcs(allMods) {
         let calcHistory = getCalcHistory();
-        if (calcHistory.length > 0) {
-            html += '<div class="dashboard-section">'
-                + '<h2 class="dashboard-section-title">&#128202; Recent Calculations</h2>'
-                + '<div class="dashboard-recent-calcs">';
-            let calcCount = Math.min(calcHistory.length, 5);
-            for (let ci = 0; ci < calcCount; ci++) {
-                let entry = calcHistory[ci];
-                // Resolve module ID to friendly name and navigation ID
-                let resolvedId = findModuleIdByName(entry.module) || entry.module;
-                let resolvedLabel = entry.module;
-                for (let mi = 0; mi < allMods.length; mi++) {
-                    if (allMods[mi].id === entry.module || allMods[mi].id === resolvedId) {
-                        resolvedLabel = allMods[mi].label;
-                        resolvedId = allMods[mi].id;
-                        break;
-                    }
+        if (!calcHistory || calcHistory.length === 0) return '';
+        let html = '<div class="dashboard-section">'
+            + '<h2 class="dashboard-section-title">&#128202; Recent Calculations</h2>'
+            + '<div class="dashboard-recent-calcs">';
+        let calcCount = Math.min(calcHistory.length, 5);
+        for (let ci = 0; ci < calcCount; ci++) {
+            let entry = calcHistory[ci];
+            // Resolve module ID to friendly name and navigation ID
+            let resolvedId = findModuleIdByName(entry.module) || entry.module;
+            let resolvedLabel = entry.module;
+            for (let mi = 0; mi < allMods.length; mi++) {
+                if (allMods[mi].id === entry.module || allMods[mi].id === resolvedId) {
+                    resolvedLabel = allMods[mi].label;
+                    resolvedId = allMods[mi].id;
+                    break;
                 }
-                let clickAttr = resolvedId ? ' onclick="App.navigate(\'' + resolvedId + '\')" style="cursor:pointer;"' : '';
-                html += '<div class="dashboard-calc-entry card"' + clickAttr + '>'
-                    + '<div style="display:flex;justify-content:space-between;align-items:center;">'
-                    + '<div>'
-                    + '<div style="font-weight:600;font-size:0.9rem;">' + resolvedLabel + '</div>'
-                    + '<div style="font-size:0.75rem;color:var(--text-tertiary);">' + (entry.result || '').substring(0, 60) + '</div>'
-                    + '</div>'
-                    + '<div style="text-align:right;">'
-                    + '<div style="font-size:0.7rem;color:var(--text-tertiary);">' + formatRelativeTime(entry.timestamp) + '</div>'
-                    + '</div>'
-                    + '</div>'
-                    + '</div>';
             }
-            html += '</div></div>';
+            let clickAttr = resolvedId ? ' onclick="App.navigate(\'' + resolvedId + '\')" style="cursor:pointer;"' : '';
+            html += '<div class="dashboard-calc-entry card"' + clickAttr + '>'
+                + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+                + '<div>'
+                + '<div style="font-weight:600;font-size:0.9rem;">' + resolvedLabel + '</div>'
+                + '<div style="font-size:0.75rem;color:var(--text-tertiary);">' + (entry.result || '').substring(0, 60) + '</div>'
+                + '</div>'
+                + '<div style="text-align:right;">'
+                + '<div style="font-size:0.7rem;color:var(--text-tertiary);">' + formatRelativeTime(entry.timestamp) + '</div>'
+                + '</div>'
+                + '</div>'
+                + '</div>';
         }
+        html += '</div></div>';
+        return html;
+    }
 
-        // All categories
-        html += '<div class="dashboard-section">'
+    function buildDashboardCategories() {
+        let html = '<div class="dashboard-section">'
             + '<h2 class="dashboard-section-title">&#128218; All Categories</h2>'
             + '<div class="dashboard-categories">';
         NAV.forEach(function (group, gIdx) {
@@ -1082,9 +1078,11 @@ const App = (() => {
                 + '</div>';
         });
         html += '</div></div>';
+        return html;
+    }
 
-        // What's new
-        html += '<div class="dashboard-section">'
+    function buildDashboardWhatsNew(totalModules) {
+        return '<div class="dashboard-section">'
             + '<h2 class="dashboard-section-title">&#127881; What\'s New in v2.1</h2>'
             + '<div class="dashboard-whats-new card">'
             + '<ul class="dashboard-changelog">'
@@ -1098,8 +1096,22 @@ const App = (() => {
             + '</ul>'
             + '</div>'
             + '</div>';
+    }
 
-        html += '</div>';
+    function renderDashboard(container) {
+        let allMods = getAllModules();
+        let recentVisits = getRecentModules();
+        let favs = getFavorites();
+
+        let html = '<div class="dashboard">'
+            + buildDashboardHero()
+            + buildDashboardStats(allMods.length)
+            + buildDashboardFavorites(favs, allMods)
+            + buildDashboardContinue(recentVisits, allMods)
+            + buildDashboardRecentCalcs(allMods)
+            + buildDashboardCategories()
+            + buildDashboardWhatsNew(allMods.length)
+            + '</div>';
 
         setTrustedHTML(container, html);
     }
