@@ -1068,11 +1068,16 @@
 
     function copyWorksheet() {
         var text = '=== JOURNAL CLUB WORKSHEET ===\n\n';
+        var inputs = document.querySelectorAll('[id^="jc-"]');
+        var inputMap = {};
+        for (var i = 0; i < inputs.length; i++) {
+            inputMap[inputs[i].id] = inputs[i];
+        }
         journalClubTemplate.sections.forEach(function (section, si) {
             text += section.title.toUpperCase() + '\n';
             text += '-'.repeat(section.title.length) + '\n';
             section.fields.forEach(function (field, fi) {
-                var input = document.getElementById('jc-' + si + '-' + fi);
+                var input = inputMap['jc-' + si + '-' + fi];
                 var val = input ? input.value.trim() : '';
                 text += field + ': ' + (val || '[not entered]') + '\n';
             });
@@ -1082,12 +1087,10 @@
     }
 
     function clearWorksheet() {
-        journalClubTemplate.sections.forEach(function (section, si) {
-            section.fields.forEach(function (_, fi) {
-                var input = document.getElementById('jc-' + si + '-' + fi);
-                if (input) input.value = '';
-            });
-        });
+        var inputs = document.querySelectorAll('[id^="jc-"]');
+        for (var i = 0; i < inputs.length; i++) {
+            inputs[i].value = '';
+        }
     }
 
     /* ------------------------------------------------------------------ */
