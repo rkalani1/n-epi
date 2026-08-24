@@ -129,6 +129,46 @@ describe('Statistics Module', () => {
         });
     });
 
+    describe('logChoose', () => {
+        test('returns -Infinity for invalid k bounds (k < 0 or k > n)', () => {
+            expect(Statistics.logChoose(5, -1)).toBe(-Infinity);
+            expect(Statistics.logChoose(5, 6)).toBe(-Infinity);
+            expect(Statistics.logChoose(0, -1)).toBe(-Infinity);
+            expect(Statistics.logChoose(0, 1)).toBe(-Infinity);
+        });
+
+        test('returns 0 for boundary combinations (k === 0 or k === n)', () => {
+            expect(Statistics.logChoose(5, 0)).toBe(0);
+            expect(Statistics.logChoose(5, 5)).toBe(0);
+            expect(Statistics.logChoose(0, 0)).toBe(0);
+            expect(Statistics.logChoose(100, 0)).toBe(0);
+            expect(Statistics.logChoose(100, 100)).toBe(0);
+        });
+
+        test('computes correct log combinations for standard inputs', () => {
+            // 5 choose 2 = 10 -> log(10)
+            expect(Statistics.logChoose(5, 2)).toBeCloseTo(Math.log(10), 10);
+
+            // 10 choose 5 = 252 -> log(252)
+            expect(Statistics.logChoose(10, 5)).toBeCloseTo(Math.log(252), 10);
+
+            // 50 choose 25 = 126410606437752 -> log(126410606437752)
+            expect(Statistics.logChoose(50, 25)).toBeCloseTo(Math.log(126410606437752), 8);
+        });
+
+        test('maintains symmetry: logChoose(n, k) === logChoose(n, n - k)', () => {
+            expect(Statistics.logChoose(10, 3)).toBeCloseTo(Statistics.logChoose(10, 7), 10);
+            expect(Statistics.logChoose(20, 4)).toBeCloseTo(Statistics.logChoose(20, 16), 10);
+            expect(Statistics.logChoose(50, 15)).toBeCloseTo(Statistics.logChoose(50, 35), 10);
+        });
+
+        test('is consistent with logGamma formula', () => {
+            const n = 15, k = 6;
+            const expected = Statistics.logGamma(n + 1) - Statistics.logGamma(k + 1) - Statistics.logGamma(n - k + 1);
+            expect(Statistics.logChoose(n, k)).toBeCloseTo(expected, 10);
+        });
+    });
+
     describe('normalPDF', () => {
         test('calculates standard normal density values', () => {
             const standard = 1 / Math.sqrt(2 * Math.PI);
