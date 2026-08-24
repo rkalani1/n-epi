@@ -19,19 +19,11 @@
     var riskIdCounter = 0;
 
     // ============================================================
-    // RENDER
+    // RENDER HELPER FUNCTIONS
     // ============================================================
 
-    function render(el) {
-        container = el;
-
-        var html = App.createModuleLayout(
-            'Project Planner',
-            'Plan research projects with timeline visualization, pre-study checklists, budget estimation, and milestone tracking.'
-        );
-
-        // ---- Learn & Reference ----
-        html += '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
+    function renderLearnSection() {
+        var html = '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
         html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\')">📚 Learn &amp; Reference <span style="font-size:0.8em; color: var(--text-muted);">(click to expand)</span></div>';
         html += '<div class="learn-body hidden">';
 
@@ -79,8 +71,11 @@
         html += '</ul></div>';
 
         html += '</div></div>';
+        return html;
+    }
 
-        html += '<div class="card">';
+    function renderMainTabsCard() {
+        var html = '<div class="card">';
 
         // Tab buttons
         html += '<div class="pp-tab-bar" style="display:flex;gap:0;border-bottom:1px solid var(--border)">'
@@ -206,9 +201,11 @@
         html += '</div>';
 
         html += '</div>'; // end main card
+        return html;
+    }
 
-        /* === Card 2: Resource Allocation Tracker === */
-        html += '<div class="card">';
+    function renderResourceTrackerCard() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Resource Allocation Tracker</div>';
         html += '<div class="card-subtitle">Track team members, their roles, effort allocation, and availability across your research project.</div>';
 
@@ -245,9 +242,11 @@
         html += '<button class="btn btn-secondary" onclick="ProjectPlanner.exportResources()">Export Resources</button>';
         html += '</div>';
         html += '</div>';
+        return html;
+    }
 
-        /* === Card 3: Budget Estimation Tool === */
-        html += '<div class="card">';
+    function renderDetailedBudgetCard() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Detailed Budget Builder</div>';
         html += '<div class="card-subtitle">Build a comprehensive research budget with line items, indirect costs, and multi-year projections.</div>';
 
@@ -293,9 +292,11 @@
         html += '</div>';
         html += '<div id="pp-bl-results" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        /* === Card 4: Risk Assessment Matrix === */
-        html += '<div class="card">';
+    function renderRiskMatrixCard() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Risk Assessment Matrix</div>';
         html += '<div class="card-subtitle">Identify and assess project risks by likelihood and impact. Develop mitigation strategies.</div>';
 
@@ -330,9 +331,11 @@
         html += '<div id="pp-risk-table" class="mt-2"></div>';
         html += '<div id="pp-risk-matrix" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        /* === Card 5: Project Template Library === */
-        html += '<div class="card">';
+    function renderTemplateLibraryCard() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Project Template Library</div>';
         html += '<div class="card-subtitle">Pre-built project templates with standard phases, milestones, and checklists for common study designs.</div>';
 
@@ -364,9 +367,11 @@
             html += '</div></div>';
         }
         html += '</div>';
+        return html;
+    }
 
-        /* === Expanded Learn Section === */
-        html += '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
+    function renderAdvancedLearnCard() {
+        var html = '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
         html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\')">&#128218; Advanced Project Management <span style="font-size:0.8em; color: var(--text-muted);">(click to expand)</span></div>';
         html += '<div class="learn-body hidden">';
 
@@ -412,6 +417,28 @@
         html += '</ul></div>';
 
         html += '</div></div>';
+        return html;
+    }
+
+    // ============================================================
+    // RENDER
+    // ============================================================
+
+    function render(el) {
+        container = el;
+
+        var html = App.createModuleLayout(
+            'Project Planner',
+            'Plan research projects with timeline visualization, pre-study checklists, budget estimation, and milestone tracking.'
+        );
+
+        html += renderLearnSection();
+        html += renderMainTabsCard();
+        html += renderResourceTrackerCard();
+        html += renderDetailedBudgetCard();
+        html += renderRiskMatrixCard();
+        html += renderTemplateLibraryCard();
+        html += renderAdvancedLearnCard();
 
         App.setTrustedHTML(container, html);
         App.autoSaveInputs(container, MODULE_ID);
