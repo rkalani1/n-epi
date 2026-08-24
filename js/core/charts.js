@@ -332,6 +332,242 @@ var Charts = (() => {
     // subtotals, prediction intervals, numeric CI labels)
     // ============================================================
 
+    function drawForestPlotDiamond(ctx, cx, cy, left, right, halfH, fillColor, strokeColor, dropShadow) {
+        ctx.fillStyle = fillColor;
+        if (strokeColor) ctx.strokeStyle = strokeColor;
+        ctx.beginPath();
+        ctx.moveTo(left, cy);
+        ctx.lineTo(cx, cy - halfH);
+        ctx.lineTo(right, cy);
+        ctx.lineTo(cx, cy + halfH);
+        ctx.closePath();
+        if (dropShadow) applyDropShadow(ctx, true);
+        ctx.fill();
+        if (strokeColor) {
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        if (dropShadow) clearDropShadow(ctx);
+    }
+
+    function computeForestPlotRange(options, plotLeft, plotW) {
+        var studies = options.studies;
+        var summary = options.summary;
+        var predInterval = options.predInterval;
+        var subgroupSummaries = options.subgroupSummaries;
+        var nullValue = options.nullValue !== undefined ? options.nullValue : 0;
+        var logScale = options.logScale || false;
+
+        var allVals = [];
+        studies.forEach(function(s) { allVals.push(s.ci.lower, s.ci.upper); });
+        if (summary) { allVals.push(summary.ci.lower, summary.ci.upper); }
+        if (predInterval) { allVals.push(predInterval.lower, predInterval.upper); }
+        if (subgroupSummaries) {
+            Object.keys(subgroupSummaries).forEach(function(k) {
+                var sg = subgroupSummaries[k];
+                allVals.push(sg.ci.lower, sg.ci.upper);
+            });
+        }
+        allVals.push(nullValue);
+
+        var plotMin = Math.min.apply(null, allVals);
+        var plotMax = Math.max.apply(null, allVals);
+        var rangePad = (plotMax - plotMin) * 0.1 || 0.5;
+        plotMin -= rangePad;
+        plotMax += rangePad;
+        if (logScale) {
+            plotMin = Math.min(plotMin, nullValue - 1);
+            plotMax = Math.max(plotMax, nullValue + 1);
+        }
+        var plotRange = plotMax - plotMin || 2;
+
+        return {
+            min: plotMin,
+            max: plotMax,
+            range: plotRange,
+            sx: function(v) { return plotLeft + ((v - plotMin) / plotRange) * plotW; }
+        };
+    }
+
+    function drawForestPlotHeader(ctx, layout, measureLabel, theme) {
+        var y = layout.headerH;
+        ctx.fillStyle = theme.textSecondary;
+        ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Study', 10, y - 10);
+        ctx.textAlign = 'center';
+        ctx.fillText(measureLabel, (layout.plotLeft + layout.plotRight) / 2, y - 10);
+        ctx.textAlign = 'right';
+        ctx.fillText('Estimate [95% CI]', layout.width - layout.statsW / 2, y - 18);
+        ctx.fillText('Weight', layout.width - 15, y - 18);
+
+        ctx.strokeStyle = theme.border;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(5, y);
+        ctx.lineTo(layout.width - 5, y);
+        ctx.stroke();
+    }
+
+    function drawForestPlotSubtotalRow(ctx, subgroupName, sgSum, y, layout, sx, fmtVal, theme, dropShadow) {
+        y += 5 + layout.rowH;
+        ctx.strokeStyle = theme.border + '80';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(5, y - layout.rowH + 2);
+        ctx.lineTo(layout.width - 5, y - layout.rowH + 2);
+        ctx.stroke();
+
+        ctx.fillStyle = theme.accent + 'cc';
+        ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('  Subtotal: ' + subgroupName, 10, y);
+
+        var sgCx = sx(sgSum.estimate);
+        var sgDl = sx(sgSum.ci.lower);
+        var sgDr = sx(sgSum.ci.upper);
+        drawForestPlotDiamond(ctx, sgCx, y - 5, sgDl, sgDr, 6, theme.accent + '80', theme.accent, dropShadow);
+
+        ctx.fillStyle = theme.accent;
+        ctx.font = 'bold 11px "SF Mono", "Fira Code", monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(fmtVal(sgSum.estimate) + ' [' + fmtVal(sgSum.ci.lower) + ', ' + fmtVal(sgSum.ci.upper) + ']', layout.width - 60, y);
+        return y + 5;
+    }
+
+    function drawForestPlotStudyRow(ctx, study, index, y, layout, range, maxW, fmtVal, theme, dropShadow) {
+        y += layout.rowH;
+
+        if (index % 2 === 0) {
+            ctx.fillStyle = theme.surface + '40';
+            ctx.fillRect(0, y - layout.rowH + 5, layout.width, layout.rowH);
+        }
+
+        ctx.fillStyle = theme.text;
+        ctx.font = '12px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        var displayName = study.name.length > 32 ? study.name.substring(0, 30) + '...' : study.name;
+        ctx.fillText(displayName, 10, y);
+
+        var ciL = Math.max(range.min, study.ci.lower);
+        var ciU = Math.min(range.max, study.ci.upper);
+        ctx.strokeStyle = theme.text;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(range.sx(ciL), y - 5);
+        ctx.lineTo(range.sx(ciU), y - 5);
+        ctx.stroke();
+
+        [ciL, ciU].forEach(function(v) {
+            if (v > range.min && v < range.max) {
+                ctx.beginPath();
+                ctx.moveTo(range.sx(v), y - 9);
+                ctx.lineTo(range.sx(v), y - 1);
+                ctx.stroke();
+            }
+        });
+
+        var wt = study.weight || 1;
+        var sqSize = 4 + (wt / maxW) * 8;
+        if (dropShadow) applyDropShadow(ctx, true);
+        ctx.fillStyle = theme.accent;
+        ctx.fillRect(range.sx(study.estimate) - sqSize / 2, y - 5 - sqSize / 2, sqSize, sqSize);
+        if (dropShadow) clearDropShadow(ctx);
+
+        ctx.fillStyle = theme.textSecondary;
+        ctx.font = '11px "SF Mono", "Fira Code", monospace';
+        ctx.textAlign = 'right';
+        var est = fmtVal(study.estimate);
+        var ciLt = fmtVal(study.ci.lower);
+        var ciUt = fmtVal(study.ci.upper);
+        ctx.fillText(est + ' [' + ciLt + ', ' + ciUt + ']', layout.width - 60, y);
+        ctx.fillText(wt.toFixed(1) + '%', layout.width - 10, y);
+
+        return y;
+    }
+
+    function drawForestPlotSummary(ctx, summary, predInterval, y, layout, sx, fmtVal, theme, dropShadow) {
+        y += layout.rowH + 10;
+        ctx.strokeStyle = theme.border;
+        ctx.beginPath();
+        ctx.moveTo(5, y - layout.rowH);
+        ctx.lineTo(layout.width - 5, y - layout.rowH);
+        ctx.stroke();
+
+        ctx.fillStyle = theme.accent;
+        ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(summary.label || 'Overall', 10, y);
+
+        var cx = sx(summary.estimate);
+        var dl = sx(summary.ci.lower);
+        var dr = sx(summary.ci.upper);
+        drawForestPlotDiamond(ctx, cx, y - 5, dl, dr, 9, theme.accent + 'cc', theme.accent, dropShadow);
+
+        if (predInterval) {
+            ctx.strokeStyle = theme.accent + '60';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(sx(predInterval.lower), y - 5);
+            ctx.lineTo(sx(predInterval.upper), y - 5);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            var piTipSize = 4;
+            [predInterval.lower, predInterval.upper].forEach(function(v) {
+                var px = sx(v);
+                ctx.fillStyle = theme.accent + '60';
+                ctx.beginPath();
+                ctx.moveTo(px, y - 5 - piTipSize);
+                ctx.lineTo(px, y - 5 + piTipSize);
+                ctx.stroke();
+            });
+        }
+
+        ctx.fillStyle = theme.accent;
+        ctx.font = 'bold 11px "SF Mono", "Fira Code", monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(fmtVal(summary.estimate) + ' [' + fmtVal(summary.ci.lower) + ', ' + fmtVal(summary.ci.upper) + ']', layout.width - 60, y);
+
+        return y;
+    }
+
+    function drawForestPlotNullAndDirection(ctx, nullValue, sx, y, layout, directionLabels, logScale, theme) {
+        ctx.strokeStyle = theme.textTertiary;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(sx(nullValue), layout.headerH);
+        ctx.lineTo(sx(nullValue), y + 10);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = theme.textSecondary;
+        ctx.font = '11px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        var nv = logScale ? Math.exp(nullValue).toFixed(1) : nullValue.toFixed(1);
+        ctx.fillText(nv, sx(nullValue), y + 25);
+
+        ctx.font = '10px system-ui, -apple-system, sans-serif';
+        if (directionLabels.left) ctx.fillText(directionLabels.left, (layout.plotLeft + sx(nullValue)) / 2, y + 40);
+        if (directionLabels.right) ctx.fillText(directionLabels.right, (sx(nullValue) + layout.plotRight) / 2, y + 40);
+    }
+
+    function drawForestPlotHeterogeneity(ctx, heterogeneity, y, theme) {
+        if (!heterogeneity) return;
+        y += 55;
+        ctx.fillStyle = theme.textSecondary;
+        ctx.font = '11px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        var hetParts = [];
+        if (heterogeneity.I2 !== undefined) hetParts.push('I\u00B2 = ' + heterogeneity.I2.toFixed(1) + '%');
+        if (heterogeneity.tau2 !== undefined) hetParts.push('\u03C4\u00B2 = ' + heterogeneity.tau2.toFixed(4));
+        if (heterogeneity.Q !== undefined) hetParts.push('Q = ' + heterogeneity.Q.toFixed(2));
+        if (heterogeneity.p !== undefined) hetParts.push('p ' + (heterogeneity.p < 0.001 ? '< 0.001' : '= ' + heterogeneity.p.toFixed(3)));
+        ctx.fillText('Heterogeneity: ' + hetParts.join(';  '), 10, y);
+    }
+
     function ForestPlot(canvas, options) {
         if (!guardCanvas(canvas)) return;
 
@@ -382,51 +618,28 @@ var Charts = (() => {
         var plotRight = width - statsW - 10;
         var plotW = plotRight - plotLeft;
 
+        var layout = {
+            width: width,
+            height: height,
+            rowH: rowH,
+            headerH: headerH,
+            subH: subH,
+            labelW: labelW,
+            statsW: statsW,
+            plotLeft: plotLeft,
+            plotRight: plotRight,
+            plotW: plotW
+        };
+
         // Background & Title
         drawChartBackgroundAndTitle(ctx, width, height, theme, title, 20);
 
         // Compute plot range
-        var allVals = [];
-        studies.forEach(function(s) { allVals.push(s.ci.lower, s.ci.upper); });
-        if (summary) { allVals.push(summary.ci.lower, summary.ci.upper); }
-        if (predInterval) { allVals.push(predInterval.lower, predInterval.upper); }
-        if (subgroupSummaries) {
-            Object.keys(subgroupSummaries).forEach(function(k) {
-                var sg = subgroupSummaries[k];
-                allVals.push(sg.ci.lower, sg.ci.upper);
-            });
-        }
-        allVals.push(nullValue);
-        var plotMin = Math.min.apply(null, allVals);
-        var plotMax = Math.max.apply(null, allVals);
-        // Expand range by 10%
-        var rangePad = (plotMax - plotMin) * 0.1 || 0.5;
-        plotMin -= rangePad;
-        plotMax += rangePad;
-        if (logScale) {
-            plotMin = Math.min(plotMin, nullValue - 1);
-            plotMax = Math.max(plotMax, nullValue + 1);
-        }
-        var plotRange = plotMax - plotMin || 2;
-
-        function sx(v) { return plotLeft + ((v - plotMin) / plotRange) * plotW; }
+        var range = computeForestPlotRange(options, plotLeft, plotW);
+        var sx = range.sx;
 
         // Header
-        var y = headerH;
-        ctx.fillStyle = theme.textSecondary;
-        ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText('Study', 10, y - 10);
-        ctx.textAlign = 'center';
-        ctx.fillText(measureLabel, (plotLeft + plotRight) / 2, y - 10);
-        ctx.textAlign = 'right';
-        ctx.fillText('Estimate [95% CI]', width - statsW / 2, y - 18);
-        ctx.fillText('Weight', width - 15, y - 18);
-
-        // Separator
-        ctx.strokeStyle = theme.border;
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(5, y); ctx.lineTo(width - 5, y); ctx.stroke();
+        drawForestPlotHeader(ctx, layout, measureLabel, theme);
 
         // Max weight for scaling squares
         var maxW = 1;
@@ -437,56 +650,16 @@ var Charts = (() => {
             return logScale ? Math.exp(v).toFixed(2) : v.toFixed(2);
         }
 
-        // Helper: draw a diamond shape
-        function drawDiamond(cx, cy, left, right, halfH, fillColor, strokeColor) {
-            ctx.fillStyle = fillColor;
-            if (strokeColor) ctx.strokeStyle = strokeColor;
-            ctx.beginPath();
-            ctx.moveTo(left, cy);
-            ctx.lineTo(cx, cy - halfH);
-            ctx.lineTo(right, cy);
-            ctx.lineTo(cx, cy + halfH);
-            ctx.closePath();
-            if (dropShadow) applyDropShadow(ctx, true);
-            ctx.fill();
-            if (strokeColor) {
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
-            if (dropShadow) clearDropShadow(ctx);
-        }
-
         // Studies
+        var y = headerH;
         var currentSubgroup = null;
-        var subgroupStudyIndices = {}; // track which subgroup ends where
+
         studies.forEach(function(study, i) {
             // Subgroup headers
             if (study.subgroup && study.subgroup !== currentSubgroup) {
                 // If previous subgroup had a subtotal, draw it
                 if (currentSubgroup && subgroupSummaries && subgroupSummaries[currentSubgroup]) {
-                    y += 5;
-                    // Draw subgroup subtotal
-                    var sgSum = subgroupSummaries[currentSubgroup];
-                    y += rowH;
-                    ctx.strokeStyle = theme.border + '80';
-                    ctx.lineWidth = 0.5;
-                    ctx.beginPath(); ctx.moveTo(5, y - rowH + 2); ctx.lineTo(width - 5, y - rowH + 2); ctx.stroke();
-
-                    ctx.fillStyle = theme.accent + 'cc';
-                    ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-                    ctx.textAlign = 'left';
-                    ctx.fillText('  Subtotal: ' + currentSubgroup, 10, y);
-
-                    var sgCx = sx(sgSum.estimate);
-                    var sgDl = sx(sgSum.ci.lower);
-                    var sgDr = sx(sgSum.ci.upper);
-                    drawDiamond(sgCx, y - 5, sgDl, sgDr, 6, theme.accent + '80', theme.accent);
-
-                    ctx.fillStyle = theme.accent;
-                    ctx.font = 'bold 11px "SF Mono", "Fira Code", monospace';
-                    ctx.textAlign = 'right';
-                    ctx.fillText(fmtVal(sgSum.estimate) + ' [' + fmtVal(sgSum.ci.lower) + ', ' + fmtVal(sgSum.ci.upper) + ']', width - 60, y);
-                    y += 5;
+                    y = drawForestPlotSubtotalRow(ctx, currentSubgroup, subgroupSummaries[currentSubgroup], y, layout, sx, fmtVal, theme, dropShadow);
                 }
 
                 currentSubgroup = study.subgroup;
@@ -498,170 +671,24 @@ var Charts = (() => {
                 y += 5;
             }
 
-            y += rowH;
-
-            // Alternate row bg
-            if (i % 2 === 0) {
-                ctx.fillStyle = theme.surface + '40';
-                ctx.fillRect(0, y - rowH + 5, width, rowH);
-            }
-
-            // Study name
-            ctx.fillStyle = theme.text;
-            ctx.font = '12px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'left';
-            var displayName = study.name.length > 32 ? study.name.substring(0, 30) + '...' : study.name;
-            ctx.fillText(displayName, 10, y);
-
-            // CI line
-            var ciL = Math.max(plotMin, study.ci.lower);
-            var ciU = Math.min(plotMax, study.ci.upper);
-            ctx.strokeStyle = theme.text;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(sx(ciL), y - 5);
-            ctx.lineTo(sx(ciU), y - 5);
-            ctx.stroke();
-
-            // Whiskers
-            [ciL, ciU].forEach(function(v) {
-                if (v > plotMin && v < plotMax) {
-                    ctx.beginPath();
-                    ctx.moveTo(sx(v), y - 9);
-                    ctx.lineTo(sx(v), y - 1);
-                    ctx.stroke();
-                }
-            });
-
-            // Square (proportional to weight)
-            var wt = study.weight || 1;
-            var sqSize = 4 + (wt / maxW) * 8;
-            if (dropShadow) applyDropShadow(ctx, true);
-            ctx.fillStyle = theme.accent;
-            ctx.fillRect(sx(study.estimate) - sqSize / 2, y - 5 - sqSize / 2, sqSize, sqSize);
-            if (dropShadow) clearDropShadow(ctx);
-
-            // Stats text (numeric labels on each row)
-            ctx.fillStyle = theme.textSecondary;
-            ctx.font = '11px "SF Mono", "Fira Code", monospace';
-            ctx.textAlign = 'right';
-            var est = fmtVal(study.estimate);
-            var ciLt = fmtVal(study.ci.lower);
-            var ciUt = fmtVal(study.ci.upper);
-            ctx.fillText(est + ' [' + ciLt + ', ' + ciUt + ']', width - 60, y);
-            ctx.fillText(wt.toFixed(1) + '%', width - 10, y);
+            y = drawForestPlotStudyRow(ctx, study, i, y, layout, range, maxW, fmtVal, theme, dropShadow);
         });
 
         // Final subgroup subtotal (for the last subgroup)
         if (currentSubgroup && subgroupSummaries && subgroupSummaries[currentSubgroup]) {
-            y += 5;
-            var sgSum = subgroupSummaries[currentSubgroup];
-            y += rowH;
-            ctx.strokeStyle = theme.border + '80';
-            ctx.lineWidth = 0.5;
-            ctx.beginPath(); ctx.moveTo(5, y - rowH + 2); ctx.lineTo(width - 5, y - rowH + 2); ctx.stroke();
-
-            ctx.fillStyle = theme.accent + 'cc';
-            ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText('  Subtotal: ' + currentSubgroup, 10, y);
-
-            var sgCx2 = sx(sgSum.estimate);
-            var sgDl2 = sx(sgSum.ci.lower);
-            var sgDr2 = sx(sgSum.ci.upper);
-            drawDiamond(sgCx2, y - 5, sgDl2, sgDr2, 6, theme.accent + '80', theme.accent);
-
-            ctx.fillStyle = theme.accent;
-            ctx.font = 'bold 11px "SF Mono", "Fira Code", monospace';
-            ctx.textAlign = 'right';
-            ctx.fillText(fmtVal(sgSum.estimate) + ' [' + fmtVal(sgSum.ci.lower) + ', ' + fmtVal(sgSum.ci.upper) + ']', width - 60, y);
-            y += 5;
+            y = drawForestPlotSubtotalRow(ctx, currentSubgroup, subgroupSummaries[currentSubgroup], y, layout, sx, fmtVal, theme, dropShadow);
         }
 
         // Summary diamond
         if (summary) {
-            y += rowH + 10;
-            ctx.strokeStyle = theme.border;
-            ctx.beginPath(); ctx.moveTo(5, y - rowH); ctx.lineTo(width - 5, y - rowH); ctx.stroke();
-
-            // Label
-            ctx.fillStyle = theme.accent;
-            ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText(summary.label || 'Overall', 10, y);
-
-            // Diamond (improved with stroke outline)
-            var cx = sx(summary.estimate);
-            var dl = sx(summary.ci.lower);
-            var dr = sx(summary.ci.upper);
-            var dh = 9;
-            drawDiamond(cx, y - 5, dl, dr, dh, theme.accent + 'cc', theme.accent);
-
-            // Prediction interval dashed line
-            if (predInterval) {
-                ctx.strokeStyle = theme.accent + '60';
-                ctx.lineWidth = 1.5;
-                ctx.setLineDash([4, 3]);
-                ctx.beginPath();
-                ctx.moveTo(sx(predInterval.lower), y - 5);
-                ctx.lineTo(sx(predInterval.upper), y - 5);
-                ctx.stroke();
-                ctx.setLineDash([]);
-
-                // Arrow tips on prediction interval ends
-                var piTipSize = 4;
-                [predInterval.lower, predInterval.upper].forEach(function(v) {
-                    var px = sx(v);
-                    ctx.fillStyle = theme.accent + '60';
-                    ctx.beginPath();
-                    ctx.moveTo(px, y - 5 - piTipSize);
-                    ctx.lineTo(px, y - 5 + piTipSize);
-                    ctx.stroke();
-                });
-            }
-
-            // Summary stats
-            ctx.fillStyle = theme.accent;
-            ctx.font = 'bold 11px "SF Mono", "Fira Code", monospace';
-            ctx.textAlign = 'right';
-            ctx.fillText(fmtVal(summary.estimate) + ' [' + fmtVal(summary.ci.lower) + ', ' + fmtVal(summary.ci.upper) + ']', width - 60, y);
+            y = drawForestPlotSummary(ctx, summary, predInterval, y, layout, sx, fmtVal, theme, dropShadow);
         }
 
-        // Null line
-        ctx.strokeStyle = theme.textTertiary;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 3]);
-        ctx.beginPath();
-        ctx.moveTo(sx(nullValue), headerH);
-        ctx.lineTo(sx(nullValue), y + 10);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // X-axis label
-        ctx.fillStyle = theme.textSecondary;
-        ctx.font = '11px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        var nv = logScale ? Math.exp(nullValue).toFixed(1) : nullValue.toFixed(1);
-        ctx.fillText(nv, sx(nullValue), y + 25);
-
-        // Direction labels (neutral unless the caller supplies outcome-specific ones)
-        ctx.font = '10px system-ui, -apple-system, sans-serif';
-        if (directionLabels.left) ctx.fillText(directionLabels.left, (plotLeft + sx(nullValue)) / 2, y + 40);
-        if (directionLabels.right) ctx.fillText(directionLabels.right, (sx(nullValue) + plotRight) / 2, y + 40);
+        // Null line & direction labels
+        drawForestPlotNullAndDirection(ctx, nullValue, sx, y, layout, directionLabels, logScale, theme);
 
         // Heterogeneity statistics below the plot
-        if (heterogeneity) {
-            y += 55;
-            ctx.fillStyle = theme.textSecondary;
-            ctx.font = '11px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'left';
-            var hetParts = [];
-            if (heterogeneity.I2 !== undefined) hetParts.push('I\u00B2 = ' + heterogeneity.I2.toFixed(1) + '%');
-            if (heterogeneity.tau2 !== undefined) hetParts.push('\u03C4\u00B2 = ' + heterogeneity.tau2.toFixed(4));
-            if (heterogeneity.Q !== undefined) hetParts.push('Q = ' + heterogeneity.Q.toFixed(2));
-            if (heterogeneity.p !== undefined) hetParts.push('p ' + (heterogeneity.p < 0.001 ? '< 0.001' : '= ' + heterogeneity.p.toFixed(3)));
-            ctx.fillText('Heterogeneity: ' + hetParts.join(';  '), 10, y);
-        }
+        drawForestPlotHeterogeneity(ctx, heterogeneity, y, theme);
     }
 
     // ============================================================
