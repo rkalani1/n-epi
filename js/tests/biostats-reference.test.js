@@ -5,11 +5,14 @@ const { JSDOM } = require("jsdom");
 
 
 // Mock the App and Export objects and other globals
+global.registeredModules = {};
+
 global.App = {
-    createModuleLayout: function(title, subtitle) { return "<html>...</html>"; },
+    createModuleLayout: function(title, subtitle) { return '<div class="module-layout"><h1>' + title + '</h1><p>' + subtitle + '</p></div>'; },
     tooltip: function(text) { return '<span class="tooltip" title="' + text + '">?</span>'; },
     setTrustedHTML: function(el, html) { el.innerHTML = html; },
-    registerModule: function(id, moduleObj) {}
+    registerModule: function(id, moduleObj) { global.registeredModules[id] = moduleObj; },
+    autoSaveInputs: function(container, id) {}
 };
 
 global.Export = {
@@ -163,6 +166,25 @@ function testFindTestEmpty() {
     console.log("✅ testFindTestEmpty passed!");
 }
 
+function testRenderModule() {
+    const container = document.createElement('div');
+    setupDOM('');
+    const module = global.registeredModules['biostats-reference'];
+    assert(module && typeof module.render === 'function', "Module should be registered with render function");
+
+    module.render(container);
+
+    assert(container.innerHTML.includes("Biostatistics Reference"), "Rendered HTML should contain title");
+    assert(container.innerHTML.includes("Statistical Test Selector"), "Rendered HTML should contain Statistical Test Selector card");
+    assert(container.innerHTML.includes("Probability Distributions Gallery"), "Rendered HTML should contain Distributions Gallery card");
+    assert(container.innerHTML.includes("Central Limit Theorem Demonstrator"), "Rendered HTML should contain CLT Demonstrator card");
+    assert(container.innerHTML.includes("Confidence Interval Methods"), "Rendered HTML should contain CI Methods card");
+    assert(container.innerHTML.includes("Effect Size Interpretation Guide"), "Rendered HTML should contain Effect Size card");
+    assert(container.innerHTML.includes("Multiple Testing &amp; P-value Reference"), "Rendered HTML should contain Multiple Testing card");
+
+    console.log("✅ testRenderModule passed!");
+}
+
 // Run all tests
 describe("BiostatRef Tests", () => {
     test("testAdjustPvalsValid", () => {
@@ -185,6 +207,9 @@ describe("BiostatRef Tests", () => {
     });
     test("testFindTestEmpty", () => {
         testFindTestEmpty();
+    });
+    test("testRenderModule", () => {
+        testRenderModule();
     });
 });
 
