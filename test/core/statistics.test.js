@@ -565,4 +565,52 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.fisherExact(5, 5, 5, 5).pValue).toBeLessThanOrEqual(1.0);
         });
     });
+
+    describe('newcombeCI', () => {
+        test('calculates correct difference and confidence bounds for default z (95% CI)', () => {
+            // p1 = 0.8 (80/100), p2 = 0.5 (50/100)
+            const result = Statistics.newcombeCI(0.8, 100, 0.5, 100);
+
+            expect(result.diff).toBeCloseTo(0.3, 10);
+            expect(result.lower).toBeCloseTo(0.169084, 5);
+            expect(result.upper).toBeCloseTo(0.416997, 5);
+            expect(result.lower).toBeLessThan(result.diff);
+            expect(result.upper).toBeGreaterThan(result.diff);
+        });
+
+        test('uses custom z-score when provided', () => {
+            const z90 = Statistics.normalQuantile(0.95); // ~1.64485
+            const z99 = Statistics.normalQuantile(0.995); // ~2.57583
+
+            const res90 = Statistics.newcombeCI(0.8, 100, 0.5, 100, z90);
+            const res99 = Statistics.newcombeCI(0.8, 100, 0.5, 100, z99);
+
+            expect(res90.diff).toBeCloseTo(0.3, 10);
+            expect(res99.diff).toBeCloseTo(0.3, 10);
+
+            // 90% CI should be narrower than 99% CI
+            const width90 = res90.upper - res90.lower;
+            const width99 = res99.upper - res99.lower;
+            expect(width90).toBeLessThan(width99);
+        });
+
+        test('handles identical proportions (diff = 0)', () => {
+            const result = Statistics.newcombeCI(0.5, 50, 0.5, 50);
+
+            expect(result.diff).toBe(0);
+            expect(result.lower).toBeCloseTo(-0.188875, 5);
+            expect(result.upper).toBeCloseTo(0.188875, 5);
+            expect(Math.abs(result.lower)).toBeCloseTo(result.upper, 10);
+        });
+
+        test('handles extreme boundary proportions (0 and 1)', () => {
+            const result = Statistics.newcombeCI(0, 30, 1, 30);
+
+            expect(result.diff).toBe(-1);
+            expect(result.lower).toBeCloseTo(-1.0, 5);
+            expect(result.upper).toBeCloseTo(-0.839468, 5);
+            expect(result.lower).toBeLessThanOrEqual(result.diff);
+            expect(result.upper).toBeGreaterThan(result.diff);
+        });
+    });
 });
