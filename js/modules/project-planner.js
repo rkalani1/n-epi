@@ -22,16 +22,8 @@
     // RENDER
     // ============================================================
 
-    function render(el) {
-        container = el;
-
-        var html = App.createModuleLayout(
-            'Project Planner',
-            'Plan research projects with timeline visualization, pre-study checklists, budget estimation, and milestone tracking.'
-        );
-
-        // ---- Learn & Reference ----
-        html += '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
+    function renderLearnReferenceCard() {
+        var html = '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
         html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\')">📚 Learn &amp; Reference <span style="font-size:0.8em; color: var(--text-muted);">(click to expand)</span></div>';
         html += '<div class="learn-body hidden">';
 
@@ -79,19 +71,11 @@
         html += '</ul></div>';
 
         html += '</div></div>';
+        return html;
+    }
 
-        html += '<div class="card">';
-
-        // Tab buttons
-        html += '<div class="pp-tab-bar" style="display:flex;gap:0;border-bottom:1px solid var(--border)">'
-            + '<button class="pp-tab-btn active" id="pp-btn-timeline" onclick="ProjectPlanner.switchTab(\'timeline\')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text);cursor:pointer;font-size:0.85rem;font-weight:600">Timeline Builder</button>'
-            + '<button class="pp-tab-btn" id="pp-btn-checklist" onclick="ProjectPlanner.switchTab(\'checklist\')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:0.85rem">Pre-Study Checklist</button>'
-            + '<button class="pp-tab-btn" id="pp-btn-budget" onclick="ProjectPlanner.switchTab(\'budget\')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:0.85rem">Budget Estimator</button>'
-            + '<button class="pp-tab-btn" id="pp-btn-milestones" onclick="ProjectPlanner.switchTab(\'milestones\')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:0.85rem">Milestone Tracker</button>'
-            + '</div>';
-
-        // ===== Tab 1: Timeline Builder =====
-        html += '<div class="pp-tab" id="pp-timeline" style="display:block;padding:1rem 0">';
+    function renderTimelineTab() {
+        var html = '<div class="pp-tab" id="pp-timeline" style="display:block;padding:1rem 0">';
         html += '<div class="card-subtitle">Auto-generate a Gantt-style research timeline. Select your study type and generate standard phases.</div>';
 
         html += '<div class="form-group"><label class="form-label">Project Title</label>'
@@ -118,9 +102,11 @@
         html += '<div class="chart-container mt-2"><canvas id="pp-gantt-canvas" width="800" height="320"></canvas></div>';
         html += '<div id="pp-timeline-text" style="display:none"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ===== Tab 2: Pre-Study Checklist =====
-        html += '<div class="pp-tab" id="pp-checklist" style="display:none;padding:1rem 0">';
+    function renderChecklistTab() {
+        var html = '<div class="pp-tab" id="pp-checklist" style="display:none;padding:1rem 0">';
         html += '<div class="card-subtitle">Interactive checklist of items to complete before starting your study. Track readiness across key domains.</div>';
 
         html += '<div id="pp-checklist-progress" style="margin-bottom:1rem">'
@@ -139,9 +125,11 @@
             + '<button class="btn btn-secondary" onclick="ProjectPlanner.exportChecklist()">Export Checklist</button>'
             + '</div>';
         html += '</div>';
+        return html;
+    }
 
-        // ===== Tab 3: Budget Estimator =====
-        html += '<div class="pp-tab" id="pp-budget" style="display:none;padding:1rem 0">';
+    function renderBudgetTab() {
+        var html = '<div class="pp-tab" id="pp-budget" style="display:none;padding:1rem 0">';
         html += '<div class="card-subtitle">Estimate your research project budget. Enter costs by category and view the breakdown.</div>';
 
         html += '<div class="form-row form-row--2">'
@@ -168,9 +156,11 @@
         html += '<div id="pp-budget-results" class="mt-2"></div>';
         html += '<div class="chart-container mt-2"><canvas id="pp-budget-canvas" width="500" height="400"></canvas></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ===== Tab 4: Milestone Tracker =====
-        html += '<div class="pp-tab" id="pp-milestones" style="display:none;padding:1rem 0">';
+    function renderMilestonesTab() {
+        var html = '<div class="pp-tab" id="pp-milestones" style="display:none;padding:1rem 0">';
         html += '<div class="card-subtitle">Track custom milestones for your project. Monitor progress toward completion.</div>';
 
         html += '<div class="form-row form-row--3" style="align-items:flex-end">'
@@ -204,11 +194,31 @@
             + '<button class="btn btn-secondary" onclick="ProjectPlanner.exportMilestones()">Export Milestones</button>'
             + '</div>';
         html += '</div>';
+        return html;
+    }
+
+    function renderMainPlannerCard() {
+        var html = '<div class="card">';
+
+        // Tab buttons
+        html += '<div class="pp-tab-bar" style="display:flex;gap:0;border-bottom:1px solid var(--border)">'
+            + '<button class="pp-tab-btn active" id="pp-btn-timeline" onclick="ProjectPlanner.switchTab(\'timeline\')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text);cursor:pointer;font-size:0.85rem;font-weight:600">Timeline Builder</button>'
+            + '<button class="pp-tab-btn" id="pp-btn-checklist" onclick="ProjectPlanner.switchTab(\'checklist\')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:0.85rem">Pre-Study Checklist</button>'
+            + '<button class="pp-tab-btn" id="pp-btn-budget" onclick="ProjectPlanner.switchTab(\'budget\')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:0.85rem">Budget Estimator</button>'
+            + '<button class="pp-tab-btn" id="pp-btn-milestones" onclick="ProjectPlanner.switchTab(\'milestones\')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:0.85rem">Milestone Tracker</button>'
+            + '</div>';
+
+        html += renderTimelineTab();
+        html += renderChecklistTab();
+        html += renderBudgetTab();
+        html += renderMilestonesTab();
 
         html += '</div>'; // end main card
+        return html;
+    }
 
-        /* === Card 2: Resource Allocation Tracker === */
-        html += '<div class="card">';
+    function renderResourceTrackerCard() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Resource Allocation Tracker</div>';
         html += '<div class="card-subtitle">Track team members, their roles, effort allocation, and availability across your research project.</div>';
 
@@ -245,9 +255,11 @@
         html += '<button class="btn btn-secondary" onclick="ProjectPlanner.exportResources()">Export Resources</button>';
         html += '</div>';
         html += '</div>';
+        return html;
+    }
 
-        /* === Card 3: Budget Estimation Tool === */
-        html += '<div class="card">';
+    function renderDetailedBudgetCard() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Detailed Budget Builder</div>';
         html += '<div class="card-subtitle">Build a comprehensive research budget with line items, indirect costs, and multi-year projections.</div>';
 
@@ -293,9 +305,11 @@
         html += '</div>';
         html += '<div id="pp-bl-results" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        /* === Card 4: Risk Assessment Matrix === */
-        html += '<div class="card">';
+    function renderRiskMatrixCard() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Risk Assessment Matrix</div>';
         html += '<div class="card-subtitle">Identify and assess project risks by likelihood and impact. Develop mitigation strategies.</div>';
 
@@ -330,9 +344,11 @@
         html += '<div id="pp-risk-table" class="mt-2"></div>';
         html += '<div id="pp-risk-matrix" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        /* === Card 5: Project Template Library === */
-        html += '<div class="card">';
+    function renderTemplateLibraryCard() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Project Template Library</div>';
         html += '<div class="card-subtitle">Pre-built project templates with standard phases, milestones, and checklists for common study designs.</div>';
 
@@ -364,9 +380,11 @@
             html += '</div></div>';
         }
         html += '</div>';
+        return html;
+    }
 
-        /* === Expanded Learn Section === */
-        html += '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
+    function renderAdvancedManagementCard() {
+        var html = '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
         html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\')">&#128218; Advanced Project Management <span style="font-size:0.8em; color: var(--text-muted);">(click to expand)</span></div>';
         html += '<div class="learn-body hidden">';
 
@@ -412,6 +430,24 @@
         html += '</ul></div>';
 
         html += '</div></div>';
+        return html;
+    }
+
+    function render(el) {
+        container = el;
+
+        var html = App.createModuleLayout(
+            'Project Planner',
+            'Plan research projects with timeline visualization, pre-study checklists, budget estimation, and milestone tracking.'
+        );
+
+        html += renderLearnReferenceCard();
+        html += renderMainPlannerCard();
+        html += renderResourceTrackerCard();
+        html += renderDetailedBudgetCard();
+        html += renderRiskMatrixCard();
+        html += renderTemplateLibraryCard();
+        html += renderAdvancedManagementCard();
 
         App.setTrustedHTML(container, html);
         App.autoSaveInputs(container, MODULE_ID);
