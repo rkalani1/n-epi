@@ -565,4 +565,35 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.fisherExact(5, 5, 5, 5).pValue).toBeLessThanOrEqual(1.0);
         });
     });
+
+    describe('binomialCDF', () => {
+        test('returns 0 when k < 0', () => {
+            expect(Statistics.binomialCDF(-1, 10, 0.5)).toBe(0);
+        });
+
+        test('returns correct CDF for k = 0', () => {
+            expect(Statistics.binomialCDF(0, 10, 0.5)).toBeCloseTo(Math.pow(0.5, 10), 6);
+        });
+
+        test('returns correct CDF for standard intermediate k', () => {
+            expect(Statistics.binomialCDF(2, 5, 0.3)).toBeCloseTo(0.83692, 6);
+            expect(Statistics.binomialCDF(5, 10, 0.5)).toBeCloseTo(0.623046875, 6);
+        });
+
+        test('handles non-integer k by flooring k', () => {
+            expect(Statistics.binomialCDF(2.8, 5, 0.3)).toBeCloseTo(0.83692, 6);
+        });
+
+        test('returns 1 when k = n or k > n', () => {
+            expect(Statistics.binomialCDF(10, 10, 0.5)).toBe(1);
+            expect(Statistics.binomialCDF(15, 10, 0.5)).toBe(1);
+        });
+
+        test('handles edge probabilities p = 0 and p = 1', () => {
+            expect(Statistics.binomialCDF(0, 10, 0)).toBe(1);
+            expect(Statistics.binomialCDF(5, 10, 0)).toBe(1);
+            expect(Statistics.binomialCDF(9, 10, 1)).toBe(0);
+            expect(Statistics.binomialCDF(10, 10, 1)).toBe(1);
+        });
+    });
 });
