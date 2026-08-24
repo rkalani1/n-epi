@@ -238,8 +238,14 @@
         var strong = 0, moderate = 0, weak = 0, notAssessed = 0;
         var details = [];
 
+        var checkedMap = {};
+        var checkedRadios = document.querySelectorAll('input[name^="bh-"]:checked');
+        for (var k = 0; k < checkedRadios.length; k++) {
+            checkedMap[checkedRadios[k].name] = checkedRadios[k];
+        }
+
         for (var i = 0; i < criteriaNames.length; i++) {
-            var checkedRadio = document.querySelector('input[name="bh-' + criteriaNames[i] + '"]:checked');
+            var checkedRadio = checkedMap['bh-' + criteriaNames[i]];
             var selected = checkedRadio ? checkedRadio.value : '';
             var note = document.getElementById('bh-note-' + criteriaNames[i]).value || '';
 
@@ -271,7 +277,7 @@
         }
 
         // Check temporality specifically
-        var tempChecked = document.querySelector('input[name="bh-temporality"]:checked');
+        var tempChecked = checkedMap['bh-temporality'];
         var tempRating = tempChecked ? tempChecked.value : '';
         if (tempRating === 'Weak' || tempRating === 'Not assessed') {
             overallText += ' Note: Temporality is weak or unassessed. Temporality is widely considered the most essential criterion.';
@@ -318,9 +324,15 @@
         var criteriaLabels = ['Strength', 'Consistency', 'Specificity', 'Temporality',
             'Biological Gradient', 'Plausibility', 'Coherence', 'Experiment', 'Analogy'];
 
+        var checkedMap = {};
+        var checkedRadios = document.querySelectorAll('input[name^="bh-"]:checked');
+        for (var k = 0; k < checkedRadios.length; k++) {
+            checkedMap[checkedRadios[k].name] = checkedRadios[k];
+        }
+
         var lines = ['Bradford Hill Criteria Assessment', '===', 'Exposure: ' + exposure, 'Outcome: ' + outcome, ''];
         for (var i = 0; i < criteriaNames.length; i++) {
-            var checkedRadio = document.querySelector('input[name="bh-' + criteriaNames[i] + '"]:checked');
+            var checkedRadio = checkedMap['bh-' + criteriaNames[i]];
             var selected = checkedRadio ? checkedRadio.value : 'Not assessed';
             var note = document.getElementById('bh-note-' + criteriaNames[i]).value || '';
             lines.push((i + 1) + '. ' + criteriaLabels[i] + ': ' + selected + (note ? ' (' + note + ')' : ''));
@@ -331,9 +343,11 @@
     function resetBH() {
         var criteriaNames = ['strength', 'consistency', 'specificity', 'temporality',
             'gradient', 'plausibility', 'coherence', 'experiment', 'analogy'];
+        var checkedRadios = document.querySelectorAll('input[name^="bh-"]:checked');
+        for (var k = 0; k < checkedRadios.length; k++) {
+            checkedRadios[k].checked = false;
+        }
         for (var i = 0; i < criteriaNames.length; i++) {
-            var checkedRadio = document.querySelector('input[name="bh-' + criteriaNames[i] + '"]:checked');
-            if (checkedRadio) checkedRadio.checked = false;
             document.getElementById('bh-note-' + criteriaNames[i]).value = '';
         }
         document.getElementById('bh-exposure').value = '';
