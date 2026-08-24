@@ -405,6 +405,42 @@ describe('Statistics Module', () => {
     });
 
 describe('Additional Statistics Coverage', () => {
+    describe('poissonPMF', () => {
+        test('returns 0 for negative values of k', () => {
+            expect(Statistics.poissonPMF(-1, 2)).toBe(0);
+            expect(Statistics.poissonPMF(-5, 0.5)).toBe(0);
+        });
+
+        test('computes k=0 probability correctly as exp(-lambda)', () => {
+            expect(Statistics.poissonPMF(0, 1)).toBeCloseTo(Math.exp(-1), 10);
+            expect(Statistics.poissonPMF(0, 0.5)).toBeCloseTo(Math.exp(-0.5), 10);
+            expect(Statistics.poissonPMF(0, 2.5)).toBeCloseTo(Math.exp(-2.5), 10);
+        });
+
+        test('computes known Poisson PMF values correctly', () => {
+            // P(X = 2; lambda = 2.5) = (2.5^2 * exp(-2.5)) / 2! = 0.25651562069968353
+            const expected2_25 = (Math.pow(2.5, 2) * Math.exp(-2.5)) / 2;
+            expect(Statistics.poissonPMF(2, 2.5)).toBeCloseTo(expected2_25, 10);
+
+            // P(X = 1; lambda = 3) = 3 * exp(-3) = 0.14936120510359185
+            const expected1_3 = 3 * Math.exp(-3);
+            expect(Statistics.poissonPMF(1, 3)).toBeCloseTo(expected1_3, 10);
+
+            // P(X = 5; lambda = 10) = (10^5 * exp(-10)) / 120 = 0.03783327480207069
+            const expected5_10 = (Math.pow(10, 5) * Math.exp(-10)) / 120;
+            expect(Statistics.poissonPMF(5, 10)).toBeCloseTo(expected5_10, 10);
+        });
+
+        test('sum of PMF for k from 0 to N approximates 1 for moderate lambda', () => {
+            const lambda = 4;
+            let sumPMF = 0;
+            for (let k = 0; k <= 20; k++) {
+                sumPMF += Statistics.poissonPMF(k, lambda);
+            }
+            expect(sumPMF).toBeCloseTo(1, 8);
+        });
+    });
+
     describe('poissonCDF', () => {
         test('handles edge cases and known cumulative values', () => {
             expect(Statistics.poissonCDF(-1, 2)).toBe(0);
