@@ -111,14 +111,8 @@
        RENDER
        ================================================================ */
 
-    function render(container) {
-        var html = App.createModuleLayout(
-            'Biostatistics Reference',
-            'Quick-reference encyclopedia for statistical tests, distributions, confidence intervals, effect sizes, and multiple testing corrections.'
-        );
-
-        // ===== LEARN SECTION =====
-        html += '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
+    function renderLearnSection() {
+        var html = '<div class="card" style="background: var(--bg-secondary); border-left: 4px solid var(--accent-color);">';
         html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\')">&#x1F4DA; Learn &amp; Reference <span style="font-size:0.8em; color: var(--text-muted);">(click to expand)</span></div>';
         html += '<div class="learn-body hidden">';
 
@@ -166,9 +160,11 @@
             + '</ul>';
 
         html += '</div></div>';
+        return html;
+    }
 
-        // ---- Card 1: Statistical Test Selector ----
-        html += '<div class="card">';
+    function renderStatTestSelector() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Statistical Test Selector</div>';
         html += '<div class="card-subtitle">Answer the questions below to find the appropriate statistical test. Covers 20+ common tests with assumptions, formulas, and interpretation examples.</div>';
 
@@ -216,9 +212,11 @@
 
         html += '<div id="br-test-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ---- Card 2: Probability Distributions Gallery ----
-        html += '<div class="card">';
+    function renderDistributionsGallery() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Probability Distributions Gallery</div>';
         html += '<div class="card-subtitle">Interactive exploration of common probability distributions with parameter adjustments.</div>';
 
@@ -263,15 +261,11 @@
         html += '</tbody></table>';
         html += '</div>';
         html += '</div>';
+        return html;
+    }
 
-        // ---- Card 3: Central Limit Theorem Demonstrator ----
-        html += renderCLTDemonstrator();
-
-        // ---- Card 4: Hypothesis Testing Decision Flowchart ----
-        html += renderHypothesisFlowchart();
-
-        // ---- Card 5: Confidence Interval Methods ----
-        html += '<div class="card">';
+    function renderCIMethods() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Confidence Interval Methods</div>';
         html += '<div class="card-subtitle">Reference for CI construction methods for proportions and rates. Includes an interactive calculator.</div>';
 
@@ -312,9 +306,11 @@
 
         html += '<div id="br-ci-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ---- Card 6: Effect Size Interpretation Guide ----
-        html += '<div class="card">';
+    function renderEffectSizesGuide() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Effect Size Interpretation Guide</div>';
         html += '<div class="card-subtitle">Conventional benchmarks for interpreting effect sizes. Note: These are rules of thumb -- clinical context always determines meaningfulness.</div>';
 
@@ -348,9 +344,11 @@
         html += '</div>';
         html += '</div>';
         html += '</div>';
+        return html;
+    }
 
-        // ---- Card 7: Multiple Testing & P-value Reference ----
-        html += '<div class="card">';
+    function renderMultipleTestingReference() {
+        var html = '<div class="card">';
         html += '<div class="card-title">Multiple Testing &amp; P-value Reference</div>';
         html += '<div class="card-subtitle">Methods for controlling the family-wise error rate (FWER) or false discovery rate (FDR) when performing multiple comparisons.</div>';
 
@@ -411,8 +409,23 @@
         html += '</div>';
         html += '</div>';
         html += '</div>';
+        return html;
+    }
 
-        // ---- Card 8: Bayesian vs Frequentist Comparison ----
+    function render(container) {
+        var html = App.createModuleLayout(
+            'Biostatistics Reference',
+            'Quick-reference encyclopedia for statistical tests, distributions, confidence intervals, effect sizes, and multiple testing corrections.'
+        );
+
+        html += renderLearnSection();
+        html += renderStatTestSelector();
+        html += renderDistributionsGallery();
+        html += renderCLTDemonstrator();
+        html += renderHypothesisFlowchart();
+        html += renderCIMethods();
+        html += renderEffectSizesGuide();
+        html += renderMultipleTestingReference();
         html += renderBayesianComparison();
 
         App.setTrustedHTML(container, html);

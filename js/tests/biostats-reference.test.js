@@ -5,11 +5,13 @@ const { JSDOM } = require("jsdom");
 
 
 // Mock the App and Export objects and other globals
+global.registeredModules = {};
 global.App = {
     createModuleLayout: function(title, subtitle) { return "<html>...</html>"; },
     tooltip: function(text) { return '<span class="tooltip" title="' + text + '">?</span>'; },
     setTrustedHTML: function(el, html) { el.innerHTML = html; },
-    registerModule: function(id, moduleObj) {}
+    registerModule: function(id, moduleObj) { global.registeredModules[id] = moduleObj; },
+    autoSaveInputs: function() {}
 };
 
 global.Export = {
@@ -163,6 +165,41 @@ function testFindTestEmpty() {
     console.log("✅ testFindTestEmpty passed!");
 }
 
+function testRender() {
+    let layoutTitle = '';
+    const origCreateLayout = App.createModuleLayout;
+    App.createModuleLayout = function(title, subtitle) {
+        layoutTitle = title;
+        return '<div class="module-header"><h1>' + title + '</h1></div>';
+    };
+
+    setupDOM('<div id="container"></div>');
+
+    const registeredModule = global.registeredModules['biostats-reference'];
+    assert(registeredModule && typeof registeredModule.render === 'function', "Module should register render function");
+
+    const container = document.getElementById('container');
+    registeredModule.render(container);
+
+    App.createModuleLayout = origCreateLayout;
+
+    assert(layoutTitle === "Biostatistics Reference", "createModuleLayout should be called with correct module title");
+
+    const html = container.innerHTML;
+    assert(html.includes("Biostatistics Reference"), "Rendered HTML should include module title");
+    assert(html.includes("Learn &amp; Reference") || html.includes("Learn & Reference"), "Rendered HTML should include Learn section");
+    assert(html.includes("Statistical Test Selector"), "Rendered HTML should include Test Selector section");
+    assert(html.includes("Probability Distributions Gallery"), "Rendered HTML should include Distributions Gallery section");
+    assert(html.includes("Central Limit Theorem Demonstrator"), "Rendered HTML should include CLT Demonstrator section");
+    assert(html.includes("Hypothesis Testing Decision Flowchart"), "Rendered HTML should include Flowchart section");
+    assert(html.includes("Confidence Interval Methods"), "Rendered HTML should include CI Methods section");
+    assert(html.includes("Effect Size Interpretation Guide"), "Rendered HTML should include Effect Size Guide section");
+    assert(html.includes("Multiple Testing &amp; P-value Reference") || html.includes("Multiple Testing & P-value Reference"), "Rendered HTML should include Multiple Testing section");
+    assert(html.includes("Bayesian vs Frequentist Comparison"), "Rendered HTML should include Bayesian comparison section");
+
+    console.log("✅ testRender passed!");
+}
+
 // Run all tests
 describe("BiostatRef Tests", () => {
     test("testAdjustPvalsValid", () => {
@@ -185,6 +222,9 @@ describe("BiostatRef Tests", () => {
     });
     test("testFindTestEmpty", () => {
         testFindTestEmpty();
+    });
+    test("testRender", () => {
+        testRender();
     });
 });
 
