@@ -565,4 +565,48 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.fisherExact(5, 5, 5, 5).pValue).toBeLessThanOrEqual(1.0);
         });
     });
+
+    describe('logRateCI', () => {
+        test('calculates point rate, standard error, and log-transformed confidence interval with default alpha', () => {
+            const events = 25;
+            const personTime = 500;
+            const res = Statistics.logRateCI(events, personTime);
+
+            expect(res.rate).toBeCloseTo(0.05, 5);
+            expect(res.se).toBeCloseTo(0.01, 5);
+            expect(res.lower).toBeCloseTo(0.0337854, 5);
+            expect(res.upper).toBeCloseTo(0.0739964, 5);
+            expect(res.lower).toBeLessThan(res.rate);
+            expect(res.upper).toBeGreaterThan(res.rate);
+        });
+
+        test('maintains geometric mean symmetry: sqrt(lower * upper) === rate', () => {
+            const res = Statistics.logRateCI(10, 1000);
+            expect(Math.sqrt(res.lower * res.upper)).toBeCloseTo(res.rate, 8);
+        });
+
+        test('adjusts confidence interval width based on custom alpha', () => {
+            const ci90 = Statistics.logRateCI(25, 500, 0.10);
+            const ci95 = Statistics.logRateCI(25, 500, 0.05);
+            const ci99 = Statistics.logRateCI(25, 500, 0.01);
+
+            expect(ci99.lower).toBeLessThan(ci95.lower);
+            expect(ci95.lower).toBeLessThan(ci90.lower);
+            expect(ci90.upper).toBeLessThan(ci95.upper);
+            expect(ci95.upper).toBeLessThan(ci99.upper);
+
+            expect(ci99.rate).toBe(ci95.rate);
+            expect(ci99.se).toBe(ci95.se);
+        });
+
+        test('yields narrower relative interval as event count increases for constant rate', () => {
+            const ciSmall = Statistics.logRateCI(10, 1000); // rate 0.01
+            const ciLarge = Statistics.logRateCI(100, 10000); // rate 0.01
+
+            const ratioSmall = ciSmall.upper / ciSmall.lower;
+            const ratioLarge = ciLarge.upper / ciLarge.lower;
+
+            expect(ratioLarge).toBeLessThan(ratioSmall);
+        });
+    });
 });

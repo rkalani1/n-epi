@@ -150,6 +150,31 @@ describe('Statistics Engine Tests', function() {
             assert.ok(Math.abs(Statistics.fQuantile(0.99, 1, 1) - 4052.18) < 1);
         });
     });
+
+    describe('logRateCI Function', function() {
+        it('should calculate incidence rate, standard error, and 95% CI by default', function() {
+            var res = Statistics.logRateCI(10, 1000);
+            assert.strictEqual(res.rate, 0.01);
+            assert.ok(Math.abs(res.se - 0.00316227766) < 1e-7);
+            assert.ok(Math.abs(res.lower - 0.005380547) < 1e-6);
+            assert.ok(Math.abs(res.upper - 0.018585471) < 1e-6);
+            assert.ok(res.lower < res.rate && res.rate < res.upper);
+        });
+
+        it('should obey geometric mean property sqrt(lower * upper) === rate', function() {
+            var res = Statistics.logRateCI(25, 500);
+            assert.ok(Math.abs(Math.sqrt(res.lower * res.upper) - res.rate) < 1e-8);
+        });
+
+        it('should produce wider intervals for smaller alpha values', function() {
+            var ci90 = Statistics.logRateCI(25, 500, 0.10);
+            var ci95 = Statistics.logRateCI(25, 500, 0.05);
+            var ci99 = Statistics.logRateCI(25, 500, 0.01);
+
+            assert.ok(ci99.lower < ci95.lower && ci95.lower < ci90.lower);
+            assert.ok(ci90.upper < ci95.upper && ci95.upper < ci99.upper);
+        });
+    });
 });
 
     describe('tQuantile Distribution Function', function() {
