@@ -150,7 +150,6 @@ describe('Statistics Engine Tests', function() {
             assert.ok(Math.abs(Statistics.fQuantile(0.99, 1, 1) - 4052.18) < 1);
         });
     });
-});
 
     describe('tQuantile Distribution Function', function() {
         it('should return -Infinity when p <= 0', function() {
@@ -188,3 +187,48 @@ describe('Statistics Engine Tests', function() {
             assert.ok(Math.abs(Statistics.tQuantile(0.025, 10) - (-2.2281)) < 1e-3);
         });
     });
+
+    describe('poissonExactCI Confidence Interval Function', function() {
+
+        it('should default alpha to 0.05 when alpha parameter is omitted', function() {
+            const resultDefault = Statistics.poissonExactCI(5);
+            const resultExplicit = Statistics.poissonExactCI(5, 0.05);
+            assert.strictEqual(resultDefault.lower, resultExplicit.lower);
+            assert.strictEqual(resultDefault.upper, resultExplicit.upper);
+        });
+
+        it('should handle k = 0 events correctly (lower bound must be 0)', function() {
+            const result = Statistics.poissonExactCI(0, 0.05);
+            assert.strictEqual(result.lower, 0);
+            // Upper bound for k=0, alpha=0.05 is -ln(0.025) ≈ 3.688879
+            assert.ok(Math.abs(result.upper - 3.688879) < 1e-4);
+        });
+
+        it('should calculate exact Poisson confidence bounds for positive counts (k > 0)', function() {
+            // k = 5, alpha = 0.05 -> [1.623486, 11.668332]
+            const result5 = Statistics.poissonExactCI(5, 0.05);
+            assert.ok(Math.abs(result5.lower - 1.623486) < 1e-4);
+            assert.ok(Math.abs(result5.upper - 11.668332) < 1e-4);
+
+            // k = 10, alpha = 0.05 -> [4.795389, 18.390356]
+            const result10 = Statistics.poissonExactCI(10, 0.05);
+            assert.ok(Math.abs(result10.lower - 4.795389) < 1e-4);
+            assert.ok(Math.abs(result10.upper - 18.390356) < 1e-4);
+        });
+
+        it('should handle custom alpha values (e.g. 0.01 for 99% CI)', function() {
+            // k = 0, alpha = 0.01 -> upper bound = -ln(0.005) ≈ 5.298317
+            const result0_99 = Statistics.poissonExactCI(0, 0.01);
+            assert.strictEqual(result0_99.lower, 0);
+            assert.ok(Math.abs(result0_99.upper - 5.298317) < 1e-4);
+
+            // 99% CI should be wider than 95% CI for the same k
+            const result5_95 = Statistics.poissonExactCI(5, 0.05);
+            const result5_99 = Statistics.poissonExactCI(5, 0.01);
+            assert.ok(result5_99.lower < result5_95.lower);
+            assert.ok(result5_99.upper > result5_95.upper);
+        });
+
+    });
+
+});
