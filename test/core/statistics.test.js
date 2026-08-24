@@ -565,4 +565,50 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.fisherExact(5, 5, 5, 5).pValue).toBeLessThanOrEqual(1.0);
         });
     });
+
+    describe('cochranArmitageTrend', () => {
+        test('computes trend test statistic with default scores for an increasing dose-response trend', () => {
+            const counts = [5, 10, 20];
+            const totals = [100, 100, 100];
+            const result = Statistics.cochranArmitageTrend(counts, totals);
+
+            expect(result.T).toBeCloseTo(15, 5);
+            expect(result.varT).toBeCloseTo(20.611111, 5);
+            expect(result.z).toBeCloseTo(3.304004, 5);
+            expect(result.pValue).toBeCloseTo(0.000953, 5);
+        });
+
+        test('supports custom dose scores for non-linear dose steps', () => {
+            const counts = [10, 20, 30, 40];
+            const totals = [100, 100, 100, 100];
+            const scores = [1, 2, 4, 8];
+            const result = Statistics.cochranArmitageTrend(counts, totals, scores);
+
+            expect(result.T).toBeCloseTo(115, 5);
+            expect(result.varT).toBeCloseTo(539.0625, 5);
+            expect(result.z).toBeCloseTo(4.953113, 5);
+            expect(result.pValue).toBeCloseTo(0.00000073, 7);
+        });
+
+        test('handles a flat trend (equal proportions across groups)', () => {
+            const counts = [10, 10, 10];
+            const totals = [100, 100, 100];
+            const result = Statistics.cochranArmitageTrend(counts, totals);
+
+            expect(result.T).toBe(0);
+            expect(result.z).toBe(0);
+            expect(result.pValue).toBeCloseTo(1.0, 5);
+        });
+
+        test('handles a decreasing / negative dose-response trend', () => {
+            const counts = [20, 10, 5];
+            const totals = [100, 100, 100];
+            const result = Statistics.cochranArmitageTrend(counts, totals);
+
+            expect(result.T).toBeCloseTo(-15, 5);
+            expect(result.varT).toBeCloseTo(20.611111, 5);
+            expect(result.z).toBeCloseTo(-3.304004, 5);
+            expect(result.pValue).toBeCloseTo(0.000953, 5);
+        });
+    });
 });
