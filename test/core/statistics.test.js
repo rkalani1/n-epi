@@ -445,6 +445,53 @@ describe('Additional Statistics Coverage', () => {
         });
     });
 
+    describe('sampleSizeCluster', () => {
+        test('computes cluster-randomized sample size correctly for standard inputs', () => {
+            const nIndividual = 100;
+            const icc = 0.1;
+            const clusterSize = 10;
+
+            // deff = 1 + (10 - 1) * 0.1 = 1 + 9 * 0.1 = 1.9
+            // nAdjusted = Math.ceil(100 * 1.9) = 190
+            // nClusters = Math.ceil(190 / 10) = 19
+            // totalN = 19 * 10 = 190
+            const result = Statistics.sampleSizeCluster(nIndividual, icc, clusterSize);
+            expect(result.deff).toBeCloseTo(1.9, 5);
+            expect(result.nAdjusted).toBe(190);
+            expect(result.nClusters).toBe(19);
+            expect(result.totalN).toBe(190);
+        });
+
+        test('handles icc = 0 (no cluster effect, deff = 1)', () => {
+            const result = Statistics.sampleSizeCluster(100, 0, 20);
+            expect(result.deff).toBe(1);
+            expect(result.nAdjusted).toBe(100);
+            expect(result.nClusters).toBe(5);
+            expect(result.totalN).toBe(100);
+        });
+
+        test('handles clusterSize = 1 (individual randomization equivalent)', () => {
+            const result = Statistics.sampleSizeCluster(100, 0.1, 1);
+            expect(result.deff).toBe(1);
+            expect(result.nAdjusted).toBe(100);
+            expect(result.nClusters).toBe(100);
+            expect(result.totalN).toBe(100);
+        });
+
+        test('correctly rounds up nAdjusted and nClusters when fractional', () => {
+            // nIndividual = 101, icc = 0.02, clusterSize = 15
+            // deff = 1 + 14 * 0.02 = 1.28
+            // nAdjusted = Math.ceil(101 * 1.28) = Math.ceil(129.28) = 130
+            // nClusters = Math.ceil(130 / 15) = Math.ceil(8.6667) = 9
+            // totalN = 9 * 15 = 135
+            const result = Statistics.sampleSizeCluster(101, 0.02, 15);
+            expect(result.deff).toBeCloseTo(1.28, 5);
+            expect(result.nAdjusted).toBe(130);
+            expect(result.nClusters).toBe(9);
+            expect(result.totalN).toBe(135);
+        });
+    });
+
     describe('mcNemarTest', () => {
         test('calculates exact and asymptotic McNemar tests', () => {
             const exact = Statistics.mcNemarTest(10, 2, true);
