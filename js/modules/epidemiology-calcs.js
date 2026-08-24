@@ -23,6 +23,10 @@
     // RENDER
     // ================================================================
 
+    // ================================================================
+    // RENDER & COMPONENT BUILDERS
+    // ================================================================
+
     function render(container) {
         var html = App.createModuleLayout(
             'Epidemiology Calculators',
@@ -30,7 +34,38 @@
         );
 
         html += '<div class="card">';
-        html += '<div class="tabs" id="epi-tabs" style="flex-wrap:wrap;">'
+        html += buildTabHeader();
+        html += buildTwoByTwoTab();
+        html += buildStratifiedTab();
+        html += buildInteractionTab();
+        html += buildDoseResponseTab();
+        html += buildCaseControlTab();
+        html += buildScreeningTab();
+        html += buildPAFTab();
+        html += buildIncidenceTab();
+        html += buildRateRatioTab();
+        html += buildPrevalenceTab();
+        html += buildSMRTab();
+        html += buildAgeStdTab();
+        html += buildDALYTab();
+        html += buildBiasTab();
+        html += '</div>'; // end card
+
+        html += buildLearnSection();
+
+        App.setTrustedHTML(container, html);
+        App.autoSaveInputs(container, MODULE_ID);
+
+        // Build dynamic inputs on first render
+        setTimeout(function () {
+            buildMHInputs();
+            buildDRInputs();
+            buildPAFInputs();
+        }, 30);
+    }
+
+    function buildTabHeader() {
+        return '<div class="tabs" id="epi-tabs" style="flex-wrap:wrap;">'
             + '<button class="tab active" data-tab="twobytwo" onclick="EpiCalcModule.switchTab(\'twobytwo\')">2&times;2 Table</button>'
             + '<button class="tab" data-tab="stratified" onclick="EpiCalcModule.switchTab(\'stratified\')">Stratified (MH)</button>'
             + '<button class="tab" data-tab="interaction" onclick="EpiCalcModule.switchTab(\'interaction\')">Interaction</button>'
@@ -46,14 +81,11 @@
             + '<button class="tab" data-tab="daly" onclick="EpiCalcModule.switchTab(\'daly\')">DALY / YLL</button>'
             + '<button class="tab" data-tab="bias" onclick="EpiCalcModule.switchTab(\'bias\')">Bias Checklist</button>'
             + '</div>';
+    }
 
-
-        // ============================================================
-        // TAB A: 2x2 Table Analyzer
-        // ============================================================
-        html += '<div class="tab-content active" id="epi-tab-twobytwo">';
+    function buildTwoByTwoTab() {
+        var html = '<div class="tab-content active" id="epi-tab-twobytwo">';
         html += '<div class="card-subtitle">Enter cell counts from a 2&times;2 table. All effect measures, CIs, and tests are computed simultaneously.</div>';
-
         html += '<div class="table-scroll-wrap"><table class="data-table" style="max-width:450px;margin:0 auto 1rem">'
             + '<thead><tr><th></th><th>Disease (+)</th><th>Disease (&minus;)</th></tr></thead>'
             + '<tbody>'
@@ -64,17 +96,15 @@
             + '<td><input type="number" class="form-input form-input--small" id="epi_c" name="epi_c" value="15" min="0" style="width:80px"></td>'
             + '<td><input type="number" class="form-input form-input--small" id="epi_d" name="epi_d" value="85" min="0" style="width:80px"></td></tr>'
             + '</tbody></table></div>';
-
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="EpiCalcModule.calc2x2()">Analyze</button></div>';
         html += '<div id="epi-2x2-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB B: Stratified Analysis (Mantel-Haenszel)
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-stratified">';
+    function buildStratifiedTab() {
+        var html = '<div class="tab-content" id="epi-tab-stratified">';
         html += '<div class="card-subtitle">Enter multiple 2&times;2 tables (strata) for pooled Mantel-Haenszel estimates and Breslow-Day homogeneity test.</div>';
-
         html += '<div class="form-row form-row--2">'
             + '<div class="form-group"><label class="form-label">Number of Strata</label>'
             + '<input type="number" class="form-input" id="epi_mh_k" name="epi_mh_k" step="1" min="2" max="20" value="3" onchange="EpiCalcModule.buildMHInputs()"></div>'
@@ -82,18 +112,16 @@
             + '<select class="form-select" id="epi_mh_measure" name="epi_mh_measure">'
             + '<option value="OR">Odds Ratio</option><option value="RR">Risk Ratio</option></select></div>'
             + '</div>';
-
         html += '<div id="epi-mh-inputs"></div>';
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="EpiCalcModule.calcMH()">Pooled Analysis</button></div>';
         html += '<div id="epi-mh-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB C: Interaction Assessment
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-interaction">';
+    function buildInteractionTab() {
+        var html = '<div class="tab-content" id="epi-tab-interaction">';
         html += '<div class="card-subtitle">Assess additive and multiplicative interaction between two risk factors. Input stratum-specific relative risks.</div>';
-
         html += '<div class="table-scroll-wrap"><table class="data-table" style="max-width:450px;margin:0 auto 1rem">'
             + '<thead><tr><th></th><th>Factor B +</th><th>Factor B &minus;</th></tr></thead>'
             + '<tbody>'
@@ -107,30 +135,27 @@
             + '<input type="number" class="form-input form-input--small" id="epi_rr01" name="epi_rr01" value="1.8" step="0.1" min="0" style="width:80px"></td>'
             + '<td><div class="text-center" style="padding-top:1.2rem"><strong>Reference (1.0)</strong></div></td></tr>'
             + '</tbody></table></div>';
-
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="EpiCalcModule.calcInteraction()">Assess Interaction</button></div>';
         html += '<div id="epi-interaction-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB D: Dose-Response (Cochran-Armitage)
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-doseresponse">';
+    function buildDoseResponseTab() {
+        var html = '<div class="tab-content" id="epi-tab-doseresponse">';
         html += '<div class="card-subtitle">Cochran-Armitage trend test for ordered groups. Enter at least 3 exposure groups with event counts, totals, and trend scores.</div>';
-
         html += '<div class="form-group"><label class="form-label">Number of Groups</label>'
             + '<input type="number" class="form-input" id="epi_dr_k" name="epi_dr_k" step="1" min="3" max="10" value="4" onchange="EpiCalcModule.buildDRInputs()" style="max-width:120px"></div>';
         html += '<div id="epi-dr-inputs"></div>';
         html += '<div class="btn-group mt-2"><button class="btn btn-primary" onclick="EpiCalcModule.calcDoseResponse()">Test Trend</button></div>';
         html += '<div id="epi-dr-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB F: Case-Control Analysis
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-casecontrol">';
+    function buildCaseControlTab() {
+        var html = '<div class="tab-content" id="epi-tab-casecontrol">';
         html += '<div class="card-subtitle">Compute matched and unmatched odds ratios for case-control studies with Cornfield test-based confidence intervals and conditional logistic regression reference.</div>';
-
         // Unmatched section
         html += '<div class="card-title mt-2">Unmatched Case-Control</div>';
         html += '<div class="table-scroll-wrap"><table class="data-table" style="max-width:450px;margin:0 auto 1rem">'
@@ -167,11 +192,11 @@
             + '</div>';
         html += '<div id="epi-cc-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB G: Screening Metrics
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-screening">';
+    function buildScreeningTab() {
+        var html = '<div class="tab-content" id="epi-tab-screening">';
         html += '<div class="card-subtitle">Calculate PPV, NPV, and other screening metrics from known sensitivity, specificity, and disease prevalence.</div>';
 
         html += '<div class="form-row form-row--3">'
@@ -191,13 +216,12 @@
             + '</div>';
         html += '<div id="epi-scr-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB H: Population Attributable Fraction (Multi-level)
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-paf">';
+    function buildPAFTab() {
+        var html = '<div class="tab-content" id="epi-tab-paf">';
         html += '<div class="card-subtitle">Calculate population attributable fraction (PAF) with multiple exposure levels. Uses the Levin formula generalized for polytomous exposures.</div>';
-
         html += '<div class="form-group"><label class="form-label">Number of Exposure Levels (excluding reference)</label>'
             + '<input type="number" class="form-input" id="epi_paf_k" step="1" min="1" max="10" value="3" onchange="EpiCalcModule.buildPAFInputs()" style="max-width:150px"></div>';
         html += '<div id="epi-paf-inputs"></div>';
@@ -206,11 +230,11 @@
             + '</div>';
         html += '<div id="epi-paf-results"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB: Incidence Rate
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-incidence">';
+    function buildIncidenceTab() {
+        var html = '<div class="tab-content" id="epi-tab-incidence">';
         html += '<div class="card-subtitle">Calculate incidence rates from number of events and person-time at risk.</div>';
         html += '<div class="result-grid">';
         html += '<div class="form-group"><label class="form-label">Events (Numerators)</label><input type="number" class="form-input" id="epi_ir_events" value="50"></div>';
@@ -221,11 +245,11 @@
         html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcIncidence()">Calculate Rate</button>';
         html += '<div id="epi-incidence-results" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB: Rate Ratio
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-rateratio">';
+    function buildRateRatioTab() {
+        var html = '<div class="tab-content" id="epi-tab-rateratio">';
         html += '<div class="card-subtitle">Compare incidence rates between two groups using person-time data.</div>';
         html += '<div class="result-grid">';
         html += '<div><span class="badge badge-accent mb-1">Exposed Group</span><div class="form-group"><label class="form-label">Events</label><input type="number" class="form-input" id="epi_rr_events1" value="30"></div>'
@@ -236,11 +260,11 @@
         html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcRateRatio()">Calculate IRR</button>';
         html += '<div id="epi-rateratio-results" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB: Prevalence
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-prevalence">';
+    function buildPrevalenceTab() {
+        var html = '<div class="tab-content" id="epi-tab-prevalence">';
         html += '<div class="card-subtitle">Estimate prevalence with exact (Clopper-Pearson) confidence intervals.</div>';
         html += '<div class="result-grid">';
         html += '<div class="form-group"><label class="form-label">Cases (x)</label><input type="number" class="form-input" id="epi_prev_x" value="25"></div>';
@@ -250,11 +274,11 @@
         html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcPrevalence()">Calculate Prevalence</button>';
         html += '<div id="epi-prevalence-results" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB: SMR
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-smr">';
+    function buildSMRTab() {
+        var html = '<div class="tab-content" id="epi-tab-smr">';
         html += '<div class="card-subtitle">Compare observed events in a study population to expected events from a reference population.</div>';
         html += '<div class="result-grid">';
         html += '<div class="form-group"><label class="form-label">Observed Events</label><input type="number" class="form-input" id="epi_smr_obs" value="120"></div>';
@@ -264,11 +288,11 @@
         html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcSMR()">Calculate SMR</button>';
         html += '<div id="epi-smr-results" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB: Age Standardization
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-agestd">';
+    function buildAgeStdTab() {
+        var html = '<div class="tab-content" id="epi-tab-agestd">';
         html += '<div class="card-subtitle">Compute age-standardized rates using the direct method and predefined standard populations.</div>';
         html += '<div class="form-group"><label class="form-label">Standard Population Reference</label>'
             + '<select class="form-select" id="epi_std_pop" onchange="EpiCalcModule.loadStdPop()">'
@@ -288,11 +312,11 @@
         html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcAgeStd()">Calculate Standardized Rate</button>';
         html += '<div id="epi-agestd-results" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB: DALY / YLL
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-daly">';
+    function buildDALYTab() {
+        var html = '<div class="tab-content" id="epi-tab-daly">';
         html += '<div class="card-subtitle">Calculate Disability-Adjusted Life Years (DALY) as the sum of Years of Life Lost (YLL) and Years Lived with Disability (YLD).</div>';
         html += '<div class="result-grid">';
         html += '<div><strong>YLL (Mortality)</strong>'
@@ -313,19 +337,19 @@
         html += '<button class="btn btn-primary mt-2" onclick="EpiCalcModule.calcDALY()">Calculate DALY</button>';
         html += '<div id="epi-daly-results" class="mt-2"></div>';
         html += '</div>';
+        return html;
+    }
 
-        // ============================================================
-        // TAB E: Bias Checklist
-        // ============================================================
-        html += '<div class="tab-content" id="epi-tab-bias">';
+    function buildBiasTab() {
+        var html = '<div class="tab-content" id="epi-tab-bias">';
         html += '<div class="card-subtitle">Comprehensive catalog of epidemiological biases with definitions, stroke-specific examples, and mitigation strategies.</div>';
         html += buildBiasChecklist();
         html += '</div>';
+        return html;
+    }
 
-        html += '</div>'; // end card
-
-        // ===== LEARN SECTION =====
-        html += '<div class="card">';
+    function buildLearnSection() {
+        var html = '<div class="card">';
         html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\');">'
             + '\u25B6 Learn: Epidemiology Calculations</div>';
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
@@ -365,16 +389,7 @@
             + '<li>Cornfield J. A method of estimating comparative rates. <em>J Am Stat Assoc</em>. 1956;51:276-88.</li>'
             + '</ul>';
         html += '</div></div>';
-
-        App.setTrustedHTML(container, html);
-        App.autoSaveInputs(container, MODULE_ID);
-
-        // Build dynamic inputs on first render
-        setTimeout(function () {
-            buildMHInputs();
-            buildDRInputs();
-            buildPAFInputs();
-        }, 30);
+        return html;
     }
 
     // ================================================================
