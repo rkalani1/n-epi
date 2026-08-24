@@ -627,10 +627,25 @@
         answers: []
     };
 
+    function getRandomInt(max) {
+        // Returns a uniform random integer in [0, max - 1] using crypto.getRandomValues if available
+        if (max <= 1) return 0;
+        var cryptoObj = typeof window !== 'undefined' && (window.crypto || window.msCrypto);
+        if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
+            var randomUint32 = new Uint32Array(1);
+            var limit = Math.floor(4294967296 / max) * max;
+            do {
+                cryptoObj.getRandomValues(randomUint32);
+            } while (randomUint32[0] >= limit);
+            return randomUint32[0] % max;
+        }
+        return Math.floor(Math.random() * max);
+    }
+
     function shuffleArray(arr) {
         var shuffled = arr.slice();
         for (var i = shuffled.length - 1; i > 0; i--) {
-            var j = Math.floor(Math.random() * (i + 1));
+            var j = getRandomInt(i + 1);
             var temp = shuffled[i];
             shuffled[i] = shuffled[j];
             shuffled[j] = temp;
