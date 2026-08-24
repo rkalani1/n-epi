@@ -175,6 +175,18 @@ var Charts = (() => {
     // LINE CHART
     // ============================================================
 
+    function drawChartBackgroundAndTitle(ctx, width, height, theme, title, titleY) {
+        ctx.fillStyle = theme.bg;
+        ctx.fillRect(0, 0, width, height);
+
+        if (title) {
+            ctx.fillStyle = theme.text;
+            ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(title, width / 2, titleY || 22);
+        }
+    }
+
     function LineChart(canvas, options) {
         if (!guardCanvas(canvas)) return;
         const {
@@ -211,17 +223,8 @@ var Charts = (() => {
         function sx(v) { return pad.left + (v - xR[0]) / xRange * plotW; }
         function sy(v) { return pad.top + plotH - (v - yR[0]) / yRange * plotH; }
 
-        // Background
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        // Title
-        if (title) {
-            ctx.fillStyle = theme.text;
-            ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(title, width / 2, 22);
-        }
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 22);
 
         // Grid
         if (showGrid) {
@@ -379,17 +382,8 @@ var Charts = (() => {
         var plotRight = width - statsW - 10;
         var plotW = plotRight - plotLeft;
 
-        // Background
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        // Title
-        if (title) {
-            ctx.fillStyle = theme.text;
-            ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(title, width / 2, 20);
-        }
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 20);
 
         // Compute plot range
         var allVals = [];
@@ -710,14 +704,8 @@ var Charts = (() => {
         function sx(v) { return pad.left + ((v - effMin) / (effMax - effMin)) * plotW; }
         function sy(v) { return pad.top + (v / seMax) * plotH; }
 
-        // Background
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        ctx.fillStyle = theme.text;
-        ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(title, width / 2, 22);
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 22);
 
         // Pseudo-95% CI triangle (filled region)
         if (showPseudoCI) {
@@ -932,16 +920,8 @@ var Charts = (() => {
         var plotW = width - pad.left - pad.right;
         var plotH = height - pad.top - pad.bottom;
 
-        // Background
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        if (title) {
-            ctx.fillStyle = theme.text;
-            ctx.font = 'bold 13px system-ui';
-            ctx.textAlign = 'center';
-            ctx.fillText(title, width / 2, 22);
-        }
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 22);
 
         // Detect grouped+stacked combination:
         // If series have stackGroup property, group them by stackGroup
@@ -1248,9 +1228,6 @@ var Charts = (() => {
         const theme = getTheme();
         const ctx = setupCanvas(canvas, width, height);
 
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
         const pad = { top: title ? 50 : 20, left: 30, right: 30, bottom: 80 };
         const gridW = width - pad.left - pad.right;
         const gridH = height - pad.top - pad.bottom;
@@ -1260,12 +1237,8 @@ var Charts = (() => {
         const cellH = gridH / rows;
         const iconSize = Math.min(cellW, cellH) * 0.6;
 
-        if (title) {
-            ctx.fillStyle = theme.text;
-            ctx.font = 'bold 13px system-ui';
-            ctx.textAlign = 'center';
-            ctx.fillText(title, width / 2, 25);
-        }
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 25);
 
         const cerN = Math.round(cer * n);
         const eerN = Math.round(eer * n);
@@ -1564,13 +1537,8 @@ var Charts = (() => {
         function sx(v) { return pad.left + v * plotW; }
         function sy(v) { return pad.top + plotH * (1 - v); }
 
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        ctx.fillStyle = theme.text;
-        ctx.font = 'bold 13px system-ui';
-        ctx.textAlign = 'center';
-        ctx.fillText(title, width / 2, 22);
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 22);
 
         // Grid
         ctx.strokeStyle = theme.grid;
@@ -1679,15 +1647,8 @@ var Charts = (() => {
 
         const ctx = setupCanvas(canvas, width, height);
 
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        if (title) {
-            ctx.fillStyle = theme.text;
-            ctx.font = 'bold 13px system-ui';
-            ctx.textAlign = 'center';
-            ctx.fillText(title, width / 2, 20);
-        }
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 20);
 
         const topY = title ? 35 : 10;
 
@@ -1767,13 +1728,8 @@ var Charts = (() => {
         const ctx = setupCanvas(canvas, width, height);
         const plotW = width - labelW - 30;
 
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        ctx.fillStyle = theme.text;
-        ctx.font = 'bold 13px system-ui';
-        ctx.textAlign = 'center';
-        ctx.fillText(title, width / 2, 22);
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 22);
 
         // Year markers
         const monthW = plotW / totalMonths;
@@ -1846,8 +1802,8 @@ var Charts = (() => {
             default: theme.textSecondary
         };
 
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
+        // Background (No title needed for DAG)
+        drawChartBackgroundAndTitle(ctx, width, height, theme, null, null);
 
         // Draw edges (arrows)
         edges.forEach(edge => {
@@ -1944,16 +1900,8 @@ var Charts = (() => {
         var plotW = width - pad.left - pad.right;
         var plotH = height - pad.top - pad.bottom;
 
-        // Background
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        if (title) {
-            ctx.fillStyle = theme.text;
-            ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(title, width / 2, 22);
-        }
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 22);
 
         // Compute statistics for each group
         function computeStats(data) {
@@ -2277,16 +2225,8 @@ var Charts = (() => {
         var plotW = width - pad.left - pad.right;
         var plotH = height - pad.top - pad.bottom;
 
-        // Background
-        ctx.fillStyle = theme.bg;
-        ctx.fillRect(0, 0, width, height);
-
-        if (title) {
-            ctx.fillStyle = theme.text;
-            ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(title, width / 2, 22);
-        }
+        // Background & Title
+        drawChartBackgroundAndTitle(ctx, width, height, theme, title, 22);
 
         // Compute X range
         var allVals = [nullValue];
