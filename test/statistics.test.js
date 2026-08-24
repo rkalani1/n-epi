@@ -152,6 +152,31 @@ describe('Statistics Engine Tests', function() {
     });
 });
 
+    describe('chiSquaredQuantile Distribution Function', function() {
+        it('should return 0 when p <= 0', function() {
+            assert.strictEqual(Statistics.chiSquaredQuantile(0, 1), 0);
+            assert.strictEqual(Statistics.chiSquaredQuantile(-0.1, 5), 0);
+        });
+
+        it('should return Infinity when p >= 1', function() {
+            assert.strictEqual(Statistics.chiSquaredQuantile(1, 1), Infinity);
+            assert.strictEqual(Statistics.chiSquaredQuantile(1.5, 5), Infinity);
+        });
+
+        it('should calculate specific known values for chiSquaredQuantile correctly', function() {
+            // df=1, p=0.95 -> 3.8415
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.95, 1) - 3.8414588) < 1e-4);
+            // df=2, p=0.5 -> 2 * ln(2) approx 1.3863
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.5, 2) - 1.38629436) < 1e-4);
+            // df=2, p=0.95 -> -2 * ln(0.05) approx 5.9915
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.95, 2) - 5.9914645) < 1e-4);
+            // df=5, p=0.95 -> 11.0705
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.95, 5) - 11.0704977) < 1e-4);
+            // df=10, p=0.99 -> 23.2093
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.99, 10) - 23.2092512) < 1e-4);
+        });
+    });
+
     describe('tQuantile Distribution Function', function() {
         it('should return -Infinity when p <= 0', function() {
             assert.strictEqual(Statistics.tQuantile(0, 10), -Infinity);
