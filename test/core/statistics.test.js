@@ -356,6 +356,51 @@ describe('Statistics Module', () => {
     });
 
 describe('Additional Statistics Coverage', () => {
+    describe('poissonQuantile', () => {
+        test('handles boundary and out-of-bounds probability inputs', () => {
+            expect(Statistics.poissonQuantile(0, 2)).toBe(0);
+            expect(Statistics.poissonQuantile(-0.5, 2)).toBe(0);
+            expect(Statistics.poissonQuantile(1, 2)).toBe(Infinity);
+            expect(Statistics.poissonQuantile(1.5, 2)).toBe(Infinity);
+        });
+
+        test('calculates accurate quantiles for various lambda values', () => {
+            // lambda = 2
+            expect(Statistics.poissonQuantile(0.1, 2)).toBe(0);
+            expect(Statistics.poissonQuantile(0.25, 2)).toBe(1);
+            expect(Statistics.poissonQuantile(0.5, 2)).toBe(2);
+            expect(Statistics.poissonQuantile(0.75, 2)).toBe(3);
+            expect(Statistics.poissonQuantile(0.9, 2)).toBe(4);
+            expect(Statistics.poissonQuantile(0.95, 2)).toBe(5);
+            expect(Statistics.poissonQuantile(0.99, 2)).toBe(6);
+
+            // lambda = 5
+            expect(Statistics.poissonQuantile(0.01, 5)).toBe(1);
+            expect(Statistics.poissonQuantile(0.5, 5)).toBe(5);
+            expect(Statistics.poissonQuantile(0.95, 5)).toBe(9);
+
+            // lambda = 10
+            expect(Statistics.poissonQuantile(0.1, 10)).toBe(6);
+            expect(Statistics.poissonQuantile(0.5, 10)).toBe(10);
+            expect(Statistics.poissonQuantile(0.99, 10)).toBe(18);
+        });
+
+        test('satisfies quantile definition relative to CDF: CDF(k-1) < p <= CDF(k)', () => {
+            const lambdas = [0.5, 2, 5, 10];
+            const ps = [0.05, 0.2, 0.4, 0.6, 0.8, 0.95];
+
+            lambdas.forEach(lambda => {
+                ps.forEach(p => {
+                    const k = Statistics.poissonQuantile(p, lambda);
+                    expect(Statistics.poissonCDF(k, lambda)).toBeGreaterThanOrEqual(p);
+                    if (k > 0) {
+                        expect(Statistics.poissonCDF(k - 1, lambda)).toBeLessThan(p);
+                    }
+                });
+            });
+        });
+    });
+
     describe('poissonCDF', () => {
         test('handles edge cases and known cumulative values', () => {
             expect(Statistics.poissonCDF(-1, 2)).toBe(0);

@@ -77,3 +77,26 @@ describe('Statistics.binomialPMF', () => {
         expect(Statistics.binomialPMF(5, 10, 0.5)).toBeCloseTo(0.24609375, 6);
     });
 });
+
+describe('Statistics.poissonQuantile', () => {
+    let Statistics;
+
+    beforeEach(() => {
+        Statistics = window.Statistics;
+    });
+
+    test('should return 0 when p <= 0', () => {
+        expect(Statistics.poissonQuantile(0, 3)).toBe(0);
+        expect(Statistics.poissonQuantile(-0.1, 3)).toBe(0);
+    });
+
+    test('should return Infinity when p >= 1', () => {
+        expect(Statistics.poissonQuantile(1, 3)).toBe(Infinity);
+        expect(Statistics.poissonQuantile(1.2, 3)).toBe(Infinity);
+    });
+
+    test('should calculate correct quantile for valid p and lambda', () => {
+        expect(Statistics.poissonQuantile(0.5, 2)).toBe(2);
+        expect(Statistics.poissonQuantile(0.95, 5)).toBe(9);
+    });
+});
