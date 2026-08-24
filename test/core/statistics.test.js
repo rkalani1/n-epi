@@ -244,6 +244,45 @@ describe('Statistics Module', () => {
         });
     });
 
+    describe('hypergeometricPMF', () => {
+        test('calculates correct PMF for standard valid parameter sets', () => {
+            // N=20, K=7, n=12
+            // P(k=4) = (comb(7,4)*comb(13,8)) / comb(20,12) = (35 * 1287) / 125970 = 45045 / 125970 approx 0.3575851393188855
+            expect(Statistics.hypergeometricPMF(4, 20, 7, 12)).toBeCloseTo(0.3575851393, 8);
+
+            // N=10, K=8, n=5
+            // P(k=3) = (comb(8,3)*comb(2,2)) / comb(10,5) = (56 * 1) / 252 = 56 / 252 = 2/9 approx 0.2222222222
+            expect(Statistics.hypergeometricPMF(3, 10, 8, 5)).toBeCloseTo(2 / 9, 8);
+            // P(k=4) = (comb(8,4)*comb(2,1)) / comb(10,5) = (70 * 2) / 252 = 140 / 252 = 5/9 approx 0.5555555556
+            expect(Statistics.hypergeometricPMF(4, 10, 8, 5)).toBeCloseTo(5 / 9, 8);
+            // P(k=5) = (comb(8,5)*comb(2,0)) / comb(10,5) = (56 * 1) / 252 = 56 / 252 = 2/9 approx 0.2222222222
+            expect(Statistics.hypergeometricPMF(5, 10, 8, 5)).toBeCloseTo(2 / 9, 8);
+        });
+
+        test('returns 0 for values of k outside the supported range [max(0, n+K-N), min(n, K)]', () => {
+            // N=10, K=8, n=5 -> min support = max(0, 5+8-10) = 3, max support = min(5, 8) = 5
+            expect(Statistics.hypergeometricPMF(2, 10, 8, 5)).toBe(0);
+            expect(Statistics.hypergeometricPMF(6, 10, 8, 5)).toBe(0);
+            expect(Statistics.hypergeometricPMF(-1, 10, 8, 5)).toBe(0);
+
+            // N=20, K=7, n=12 -> min support = max(0, 12+7-20) = 0, max support = min(12, 7) = 7
+            expect(Statistics.hypergeometricPMF(-1, 20, 7, 12)).toBe(0);
+            expect(Statistics.hypergeometricPMF(8, 20, 7, 12)).toBe(0);
+        });
+
+        test('sums to 1 across all valid support values of k', () => {
+            const N = 20, K = 7, n = 12;
+            const minK = Math.max(0, n + K - N);
+            const maxK = Math.min(n, K);
+
+            let sum = 0;
+            for (let k = minK; k <= maxK; k++) {
+                sum += Statistics.hypergeometricPMF(k, N, K, n);
+            }
+            expect(sum).toBeCloseTo(1.0, 10);
+        });
+    });
+
     describe('waldCI', () => {
         test('calculates Wald CI correctly with specified z', () => {
             const p = 0.5;
