@@ -886,17 +886,6 @@
         return false;
     }
 
-    function generateDAGText() {
-        var lines = ['Directed Acyclic Graph', '==='];
-        dagNodes.forEach(n => lines.push('- ' + n.label + ' (' + n.type + ')'));
-        dagEdges.forEach(e => {
-            var f = dagNodes.find(n => n.id === e.from);
-            var t = dagNodes.find(n => n.id === e.to);
-            if (f && t) lines.push(f.label + ' -> ' + t.label);
-        });
-        return lines.join('\n');
-    }
-
     // ================================================================
     // REGISTER
     // ================================================================
