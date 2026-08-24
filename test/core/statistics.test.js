@@ -278,6 +278,54 @@ describe('Statistics Module', () => {
             expect(result.upper).toBe(1);
         });
     });
+
+    describe('agrestiCoullCI', () => {
+        test('calculates Agresti-Coull CI correctly with specified z', () => {
+            const p = 0.1;
+            const n = 50;
+            const z = 1.96;
+            const result = Statistics.agrestiCoullCI(p, n, z);
+
+            // z^2 = 3.8416
+            // nTilde = 50 + 3.8416 = 53.8416
+            // pTilde = (5 + 1.9208) / 53.8416 = 6.9208 / 53.8416 ≈ 0.12853999955424838
+            // se = sqrt(0.12853999955424838 * (1 - 0.12853999955424838) / 53.8416) ≈ 0.04561250434529042
+            // lower = 0.12853999955424838 - 1.96 * 0.04561250434529042 ≈ 0.03913950515295829
+            // upper = 0.12853999955424838 + 1.96 * 0.04561250434529042 ≈ 0.21794052218649673
+            expect(result.lower).toBeCloseTo(0.0391395, 5);
+            expect(result.upper).toBeCloseTo(0.2179405, 5);
+        });
+
+        test('uses default z value when z is omitted', () => {
+            const p = 0.5;
+            const n = 100;
+            const result = Statistics.agrestiCoullCI(p, n);
+            const zDefault = Statistics.normalQuantile(0.975);
+
+            const nTilde = n + zDefault * zDefault;
+            const pTilde = (p * n + (zDefault * zDefault) / 2) / nTilde;
+            const se = Math.sqrt((pTilde * (1 - pTilde)) / nTilde);
+            const expectedLower = Math.max(0, pTilde - zDefault * se);
+            const expectedUpper = Math.min(1, pTilde + zDefault * se);
+
+            expect(result.lower).toBeCloseTo(expectedLower, 8);
+            expect(result.upper).toBeCloseTo(expectedUpper, 8);
+        });
+
+        test('clamps lower bound at 0 when p = 0', () => {
+            const result = Statistics.agrestiCoullCI(0, 10, 1.96);
+            expect(result.lower).toBe(0);
+            expect(result.upper).toBeGreaterThan(0);
+            expect(result.upper).toBeLessThan(1);
+        });
+
+        test('clamps upper bound at 1 when p = 1', () => {
+            const result = Statistics.agrestiCoullCI(1, 10, 1.96);
+            expect(result.upper).toBe(1);
+            expect(result.lower).toBeGreaterThan(0);
+            expect(result.lower).toBeLessThan(1);
+        });
+    });
 });
 
     describe('twoByTwo', () => {
