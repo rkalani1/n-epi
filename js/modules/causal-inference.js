@@ -868,24 +868,6 @@
     // ================================================================
     // HELPERS & EXPORTS
     // ================================================================
-    function isAncestor(from, to, childrenMap) {
-        var visited = {};
-        var queue = [from];
-        visited[from] = true;
-        while (queue.length > 0) {
-            var current = queue.shift();
-            var kids = childrenMap[current] || [];
-            for (var i = 0; i < kids.length; i++) {
-                if (kids[i] === to) return true;
-                if (!visited[kids[i]]) {
-                    visited[kids[i]] = true;
-                    queue.push(kids[i]);
-                }
-            }
-        }
-        return false;
-    }
-
     function generateDAGText() {
         var lines = ['Directed Acyclic Graph', '==='];
         dagNodes.forEach(n => lines.push('- ' + n.label + ' (' + n.type + ')'));
