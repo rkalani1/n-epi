@@ -565,4 +565,37 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.fisherExact(5, 5, 5, 5).pValue).toBeLessThanOrEqual(1.0);
         });
     });
+
+    describe('logChoose', () => {
+        test('returns -Infinity when k < 0 or k > n', () => {
+            expect(Statistics.logChoose(5, -1)).toBe(-Infinity);
+            expect(Statistics.logChoose(5, 6)).toBe(-Infinity);
+            expect(Statistics.logChoose(0, -1)).toBe(-Infinity);
+            expect(Statistics.logChoose(0, 1)).toBe(-Infinity);
+        });
+
+        test('returns 0 when k === 0 or k === n', () => {
+            expect(Statistics.logChoose(0, 0)).toBe(0);
+            expect(Statistics.logChoose(5, 0)).toBe(0);
+            expect(Statistics.logChoose(5, 5)).toBe(0);
+            expect(Statistics.logChoose(100, 0)).toBe(0);
+            expect(Statistics.logChoose(100, 100)).toBe(0);
+        });
+
+        test('computes correct natural logarithm of combinations for known values', () => {
+            // 5 choose 2 = 10 -> log(10) ~ 2.302585092994046
+            expect(Statistics.logChoose(5, 2)).toBeCloseTo(Math.log(10), 10);
+
+            // 10 choose 3 = 120 -> log(120) ~ 4.787491742782046
+            expect(Statistics.logChoose(10, 3)).toBeCloseTo(Math.log(120), 10);
+
+            // 100 choose 50 -> log(100! / (50! * 50!)) ~ 66.78384165201743
+            expect(Statistics.logChoose(100, 50)).toBeCloseTo(66.78384165201743, 8);
+        });
+
+        test('maintains symmetry logChoose(n, k) === logChoose(n, n - k)', () => {
+            expect(Statistics.logChoose(10, 3)).toBeCloseTo(Statistics.logChoose(10, 7), 10);
+            expect(Statistics.logChoose(50, 20)).toBeCloseTo(Statistics.logChoose(50, 30), 10);
+        });
+    });
 });
