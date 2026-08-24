@@ -418,6 +418,55 @@ describe('Additional Statistics Coverage', () => {
         });
     });
 
+    describe('twoProportionZTest', () => {
+        test('calculates pooled two-proportion z-test by default', () => {
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100);
+            expect(result.p1).toBeCloseTo(0.4, 5);
+            expect(result.p2).toBeCloseTo(0.3, 5);
+            expect(result.diff).toBeCloseTo(0.1, 5);
+            expect(result.se).toBeCloseTo(0.0674536878, 5);
+            expect(result.z).toBeCloseTo(1.48249863, 5);
+            expect(result.pValue).toBeCloseTo(0.13820772, 5);
+        });
+
+        test('calculates unpooled two-proportion z-test when pooled is false', () => {
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100, { pooled: false });
+            expect(result.p1).toBeCloseTo(0.4, 5);
+            expect(result.p2).toBeCloseTo(0.3, 5);
+            expect(result.diff).toBeCloseTo(0.1, 5);
+            expect(result.se).toBeCloseTo(0.0670820393, 5);
+            expect(result.z).toBeCloseTo(1.49071198, 5);
+            expect(result.pValue).toBeCloseTo(0.13603718, 5);
+        });
+
+        test('calculates two-proportion z-test with continuity correction', () => {
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100, { continuityCorrection: true });
+            expect(result.diff).toBeCloseTo(0.1, 5);
+            expect(result.z).toBeCloseTo(1.33424877, 5);
+            expect(result.pValue).toBeCloseTo(0.18212245, 5);
+        });
+
+        test('handles case where continuity correction exceeds or equals proportion difference', () => {
+            const result = Statistics.twoProportionZTest(5, 100, 4, 100, { continuityCorrection: true });
+            expect(result.p1).toBeCloseTo(0.05, 5);
+            expect(result.p2).toBeCloseTo(0.04, 5);
+            expect(result.diff).toBeCloseTo(0.01, 5);
+            expect(result.z).toBeCloseTo(0, 5);
+            expect(result.pValue).toBeCloseTo(1.0, 5);
+        });
+
+        test('handles degenerate case with zero standard error (e.g., zero events in both groups)', () => {
+            const result = Statistics.twoProportionZTest(0, 100, 0, 100);
+            expect(result.p1).toBe(0);
+            expect(result.p2).toBe(0);
+            expect(result.diff).toBe(0);
+            expect(result.se).toBe(0);
+            expect(result.z).toBe(0);
+            expect(result.pValue).toBe(1);
+            expect(result.note).toBe("Standard error is zero; asymptotic z-test not applicable. Use Fisher's exact test.");
+        });
+    });
+
     describe('chiSquaredTest2x2', () => {
         test('calculates uncorrected and Yates-corrected chi-squared tests', () => {
             const noEffect = Statistics.chiSquaredTest2x2(10, 10, 10, 10);
