@@ -77,3 +77,27 @@ describe('Statistics.binomialPMF', () => {
         expect(Statistics.binomialPMF(5, 10, 0.5)).toBeCloseTo(0.24609375, 6);
     });
 });
+
+describe('Statistics.logChoose', () => {
+    let Statistics;
+
+    beforeEach(() => {
+        Statistics = window.Statistics;
+    });
+
+    test('should return -Infinity when k < 0 or k > n', () => {
+        expect(Statistics.logChoose(5, -1)).toBe(-Infinity);
+        expect(Statistics.logChoose(5, 6)).toBe(-Infinity);
+    });
+
+    test('should return 0 when k === 0 or k === n', () => {
+        expect(Statistics.logChoose(5, 0)).toBe(0);
+        expect(Statistics.logChoose(5, 5)).toBe(0);
+        expect(Statistics.logChoose(0, 0)).toBe(0);
+    });
+
+    test('should compute correct log combination for standard values', () => {
+        expect(Statistics.logChoose(5, 2)).toBeCloseTo(Math.log(10), 8);
+        expect(Statistics.logChoose(10, 5)).toBeCloseTo(Math.log(252), 8);
+    });
+});
