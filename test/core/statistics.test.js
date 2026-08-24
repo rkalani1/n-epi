@@ -565,4 +565,71 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.fisherExact(5, 5, 5, 5).pValue).toBeLessThanOrEqual(1.0);
         });
     });
+
+    describe('twoProportionZTest', () => {
+        test('calculates pooled two-proportion z-test by default', () => {
+            // x1=40, n1=100, x2=30, n2=100
+            // p1 = 0.4, p2 = 0.3, diff = 0.1
+            // pPool = 70 / 200 = 0.35
+            // se = sqrt(0.35 * 0.65 * (1/100 + 1/100)) = sqrt(0.2275 * 0.02) = sqrt(0.00455) ≈ 0.0674536878
+            // z = 0.1 / 0.0674536878 ≈ 1.4824986
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100);
+
+            expect(result.p1).toBeCloseTo(0.4, 6);
+            expect(result.p2).toBeCloseTo(0.3, 6);
+            expect(result.diff).toBeCloseTo(0.1, 6);
+            expect(result.se).toBeCloseTo(0.0674536878, 6);
+            expect(result.z).toBeCloseTo(1.4824986, 6);
+            expect(result.pValue).toBeCloseTo(0.138207667, 5);
+        });
+
+        test('calculates unpooled two-proportion z-test when pooled is false', () => {
+            // x1=40, n1=100, x2=30, n2=100
+            // p1 = 0.4, p2 = 0.3, diff = 0.1
+            // se_unpooled = sqrt(0.4*0.6/100 + 0.3*0.7/100) = sqrt(0.0024 + 0.0021) = sqrt(0.0045) ≈ 0.0670820393
+            // z = 0.1 / 0.0670820393 ≈ 1.490712
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100, { pooled: false });
+
+            expect(result.p1).toBeCloseTo(0.4, 6);
+            expect(result.p2).toBeCloseTo(0.3, 6);
+            expect(result.diff).toBeCloseTo(0.1, 6);
+            expect(result.se).toBeCloseTo(0.0670820393, 6);
+            expect(result.z).toBeCloseTo(1.490712, 6);
+            expect(result.pValue).toBeCloseTo(0.1360371, 5);
+        });
+
+        test('applies continuity correction when continuityCorrection is true', () => {
+            // x1=40, n1=100, x2=30, n2=100
+            // correction = 0.5 * (1/100 + 1/100) = 0.01
+            // corrected z = (|0.1| - 0.01) / 0.0674536878 = 0.09 / 0.0674536878 ≈ 1.3342488
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100, { continuityCorrection: true });
+
+            expect(result.z).toBeCloseTo(1.3342488, 6);
+            expect(result.pValue).toBeCloseTo(0.1821223, 5);
+        });
+
+        test('handles degenerate table with zero standard error (se === 0)', () => {
+            // 0 events in both groups -> p1=0, p2=0, diff=0, se=0
+            const result = Statistics.twoProportionZTest(0, 50, 0, 50);
+
+            expect(result.p1).toBe(0);
+            expect(result.p2).toBe(0);
+            expect(result.diff).toBe(0);
+            expect(result.se).toBe(0);
+            expect(result.z).toBe(0);
+            expect(result.pValue).toBe(1);
+            expect(result.note).toBeDefined();
+        });
+
+        test('clamps corrected z at zero when continuity correction exceeds difference', () => {
+            // x1=5, n1=100, x2=4, n2=100 => diff = 0.01
+            // correction = 0.5 * (0.01 + 0.01) = 0.01
+            // diff - correction = 0, so z = 0, pValue ~ 1 (due to normalCDF approximation ~1e-8 off at z=0)
+            const result = Statistics.twoProportionZTest(5, 100, 4, 100, { continuityCorrection: true });
+
+            expect(result.diff).toBeCloseTo(0.01, 6);
+            expect(result.z).toBeCloseTo(0, 10);
+            expect(result.pValue).toBeCloseTo(1, 6);
+        });
+    });
 });
