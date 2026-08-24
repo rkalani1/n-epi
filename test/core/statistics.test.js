@@ -244,6 +244,42 @@ describe('Statistics Module', () => {
         });
     });
 
+    describe('chiSquaredQuantile', () => {
+        test('handles probability boundary conditions', () => {
+            expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(-0.1, 5)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(1, 1)).toBe(Infinity);
+            expect(Statistics.chiSquaredQuantile(1.1, 5)).toBe(Infinity);
+        });
+
+        test('matches standard chi-square quantile table values', () => {
+            // df = 1
+            expect(Statistics.chiSquaredQuantile(0.95, 1)).toBeCloseTo(3.8414588, 5);
+            expect(Statistics.chiSquaredQuantile(0.99, 1)).toBeCloseTo(6.6348966, 5);
+
+            // df = 2
+            expect(Statistics.chiSquaredQuantile(0.95, 2)).toBeCloseTo(5.9914645, 5);
+
+            // df = 5
+            expect(Statistics.chiSquaredQuantile(0.95, 5)).toBeCloseTo(11.0704977, 5);
+
+            // df = 10
+            expect(Statistics.chiSquaredQuantile(0.95, 10)).toBeCloseTo(18.3070381, 5);
+        });
+
+        test('acts as inverse of chiSquaredCDF', () => {
+            const probabilities = [0.05, 0.25, 0.50, 0.75, 0.95, 0.99];
+            const dfs = [1, 2, 5, 10, 30];
+
+            probabilities.forEach((p) => {
+                dfs.forEach((df) => {
+                    const q = Statistics.chiSquaredQuantile(p, df);
+                    expect(Statistics.chiSquaredCDF(q, df)).toBeCloseTo(p, 5);
+                });
+            });
+        });
+    });
+
     describe('waldCI', () => {
         test('calculates Wald CI correctly with specified z', () => {
             const p = 0.5;
