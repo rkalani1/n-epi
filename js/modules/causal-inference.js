@@ -656,9 +656,10 @@
         var lines = ['Directed Acyclic Graph (DAG)', '===', 'Nodes:'];
         dagNodes.forEach(n => lines.push('- ' + n.label + ' (' + n.type + ')'));
         lines.push('', 'Edges:');
+        var nodeMap = new Map(dagNodes.map(n => [n.id, n]));
         dagEdges.forEach(e => {
-            var f = dagNodes.find(n => n.id === e.from);
-            var t = dagNodes.find(n => n.id === e.to);
+            var f = nodeMap.get(e.from);
+            var t = nodeMap.get(e.to);
             if (f && t) lines.push('- ' + f.label + ' -> ' + t.label);
         });
         Export.copyText(lines.join('\n'));
@@ -908,9 +909,10 @@
     function generateDAGText() {
         var lines = ['Directed Acyclic Graph', '==='];
         dagNodes.forEach(n => lines.push('- ' + n.label + ' (' + n.type + ')'));
+        var nodeMap = new Map(dagNodes.map(n => [n.id, n]));
         dagEdges.forEach(e => {
-            var f = dagNodes.find(n => n.id === e.from);
-            var t = dagNodes.find(n => n.id === e.to);
+            var f = nodeMap.get(e.from);
+            var t = nodeMap.get(e.to);
             if (f && t) lines.push(f.label + ' -> ' + t.label);
         });
         return lines.join('\n');
