@@ -418,6 +418,37 @@ describe('Additional Statistics Coverage', () => {
         });
     });
 
+    describe('sampleSizeSchoenfeld', () => {
+        test('computes survival sample size with default parameters (alpha=0.05, power=0.80, ratio=1)', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.7);
+            expect(res.events).toBe(247);
+            expect(res.totalN).toBeNull();
+            expect(res.hr).toBe(0.7);
+            expect(res.lnHR).toBeCloseTo(Math.log(0.7), 8);
+        });
+
+        test('computes total sample size when pEvent is provided', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.7, 0.05, 0.80, 1, 0.5);
+            expect(res.events).toBe(247);
+            expect(res.totalN).toBe(494);
+        });
+
+        test('computes sample size with custom parameters (unequal allocation, alpha, power, pEvent)', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.5, 0.01, 0.90, 2, 0.4);
+            expect(res.events).toBe(140);
+            expect(res.totalN).toBe(350);
+            expect(res.hr).toBe(0.5);
+            expect(res.lnHR).toBeCloseTo(Math.log(0.5), 8);
+        });
+
+        test('handles hazard ratios greater than 1 (HR > 1)', () => {
+            const res = Statistics.sampleSizeSchoenfeld(1.5, 0.05, 0.80, 1, 0.6);
+            expect(res.events).toBe(191);
+            expect(res.totalN).toBe(319);
+            expect(res.lnHR).toBeCloseTo(Math.log(1.5), 8);
+        });
+    });
+
     describe('chiSquaredTest2x2', () => {
         test('calculates uncorrected and Yates-corrected chi-squared tests', () => {
             const noEffect = Statistics.chiSquaredTest2x2(10, 10, 10, 10);
