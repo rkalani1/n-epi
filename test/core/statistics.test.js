@@ -327,6 +327,43 @@ describe('Statistics Module', () => {
             expect(result.upper).toBe(1);
         });
     });
+
+    describe('clopperPearsonCI', () => {
+        test('calculates exact Clopper-Pearson 95% confidence interval for standard case', () => {
+            const result = Statistics.clopperPearsonCI(5, 10);
+            expect(result.lower).toBeCloseTo(0.187086, 5);
+            expect(result.upper).toBeCloseTo(0.812914, 5);
+        });
+
+        test('handles zero successes (x = 0) edge case', () => {
+            const result = Statistics.clopperPearsonCI(0, 10);
+            expect(result.lower).toBe(0);
+            expect(result.upper).toBeCloseTo(0.308497, 5);
+        });
+
+        test('handles all successes (x = n) edge case', () => {
+            const result = Statistics.clopperPearsonCI(10, 10);
+            expect(result.lower).toBeCloseTo(0.691503, 5);
+            expect(result.upper).toBe(1);
+        });
+
+        test('supports custom alpha parameter', () => {
+            // 99% CI (alpha = 0.01)
+            const result99 = Statistics.clopperPearsonCI(5, 10, 0.01);
+            expect(result99.lower).toBeCloseTo(0.128311, 5);
+            expect(result99.upper).toBeCloseTo(0.871689, 5);
+            // 99% CI should be wider than 95% CI
+            const result95 = Statistics.clopperPearsonCI(5, 10, 0.05);
+            expect(result99.lower).toBeLessThan(result95.lower);
+            expect(result99.upper).toBeGreaterThan(result95.upper);
+        });
+
+        test('calculates CI correctly for larger sample sizes', () => {
+            const result = Statistics.clopperPearsonCI(50, 100);
+            expect(result.lower).toBeCloseTo(0.398321, 5);
+            expect(result.upper).toBeCloseTo(0.601679, 5);
+        });
+    });
 });
 
     describe('twoByTwo', () => {
