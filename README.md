@@ -10,6 +10,10 @@ A static web app with **no runtime dependencies** — the shipped application lo
 
 The public GitHub Pages deployment is for de-identified, aggregate, or synthetic examples only. Do not upload or paste PHI, patient identifiers, limited datasets, restricted research data, learner records, credentials, or confidential institutional information. The biobank-cleaning module redacts identifier/date-like fields in UI messages and exports, but real clinical or research datasets belong in approved devices, applications, storage locations, and protocol-governed workflows.
 
+## AI-Assisted Methods Update Gate
+
+Use `docs/ai-agent-evals/automedbench-lite.md` before accepting AI-generated changes to formulas, calculators, methods text, or exported interpretations. The gate requires S1 Plan, S2 Setup, S3 Validate, S4 Execute, and S5 Submit with synthetic validation cases and no restricted data.
+
 ## Features
 
 ### Study Design
