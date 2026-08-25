@@ -314,14 +314,155 @@ const App = (() => {
     // All rendered content comes from trusted internal constants.
     // ============================================================
 
-    // DOMPurify's default config strips ALL inline event handlers (on*),
-    // which would render every module inert since the UI is wired with inline
-    // onclick/onchange/oninput on trusted, app-generated markup. Allow exactly
-    // those three handler attributes (the only ones the app emits) so the
-    // interface works, while DOMPurify still removes <script>, javascript: URLs,
-    // and dangerous handlers like onerror. User-supplied strings are escaped at
-    // their interpolation points (see trial-database.js / biobank-cleaning.js).
-    const TRUSTED_HTML_CONFIG = { ADD_ATTR: ['onclick', 'onchange', 'oninput'] };
+    // Strict allowed prefixes for inline event handlers.
+    // DOMPurify default configuration strips all inline event attributes (on*).
+    // Instead of globally allowing all onclick/onchange/oninput values, we use
+    // a DOMPurify hook to strictly validate every event attribute against known
+    // application namespaces and call patterns before allowing it.
+    const ALLOWED_EVENT_PREFIXES = [
+        'App.',
+        'Export.',
+        'BiobankCleaning.',
+        'BiostatRef.',
+        'CausalInference.',
+        'CritAppraisal.',
+        'DiagAccuracyModule.',
+        'EffectSizeModule.',
+        'EpiCalcModule.',
+        'EpiConcepts.',
+        'HypothesisBuilder.',
+        'MLPrediction.',
+        'MetaAnalysisModule.',
+        'MethodsGen.',
+        'NNTModule.',
+        'PowerModule.',
+        'ProjectPlanner.',
+        'RGenerator.',
+        'RegressionHelper.',
+        'ReportingGuide.',
+        'ResultsInterp.',
+        'SampleSizeModule.',
+        'StudyDesignGuide.',
+        'SurvivalModule.',
+        'TrialDB.',
+        'window.QuickReference.',
+        'window.RCodeLibrary.',
+        'window.TeachingTools.',
+        'window.print()',
+        'document.getElementById(',
+        'event.stopPropagation()',
+        'event.stopPropagation();',
+        'this.classList.',
+        'this.nextElementSibling.',
+        'this.parentElement.',
+        'this.querySelector('
+    ];
+
+    const FORBIDDEN_KEYWORDS = /\b(?:eval|Function|setTimeout|setInterval|fetch|XMLHttpRequest|alert|prompt|confirm|document\.cookie|document\.location|window\.location|location|top|parent|opener|import|importScripts|Worker|WebSocket|Proxy|Reflect)\b/i;
+
+    function isAllowedEventHandler(val) {
+        if (!val || typeof val !== 'string') return false;
+        const str = val.trim().replace(/&quot;/g, '"');
+        // Disallow newlines, comments, or script injections
+        if (/[\r\n]|\/\/|\/\*/.test(str)) return false;
+
+        // Helper to split statements outside string literals
+        const statements = [];
+        let current = [];
+        let inSingle = false;
+        let inDouble = false;
+        let escape = false;
+
+        for (let i = 0; i < str.length; i++) {
+            const ch = str[i];
+            if (escape) {
+                current.push(ch);
+                escape = false;
+                continue;
+            }
+            if (ch === '\\') {
+                current.push(ch);
+                escape = true;
+                continue;
+            }
+            if (ch === "'" && !inDouble) {
+                inSingle = !inSingle;
+                current.push(ch);
+                continue;
+            }
+            if (ch === '"' && !inSingle) {
+                inDouble = !inDouble;
+                current.push(ch);
+                continue;
+            }
+            if (ch === ';' && !inSingle && !inDouble) {
+                const stmt = current.join('').trim();
+                if (stmt) statements.push(stmt);
+                current = [];
+                continue;
+            }
+            current.push(ch);
+        }
+        const lastStmt = current.join('').trim();
+        if (lastStmt) statements.push(lastStmt);
+
+        if (statements.length === 0) return false;
+
+        for (let j = 0; j < statements.length; j++) {
+            const stmt = statements[j];
+
+            // Reject forbidden sink keywords anywhere in statement
+            if (FORBIDDEN_KEYWORDS.test(stmt)) return false;
+
+            // Iteratively strip string contents
+            let cleanStmt = stmt;
+            let prevStr = null;
+            while (prevStr !== cleanStmt) {
+                prevStr = cleanStmt;
+                cleanStmt = cleanStmt.replace(/"[^"]*"|'[^']*'/g, '""');
+            }
+
+            // Iteratively strip balanced object/array literals and function arguments
+            let prevLit = null;
+            while (prevLit !== cleanStmt) {
+                prevLit = cleanStmt;
+                cleanStmt = cleanStmt.replace(/\{[^{}]*\}/g, '{}');
+                cleanStmt = cleanStmt.replace(/\[[^\[\]]*\]/g, '[]');
+                cleanStmt = cleanStmt.replace(/\([^\(\)]*\)/g, '()');
+            }
+
+            // Check for operators that chain execution outside strings/objects/parameters: comma, &&, ||, ternary ?
+            if (/[;,x&|?]/.test(cleanStmt.replace(/&&/g, 'x').replace(/\|\|/g, 'x'))) {
+                if (/[,&|?]/.test(cleanStmt)) return false;
+            }
+
+            let matched = false;
+            for (let k = 0; k < ALLOWED_EVENT_PREFIXES.length; k++) {
+                if (stmt.startsWith(ALLOWED_EVENT_PREFIXES[k])) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) return false;
+        }
+
+        return true;
+    }
+
+    let domPurifyHookInstalled = false;
+    function ensureDOMPurifyHook() {
+        if (domPurifyHookInstalled || typeof DOMPurify === 'undefined' || !DOMPurify.addHook) return;
+        DOMPurify.addHook('uponSanitizeAttribute', function (node, data) {
+            if (data.attrName === 'onclick' || data.attrName === 'onchange' || data.attrName === 'oninput') {
+                if (isAllowedEventHandler(data.attrValue)) {
+                    data.forceKeepAttr = true;
+                } else {
+                    data.keepAttr = false;
+                }
+            }
+        });
+        domPurifyHookInstalled = true;
+    }
 
     let a11yIdCounter = 0;
 
@@ -364,7 +505,8 @@ const App = (() => {
 
     function setTrustedHTML(element, trustedContent) {
         if (typeof DOMPurify !== 'undefined') {
-            element.innerHTML = DOMPurify.sanitize(trustedContent, TRUSTED_HTML_CONFIG);
+            ensureDOMPurifyHook();
+            element.innerHTML = DOMPurify.sanitize(trustedContent, { ADD_ATTR: ['onclick', 'onchange', 'oninput'] });
         } else {
             element.textContent = trustedContent;
         }
