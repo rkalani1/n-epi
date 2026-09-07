@@ -21,7 +21,41 @@
         );
 
         html += '<div class="card">';
-        html += '<div class="tabs" id="hb-tabs">'
+        html += buildTabsHeader();
+        html += buildPicoTabContent();
+        html += buildPicotTabContent();
+        html += buildHypTypeTabContent();
+        html += buildResGenTabContent();
+        html += buildDesignTabContent();
+        html += buildVariablesTabContent();
+
+        // ===== TAB G: Specific Aims Template =====
+        html += '<div class="tab-content" id="tab-aims">';
+        html += '<div class="card-subtitle">Generate a structured Specific Aims page template for NIH-style grant applications.</div>';
+        html += buildSpecificAimsContent();
+        html += '</div>';
+
+        // ===== TAB H: Hypothesis Refinement Checklist =====
+        html += '<div class="tab-content" id="tab-checklist">';
+        html += '<div class="card-subtitle">Use this checklist to evaluate and refine your research hypothesis before finalizing your protocol.</div>';
+        html += buildRefinementChecklist();
+        html += '</div>';
+
+        html += '</div>'; // end card
+
+        // ===== LEARN SECTION =====
+        html += buildLearnSectionContent();
+
+        App.setTrustedHTML(container, html);
+        App.autoSaveInputs(container, MODULE_ID);
+
+        // Reset variable state
+        classifiedVars = [];
+        varIdCounter = 0;
+    }
+
+    function buildTabsHeader() {
+        return '<div class="tabs" id="hb-tabs">'
             + '<button class="tab active" data-tab="pico" onclick="HypothesisBuilder.switchTab(\'pico\')">PICO/PECO Builder</button>'
             + '<button class="tab" data-tab="picot" onclick="HypothesisBuilder.switchTab(\'picot\')">PICOT Framework</button>'
             + '<button class="tab" data-tab="hyptype" onclick="HypothesisBuilder.switchTab(\'hyptype\')">Hypothesis Types</button>'
@@ -31,9 +65,10 @@
             + '<button class="tab" data-tab="aims" onclick="HypothesisBuilder.switchTab(\'aims\')">Specific Aims</button>'
             + '<button class="tab" data-tab="checklist" onclick="HypothesisBuilder.switchTab(\'checklist\')">Refinement Checklist</button>'
             + '</div>';
+    }
 
-        // ===== TAB A: PICO/PECO Builder =====
-        html += '<div class="tab-content active" id="tab-pico">';
+    function buildPicoTabContent() {
+        var html = '<div class="tab-content active" id="tab-pico">';
         html += '<div class="card-subtitle">Build a structured research question using the PICO (intervention) or PECO (exposure) framework. Generates formatted hypothesis statements and suggests study designs.</div>';
 
         html += '<div class="form-row form-row--2">'
@@ -97,8 +132,11 @@
         html += '<div id="hb-pico-results"></div>';
         html += '</div>';
 
-        // ===== TAB B: PICOT Framework Builder =====
-        html += '<div class="tab-content" id="tab-picot">';
+        return html;
+    }
+
+    function buildPicotTabContent() {
+        var html = '<div class="tab-content" id="tab-picot">';
         html += '<div class="card-subtitle">Extended PICOT framework adds a Time element. Build a comprehensive, structured research question with all five components.</div>';
 
         html += '<div class="form-group"><label class="form-label">P - Population / Problem ' + App.tooltip('Define the patient population, disease, and setting') + '</label>'
@@ -124,8 +162,11 @@
         html += '<div id="hb-picot-results"></div>';
         html += '</div>';
 
-        // ===== TAB C: Hypothesis Type Selector =====
-        html += '<div class="tab-content" id="tab-hyptype">';
+        return html;
+    }
+
+    function buildHypTypeTabContent() {
+        var html = '<div class="tab-content" id="tab-hyptype">';
         html += '<div class="card-subtitle">Select a hypothesis type to get templates and guidance for formulating superiority, non-inferiority, or equivalence hypotheses.</div>';
 
         html += '<div class="form-group"><label class="form-label">Hypothesis Type</label>'
@@ -152,8 +193,11 @@
             + '</tbody></table></div>';
         html += '</div>';
 
-        // ===== TAB D: Research Question Generator =====
-        html += '<div class="tab-content" id="tab-resgen">';
+        return html;
+    }
+
+    function buildResGenTabContent() {
+        var html = '<div class="tab-content" id="tab-resgen">';
         html += '<div class="card-subtitle">Select your study type and clinical domain to generate structured research question templates.</div>';
 
         html += '<div class="form-row form-row--2">'
@@ -185,8 +229,11 @@
         html += '<div id="hb-rq-results"></div>';
         html += '</div>';
 
-        // ===== TAB E: Study Design Decision Tree =====
-        html += '<div class="tab-content" id="tab-design">';
+        return html;
+    }
+
+    function buildDesignTabContent() {
+        var html = '<div class="tab-content" id="tab-design">';
         html += '<div class="card-subtitle">Select your research question type to see the optimal study design, hierarchy of evidence, and practical guidance for clinical research.</div>';
 
         html += '<div class="form-group"><label class="form-label">What type of question are you asking?</label>'
@@ -201,8 +248,11 @@
         html += '<div id="hb-design-results"></div>';
         html += '</div>';
 
-        // ===== TAB F: Variable Classification Tool =====
-        html += '<div class="tab-content" id="tab-variables">';
+        return html;
+    }
+
+    function buildVariablesTabContent() {
+        var html = '<div class="tab-content" id="tab-variables">';
         html += '<div class="card-subtitle">Classify study variables to generate an analysis plan outline and check for methodological pitfalls.</div>';
 
         html += '<div class="form-row form-row--3">'
@@ -231,22 +281,11 @@
         html += '<div id="hb-analysis-plan"></div>';
         html += '</div>';
 
-        // ===== TAB G: Specific Aims Template =====
-        html += '<div class="tab-content" id="tab-aims">';
-        html += '<div class="card-subtitle">Generate a structured Specific Aims page template for NIH-style grant applications.</div>';
-        html += buildSpecificAimsContent();
-        html += '</div>';
+        return html;
+    }
 
-        // ===== TAB H: Hypothesis Refinement Checklist =====
-        html += '<div class="tab-content" id="tab-checklist">';
-        html += '<div class="card-subtitle">Use this checklist to evaluate and refine your research hypothesis before finalizing your protocol.</div>';
-        html += buildRefinementChecklist();
-        html += '</div>';
-
-        html += '</div>'; // end card
-
-        // ===== LEARN SECTION =====
-        html += '<div class="card">';
+    function buildLearnSectionContent() {
+        var html = '<div class="card">';
         html += '<div class="card-title" style="cursor:pointer;" onclick="this.parentElement.querySelector(\'.learn-body\').classList.toggle(\'hidden\');">'
             + '\u25B6 Learn: Hypothesis Building Essentials</div>';
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
@@ -303,12 +342,7 @@
             + '</ul>';
         html += '</div></div>';
 
-        App.setTrustedHTML(container, html);
-        App.autoSaveInputs(container, MODULE_ID);
-
-        // Reset variable state
-        classifiedVars = [];
-        varIdCounter = 0;
+        return html;
     }
 
     // ===== Specific Aims Template Builder =====
