@@ -238,10 +238,19 @@
         var strong = 0, moderate = 0, weak = 0, notAssessed = 0;
         var details = [];
 
+        // Query all checked BH radio inputs once instead of per-criterion DOM searches
+        var checkedMap = {};
+        var checkedRadios = document.querySelectorAll('input[type="radio"][name^="bh-"]:checked');
+        for (var c = 0; c < checkedRadios.length; c++) {
+            checkedMap[checkedRadios[c].name] = checkedRadios[c].value;
+        }
+
+        var tempRating = checkedMap['bh-temporality'] || '';
+
         for (var i = 0; i < criteriaNames.length; i++) {
-            var checkedRadio = document.querySelector('input[name="bh-' + criteriaNames[i] + '"]:checked');
-            var selected = checkedRadio ? checkedRadio.value : '';
-            var note = document.getElementById('bh-note-' + criteriaNames[i]).value || '';
+            var selected = checkedMap['bh-' + criteriaNames[i]] || '';
+            var noteInput = document.getElementById('bh-note-' + criteriaNames[i]);
+            var note = noteInput ? noteInput.value : '';
 
             if (selected === 'Strong') strong++;
             else if (selected === 'Moderate') moderate++;
@@ -271,9 +280,7 @@
         }
 
         // Check temporality specifically
-        var tempChecked = document.querySelector('input[name="bh-temporality"]:checked');
-        var tempRating = tempChecked ? tempChecked.value : '';
-        if (tempRating === 'Weak' || tempRating === 'Not assessed') {
+        if (tempRating === 'Weak' || tempRating === '' || tempRating === 'Not assessed') {
             overallText += ' Note: Temporality is weak or unassessed. Temporality is widely considered the most essential criterion.';
         }
 
@@ -318,11 +325,17 @@
         var criteriaLabels = ['Strength', 'Consistency', 'Specificity', 'Temporality',
             'Biological Gradient', 'Plausibility', 'Coherence', 'Experiment', 'Analogy'];
 
+        var checkedMap = {};
+        var checkedRadios = document.querySelectorAll('input[type="radio"][name^="bh-"]:checked');
+        for (var c = 0; c < checkedRadios.length; c++) {
+            checkedMap[checkedRadios[c].name] = checkedRadios[c].value;
+        }
+
         var lines = ['Bradford Hill Criteria Assessment', '===', 'Exposure: ' + exposure, 'Outcome: ' + outcome, ''];
         for (var i = 0; i < criteriaNames.length; i++) {
-            var checkedRadio = document.querySelector('input[name="bh-' + criteriaNames[i] + '"]:checked');
-            var selected = checkedRadio ? checkedRadio.value : 'Not assessed';
-            var note = document.getElementById('bh-note-' + criteriaNames[i]).value || '';
+            var selected = checkedMap['bh-' + criteriaNames[i]] || 'Not assessed';
+            var noteInput = document.getElementById('bh-note-' + criteriaNames[i]);
+            var note = noteInput ? noteInput.value : '';
             lines.push((i + 1) + '. ' + criteriaLabels[i] + ': ' + selected + (note ? ' (' + note + ')' : ''));
         }
         Export.copyText(lines.join('\n'));
@@ -331,14 +344,20 @@
     function resetBH() {
         var criteriaNames = ['strength', 'consistency', 'specificity', 'temporality',
             'gradient', 'plausibility', 'coherence', 'experiment', 'analogy'];
-        for (var i = 0; i < criteriaNames.length; i++) {
-            var checkedRadio = document.querySelector('input[name="bh-' + criteriaNames[i] + '"]:checked');
-            if (checkedRadio) checkedRadio.checked = false;
-            document.getElementById('bh-note-' + criteriaNames[i]).value = '';
+        var checkedRadios = document.querySelectorAll('input[type="radio"][name^="bh-"]:checked');
+        for (var c = 0; c < checkedRadios.length; c++) {
+            checkedRadios[c].checked = false;
         }
-        document.getElementById('bh-exposure').value = '';
-        document.getElementById('bh-outcome').value = '';
-        App.setTrustedHTML(document.getElementById('bh-results'), '');
+        for (var i = 0; i < criteriaNames.length; i++) {
+            var noteInput = document.getElementById('bh-note-' + criteriaNames[i]);
+            if (noteInput) noteInput.value = '';
+        }
+        var exposureInput = document.getElementById('bh-exposure');
+        if (exposureInput) exposureInput.value = '';
+        var outcomeInput = document.getElementById('bh-outcome');
+        if (outcomeInput) outcomeInput.value = '';
+        var resultsEl = document.getElementById('bh-results');
+        if (resultsEl) App.setTrustedHTML(resultsEl, '');
     }
 
     // ================================================================
@@ -637,9 +656,10 @@
         var lines = ['Directed Acyclic Graph (DAG)', '===', 'Nodes:'];
         dagNodes.forEach(n => lines.push('- ' + n.label + ' (' + n.type + ')'));
         lines.push('', 'Edges:');
+        var nodeMap = new Map(dagNodes.map(n => [n.id, n]));
         dagEdges.forEach(e => {
-            var f = dagNodes.find(n => n.id === e.from);
-            var t = dagNodes.find(n => n.id === e.to);
+            var f = nodeMap.get(e.from);
+            var t = nodeMap.get(e.to);
             if (f && t) lines.push('- ' + f.label + ' -> ' + t.label);
         });
         Export.copyText(lines.join('\n'));
@@ -868,30 +888,13 @@
     // ================================================================
     // HELPERS & EXPORTS
     // ================================================================
-    function isAncestor(from, to, childrenMap) {
-        var visited = {};
-        var queue = [from];
-        visited[from] = true;
-        while (queue.length > 0) {
-            var current = queue.shift();
-            var kids = childrenMap[current] || [];
-            for (var i = 0; i < kids.length; i++) {
-                if (kids[i] === to) return true;
-                if (!visited[kids[i]]) {
-                    visited[kids[i]] = true;
-                    queue.push(kids[i]);
-                }
-            }
-        }
-        return false;
-    }
-
     function generateDAGText() {
         var lines = ['Directed Acyclic Graph', '==='];
         dagNodes.forEach(n => lines.push('- ' + n.label + ' (' + n.type + ')'));
+        var nodeMap = new Map(dagNodes.map(n => [n.id, n]));
         dagEdges.forEach(e => {
-            var f = dagNodes.find(n => n.id === e.from);
-            var t = dagNodes.find(n => n.id === e.to);
+            var f = nodeMap.get(e.from);
+            var t = nodeMap.get(e.to);
             if (f && t) lines.push(f.label + ' -> ' + t.label);
         });
         return lines.join('\n');
