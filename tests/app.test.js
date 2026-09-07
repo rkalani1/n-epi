@@ -66,6 +66,7 @@ describe('App Favorites System', () => {
             }).not.toThrow();
 
             expect(setItemSpy).toHaveBeenCalled();
+            setItemSpy.mockRestore();
         });
     });
 });
@@ -85,14 +86,14 @@ describe('setTrustedHTML() sanitization', () => {
         expect(el.querySelector('button')).not.toBeNull();
         expect(el.querySelector('button').getAttribute('onclick')).toBe("App.navigate('home')");
 
-        App.setTrustedHTML(el, '<select onchange="x(this)"><option>a</option></select>');
-        expect(el.querySelector('select').getAttribute('onchange')).toBe('x(this)');
+        App.setTrustedHTML(el, '<select onchange="EpiCalcModule.onMeasureChange()"><option>a</option></select>');
+        expect(el.querySelector('select').getAttribute('onchange')).toBe('EpiCalcModule.onMeasureChange()');
 
-        App.setTrustedHTML(el, '<input oninput="y(this)">');
-        expect(el.querySelector('input').getAttribute('oninput')).toBe('y(this)');
+        App.setTrustedHTML(el, '<input oninput="TrialDB.search(this.value)">');
+        expect(el.querySelector('input').getAttribute('oninput')).toBe('TrialDB.search(this.value)');
     });
 
-    it('still removes dangerous markup (script tags, onerror, javascript: URLs)', () => {
+    it('still removes dangerous markup and unauthorized event handlers (script tags, onerror, javascript: URLs, arbitrary onclick)', () => {
         const el = document.createElement('div');
 
         App.setTrustedHTML(el, '<div>ok</div><script>window.__pwned = 1;</script>');
@@ -104,6 +105,28 @@ describe('setTrustedHTML() sanitization', () => {
         App.setTrustedHTML(el, '<a href="javascript:alert(1)">x</a>');
         const href = el.querySelector('a').getAttribute('href');
         expect(href == null || href.indexOf('javascript:') === -1).toBe(true);
+
+        // Verify arbitrary inline event handlers and bypass attempts are removed by strict validation
+        App.setTrustedHTML(el, '<button onclick="alert(1)">Click</button>');
+        expect(el.querySelector('button').getAttribute('onclick')).toBeNull();
+
+        App.setTrustedHTML(el, '<input oninput="eval(this.value)">');
+        expect(el.querySelector('input').getAttribute('oninput')).toBeNull();
+
+        App.setTrustedHTML(el, '<button onclick="App.navigate(\'home\'); alert(1)">Click</button>');
+        expect(el.querySelector('button').getAttribute('onclick')).toBeNull();
+
+        // Bypass attempt using comma operator
+        App.setTrustedHTML(el, '<button onclick="App.navigate(\'home\'), alert(1)">Click</button>');
+        expect(el.querySelector('button').getAttribute('onclick')).toBeNull();
+
+        // Bypass attempt using logical AND / OR
+        App.setTrustedHTML(el, '<button onclick="App.navigate(\'home\') && alert(1)">Click</button>');
+        expect(el.querySelector('button').getAttribute('onclick')).toBeNull();
+
+        // Bypass attempt using parameter injection with dangerous sink
+        App.setTrustedHTML(el, '<button onclick="App.navigate(alert(1))">Click</button>');
+        expect(el.querySelector('button').getAttribute('onclick')).toBeNull();
     });
 
     it('associates orphan form labels and makes onclick divs keyboard-operable', () => {
@@ -139,5 +162,45 @@ describe('Navigation structure counts', () => {
         const ids = App.NAV.flatMap((g) => g.items.map((i) => i.id));
         expect(ids.length).toBe(25);
         expect(new Set(ids).size).toBe(25);
+    });
+});
+
+describe('App Dashboard Rendering', () => {
+    beforeEach(() => {
+        localStorage.clear();
+        document.body.innerHTML = '<div id="sidebar"></div><div id="mobile-nav"></div><div id="module-content"></div>';
+        const createDOMPurify = require('../js/core/dompurify.min.js');
+        global.DOMPurify = createDOMPurify(window);
+    });
+
+    afterEach(() => {
+        delete global.DOMPurify;
+    });
+
+    it('renders dashboard with stats, categories, launch cards, and recent calculations', () => {
+        // Set up dummy favorites and recent calculation history
+        localStorage.setItem('neuroepi_favorites', JSON.stringify(['sample-size']));
+        localStorage.setItem('ne-calc-history', JSON.stringify([
+            { module: 'sample-size', calc: 'sample-size', result: 'n = 100', timestamp: Date.now() - 5000 }
+        ]));
+
+        App.navigate('home');
+
+        const content = document.getElementById('module-content');
+        expect(content.querySelector('.dashboard')).not.toBeNull();
+        expect(content.querySelector('.dashboard-hero-title').textContent).toBe('n-epi');
+        expect(content.querySelector('.dashboard-stats')).not.toBeNull();
+
+        // Check favorites section rendered
+        expect(content.innerText || content.textContent).toContain('Your Favorites');
+        expect(content.querySelector('[data-continue-module]')).not.toBeNull();
+
+        // Check categories section rendered
+        expect(content.querySelectorAll('.dashboard-category-card').length).toBe(App.NAV.length);
+
+        // Check recent calculations rendered
+        expect(content.querySelector('.dashboard-recent-calcs')).not.toBeNull();
+        expect(content.innerText || content.textContent).toContain('Sample Size');
+        expect(content.innerText || content.textContent).toContain('n = 100');
     });
 });

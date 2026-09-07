@@ -244,6 +244,55 @@ describe('Statistics Module', () => {
         });
     });
 
+    describe('chiSquaredQuantile', () => {
+        test('returns 0 for p <= 0', () => {
+            expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(-0.1, 5)).toBe(0);
+        });
+
+        test('returns Infinity for p >= 1', () => {
+            expect(Statistics.chiSquaredQuantile(1, 1)).toBe(Infinity);
+            expect(Statistics.chiSquaredQuantile(1.5, 5)).toBe(Infinity);
+        });
+
+        test('matches known chi-squared quantile table values', () => {
+            // df = 1
+            expect(Statistics.chiSquaredQuantile(0.95, 1)).toBeCloseTo(3.8414588, 5);
+            expect(Statistics.chiSquaredQuantile(0.99, 1)).toBeCloseTo(6.6348966, 5);
+
+            // df = 2 (exact formula: -2 * ln(1-p))
+            expect(Statistics.chiSquaredQuantile(0.50, 2)).toBeCloseTo(1.38629436, 5);
+            expect(Statistics.chiSquaredQuantile(0.95, 2)).toBeCloseTo(5.9914645, 5);
+            expect(Statistics.chiSquaredQuantile(0.99, 2)).toBeCloseTo(9.2103404, 5);
+
+            // df = 5
+            expect(Statistics.chiSquaredQuantile(0.95, 5)).toBeCloseTo(11.0704977, 5);
+
+            // df = 10
+            expect(Statistics.chiSquaredQuantile(0.95, 10)).toBeCloseTo(18.3070381, 5);
+            expect(Statistics.chiSquaredQuantile(0.99, 10)).toBeCloseTo(23.2092512, 5);
+        });
+
+        test('handles small probabilities correctly', () => {
+            const val = Statistics.chiSquaredQuantile(0.0001, 1);
+            expect(val).toBeGreaterThan(0);
+            expect(Statistics.chiSquaredCDF(val, 1)).toBeCloseTo(0.0001, 6);
+        });
+
+        test('inverts chiSquaredCDF accurately across various probabilities and df', () => {
+            const probabilities = [0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99];
+            const dfs = [1, 2, 5, 10, 30];
+
+            probabilities.forEach((p) => {
+                dfs.forEach((df) => {
+                    const q = Statistics.chiSquaredQuantile(p, df);
+                    const calculatedP = Statistics.chiSquaredCDF(q, df);
+                    expect(calculatedP).toBeCloseTo(p, 5);
+                });
+            });
+        });
+    });
+
     describe('waldCI', () => {
         test('calculates Wald CI correctly with specified z', () => {
             const p = 0.5;
@@ -276,6 +325,91 @@ describe('Statistics Module', () => {
         test('caps upper bound at 1', () => {
             const result = Statistics.waldCI(0.99, 10, 2);
             expect(result.upper).toBe(1);
+        });
+    });
+
+    describe('agrestiCoullCI', () => {
+        test('calculates Agresti-Coull CI correctly with specified z', () => {
+            const p = 0.1;
+            const n = 50;
+            const z = 1.96;
+            const result = Statistics.agrestiCoullCI(p, n, z);
+
+            // z^2 = 3.8416
+            // nTilde = 50 + 3.8416 = 53.8416
+            // pTilde = (5 + 1.9208) / 53.8416 = 6.9208 / 53.8416 ≈ 0.12853999955424838
+            // se = sqrt(0.12853999955424838 * (1 - 0.12853999955424838) / 53.8416) ≈ 0.04561250434529042
+            // lower = 0.12853999955424838 - 1.96 * 0.04561250434529042 ≈ 0.03913950515295829
+            // upper = 0.12853999955424838 + 1.96 * 0.04561250434529042 ≈ 0.21794052218649673
+            expect(result.lower).toBeCloseTo(0.0391395, 5);
+            expect(result.upper).toBeCloseTo(0.2179405, 5);
+        });
+
+        test('uses default z value when z is omitted', () => {
+            const p = 0.5;
+            const n = 100;
+            const result = Statistics.agrestiCoullCI(p, n);
+            const zDefault = Statistics.normalQuantile(0.975);
+
+            const nTilde = n + zDefault * zDefault;
+            const pTilde = (p * n + (zDefault * zDefault) / 2) / nTilde;
+            const se = Math.sqrt((pTilde * (1 - pTilde)) / nTilde);
+            const expectedLower = Math.max(0, pTilde - zDefault * se);
+            const expectedUpper = Math.min(1, pTilde + zDefault * se);
+
+            expect(result.lower).toBeCloseTo(expectedLower, 8);
+            expect(result.upper).toBeCloseTo(expectedUpper, 8);
+        });
+
+        test('clamps lower bound at 0 when p = 0', () => {
+            const result = Statistics.agrestiCoullCI(0, 10, 1.96);
+            expect(result.lower).toBe(0);
+            expect(result.upper).toBeGreaterThan(0);
+            expect(result.upper).toBeLessThan(1);
+        });
+
+        test('clamps upper bound at 1 when p = 1', () => {
+            const result = Statistics.agrestiCoullCI(1, 10, 1.96);
+            expect(result.upper).toBe(1);
+            expect(result.lower).toBeGreaterThan(0);
+            expect(result.lower).toBeLessThan(1);
+        });
+    });
+
+    describe('clopperPearsonCI', () => {
+        test('calculates exact Clopper-Pearson 95% confidence interval for standard case', () => {
+            const result = Statistics.clopperPearsonCI(5, 10);
+            expect(result.lower).toBeCloseTo(0.187086, 5);
+            expect(result.upper).toBeCloseTo(0.812914, 5);
+        });
+
+        test('handles zero successes (x = 0) edge case', () => {
+            const result = Statistics.clopperPearsonCI(0, 10);
+            expect(result.lower).toBe(0);
+            expect(result.upper).toBeCloseTo(0.308497, 5);
+        });
+
+        test('handles all successes (x = n) edge case', () => {
+            const result = Statistics.clopperPearsonCI(10, 10);
+            expect(result.lower).toBeCloseTo(0.691503, 5);
+            expect(result.upper).toBe(1);
+        });
+
+        test('supports custom alpha parameter', () => {
+            // 99% CI (alpha = 0.01)
+            const result99 = Statistics.clopperPearsonCI(5, 10, 0.01);
+            expect(result99.lower).toBeCloseTo(0.128311, 5);
+            expect(result99.upper).toBeCloseTo(0.871689, 5);
+            // 99% CI should be wider than 95% CI
+            const result95 = Statistics.clopperPearsonCI(5, 10, 0.05);
+            expect(result99.lower).toBeLessThan(result95.lower);
+            expect(result99.upper).toBeGreaterThan(result95.upper);
+        });
+
+        test('calculates CI correctly for larger sample sizes', () => {
+            const result = Statistics.clopperPearsonCI(50, 100);
+            expect(result.lower).toBeCloseTo(0.398321, 5);
+            expect(result.upper).toBeCloseTo(0.601679, 5);
         });
     });
 });
@@ -356,6 +490,42 @@ describe('Statistics Module', () => {
     });
 
 describe('Additional Statistics Coverage', () => {
+    describe('poissonPMF', () => {
+        test('returns 0 for negative values of k', () => {
+            expect(Statistics.poissonPMF(-1, 2)).toBe(0);
+            expect(Statistics.poissonPMF(-5, 0.5)).toBe(0);
+        });
+
+        test('computes k=0 probability correctly as exp(-lambda)', () => {
+            expect(Statistics.poissonPMF(0, 1)).toBeCloseTo(Math.exp(-1), 10);
+            expect(Statistics.poissonPMF(0, 0.5)).toBeCloseTo(Math.exp(-0.5), 10);
+            expect(Statistics.poissonPMF(0, 2.5)).toBeCloseTo(Math.exp(-2.5), 10);
+        });
+
+        test('computes known Poisson PMF values correctly', () => {
+            // P(X = 2; lambda = 2.5) = (2.5^2 * exp(-2.5)) / 2! = 0.25651562069968353
+            const expected2_25 = (Math.pow(2.5, 2) * Math.exp(-2.5)) / 2;
+            expect(Statistics.poissonPMF(2, 2.5)).toBeCloseTo(expected2_25, 10);
+
+            // P(X = 1; lambda = 3) = 3 * exp(-3) = 0.14936120510359185
+            const expected1_3 = 3 * Math.exp(-3);
+            expect(Statistics.poissonPMF(1, 3)).toBeCloseTo(expected1_3, 10);
+
+            // P(X = 5; lambda = 10) = (10^5 * exp(-10)) / 120 = 0.03783327480207069
+            const expected5_10 = (Math.pow(10, 5) * Math.exp(-10)) / 120;
+            expect(Statistics.poissonPMF(5, 10)).toBeCloseTo(expected5_10, 10);
+        });
+
+        test('sum of PMF for k from 0 to N approximates 1 for moderate lambda', () => {
+            const lambda = 4;
+            let sumPMF = 0;
+            for (let k = 0; k <= 20; k++) {
+                sumPMF += Statistics.poissonPMF(k, lambda);
+            }
+            expect(sumPMF).toBeCloseTo(1, 8);
+        });
+    });
+
     describe('poissonCDF', () => {
         test('handles edge cases and known cumulative values', () => {
             expect(Statistics.poissonCDF(-1, 2)).toBe(0);
@@ -418,6 +588,55 @@ describe('Additional Statistics Coverage', () => {
         });
     });
 
+    describe('twoProportionZTest', () => {
+        test('calculates pooled two-proportion z-test by default', () => {
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100);
+            expect(result.p1).toBeCloseTo(0.4, 5);
+            expect(result.p2).toBeCloseTo(0.3, 5);
+            expect(result.diff).toBeCloseTo(0.1, 5);
+            expect(result.se).toBeCloseTo(0.0674536878, 5);
+            expect(result.z).toBeCloseTo(1.48249863, 5);
+            expect(result.pValue).toBeCloseTo(0.13820772, 5);
+        });
+
+        test('calculates unpooled two-proportion z-test when pooled is false', () => {
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100, { pooled: false });
+            expect(result.p1).toBeCloseTo(0.4, 5);
+            expect(result.p2).toBeCloseTo(0.3, 5);
+            expect(result.diff).toBeCloseTo(0.1, 5);
+            expect(result.se).toBeCloseTo(0.0670820393, 5);
+            expect(result.z).toBeCloseTo(1.49071198, 5);
+            expect(result.pValue).toBeCloseTo(0.13603718, 5);
+        });
+
+        test('calculates two-proportion z-test with continuity correction', () => {
+            const result = Statistics.twoProportionZTest(40, 100, 30, 100, { continuityCorrection: true });
+            expect(result.diff).toBeCloseTo(0.1, 5);
+            expect(result.z).toBeCloseTo(1.33424877, 5);
+            expect(result.pValue).toBeCloseTo(0.18212245, 5);
+        });
+
+        test('handles case where continuity correction exceeds or equals proportion difference', () => {
+            const result = Statistics.twoProportionZTest(5, 100, 4, 100, { continuityCorrection: true });
+            expect(result.p1).toBeCloseTo(0.05, 5);
+            expect(result.p2).toBeCloseTo(0.04, 5);
+            expect(result.diff).toBeCloseTo(0.01, 5);
+            expect(result.z).toBeCloseTo(0, 5);
+            expect(result.pValue).toBeCloseTo(1.0, 5);
+        });
+
+        test('handles degenerate case with zero standard error (e.g., zero events in both groups)', () => {
+            const result = Statistics.twoProportionZTest(0, 100, 0, 100);
+            expect(result.p1).toBe(0);
+            expect(result.p2).toBe(0);
+            expect(result.diff).toBe(0);
+            expect(result.se).toBe(0);
+            expect(result.z).toBe(0);
+            expect(result.pValue).toBe(1);
+            expect(result.note).toBe("Standard error is zero; asymptotic z-test not applicable. Use Fisher's exact test.");
+        });
+    });
+
     describe('chiSquaredTest2x2', () => {
         test('calculates uncorrected and Yates-corrected chi-squared tests', () => {
             const noEffect = Statistics.chiSquaredTest2x2(10, 10, 10, 10);
@@ -435,6 +654,36 @@ describe('Additional Statistics Coverage', () => {
         });
     });
 
+    describe('sampleSizeSchoenfeld', () => {
+        test('computes sample size and events with default alpha, power, and ratio', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.7);
+            expect(res.hr).toBe(0.7);
+            expect(res.lnHR).toBeCloseTo(Math.log(0.7), 10);
+            expect(res.events).toBe(247);
+            expect(res.totalN).toBeNull();
+        });
+
+        test('computes totalN when event rate (pEvent) is provided', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.7, 0.05, 0.80, 1, 0.5);
+            expect(res.events).toBe(247);
+            expect(res.totalN).toBe(494);
+        });
+
+        test('handles custom alpha, power, ratio, and pEvent parameters', () => {
+            const res = Statistics.sampleSizeSchoenfeld(0.5, 0.01, 0.90, 2, 0.4);
+            expect(res.hr).toBe(0.5);
+            expect(res.lnHR).toBeCloseTo(Math.log(0.5), 10);
+            expect(res.events).toBe(140);
+            expect(res.totalN).toBe(350);
+        });
+
+        test('yields identical required events for HR and 1/HR', () => {
+            const resLower = Statistics.sampleSizeSchoenfeld(0.7, 0.05, 0.80, 1);
+            const resUpper = Statistics.sampleSizeSchoenfeld(1 / 0.7, 0.05, 0.80, 1);
+            expect(resLower.events).toBe(resUpper.events);
+        });
+    });
+
     describe('sampleSizeTwoProportions', () => {
         test('computes supported methods and rejects invalid methods', () => {
             expect(Statistics.sampleSizeTwoProportions(0.5, 0.4)).toEqual({ n1: 388, n2: 388, total: 776 });
@@ -442,6 +691,53 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'arcsine')).toEqual({ n1: 194, n2: 194, total: 388 });
             expect(Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 2, 'arcsine')).toEqual({ n1: 194, n2: 388, total: 582 });
             expect(Statistics.sampleSizeTwoProportions(0.5, 0.4, 0.05, 0.8, 1, 'invalid_method')).toBeNull();
+        });
+    });
+
+    describe('sampleSizeCluster', () => {
+        test('computes cluster-randomized sample size correctly for standard inputs', () => {
+            const nIndividual = 100;
+            const icc = 0.1;
+            const clusterSize = 10;
+
+            // deff = 1 + (10 - 1) * 0.1 = 1 + 9 * 0.1 = 1.9
+            // nAdjusted = Math.ceil(100 * 1.9) = 190
+            // nClusters = Math.ceil(190 / 10) = 19
+            // totalN = 19 * 10 = 190
+            const result = Statistics.sampleSizeCluster(nIndividual, icc, clusterSize);
+            expect(result.deff).toBeCloseTo(1.9, 5);
+            expect(result.nAdjusted).toBe(190);
+            expect(result.nClusters).toBe(19);
+            expect(result.totalN).toBe(190);
+        });
+
+        test('handles icc = 0 (no cluster effect, deff = 1)', () => {
+            const result = Statistics.sampleSizeCluster(100, 0, 20);
+            expect(result.deff).toBe(1);
+            expect(result.nAdjusted).toBe(100);
+            expect(result.nClusters).toBe(5);
+            expect(result.totalN).toBe(100);
+        });
+
+        test('handles clusterSize = 1 (individual randomization equivalent)', () => {
+            const result = Statistics.sampleSizeCluster(100, 0.1, 1);
+            expect(result.deff).toBe(1);
+            expect(result.nAdjusted).toBe(100);
+            expect(result.nClusters).toBe(100);
+            expect(result.totalN).toBe(100);
+        });
+
+        test('correctly rounds up nAdjusted and nClusters when fractional', () => {
+            // nIndividual = 101, icc = 0.02, clusterSize = 15
+            // deff = 1 + 14 * 0.02 = 1.28
+            // nAdjusted = Math.ceil(101 * 1.28) = Math.ceil(129.28) = 130
+            // nClusters = Math.ceil(130 / 15) = Math.ceil(8.6667) = 9
+            // totalN = 9 * 15 = 135
+            const result = Statistics.sampleSizeCluster(101, 0.02, 15);
+            expect(result.deff).toBeCloseTo(1.28, 5);
+            expect(result.nAdjusted).toBe(130);
+            expect(result.nClusters).toBe(9);
+            expect(result.totalN).toBe(135);
         });
     });
 
@@ -563,6 +859,37 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.fisherExact(0, 5, 5, 0).pValue).toBeCloseTo(0.0079365, 5);
             expect(Statistics.fisherExact(1, 9, 11, 3).pValue).toBeCloseTo(0.002759, 5);
             expect(Statistics.fisherExact(5, 5, 5, 5).pValue).toBeLessThanOrEqual(1.0);
+        });
+    });
+
+    describe('binomialCDF', () => {
+        test('returns 0 when k < 0', () => {
+            expect(Statistics.binomialCDF(-1, 10, 0.5)).toBe(0);
+        });
+
+        test('returns correct CDF for k = 0', () => {
+            expect(Statistics.binomialCDF(0, 10, 0.5)).toBeCloseTo(Math.pow(0.5, 10), 6);
+        });
+
+        test('returns correct CDF for standard intermediate k', () => {
+            expect(Statistics.binomialCDF(2, 5, 0.3)).toBeCloseTo(0.83692, 6);
+            expect(Statistics.binomialCDF(5, 10, 0.5)).toBeCloseTo(0.623046875, 6);
+        });
+
+        test('handles non-integer k by flooring k', () => {
+            expect(Statistics.binomialCDF(2.8, 5, 0.3)).toBeCloseTo(0.83692, 6);
+        });
+
+        test('returns 1 when k = n or k > n', () => {
+            expect(Statistics.binomialCDF(10, 10, 0.5)).toBe(1);
+            expect(Statistics.binomialCDF(15, 10, 0.5)).toBe(1);
+        });
+
+        test('handles edge probabilities p = 0 and p = 1', () => {
+            expect(Statistics.binomialCDF(0, 10, 0)).toBe(1);
+            expect(Statistics.binomialCDF(5, 10, 0)).toBe(1);
+            expect(Statistics.binomialCDF(9, 10, 1)).toBe(0);
+            expect(Statistics.binomialCDF(10, 10, 1)).toBe(1);
         });
     });
 });
