@@ -94,6 +94,28 @@ describe('Statistics Engine Tests', function() {
 
     });
 
+    describe('logChoose Function', function() {
+        it('should return -Infinity when k < 0 or k > n', function() {
+            assert.strictEqual(Statistics.logChoose(5, -1), -Infinity);
+            assert.strictEqual(Statistics.logChoose(5, 6), -Infinity);
+        });
+
+        it('should return 0 when k === 0 or k === n', function() {
+            assert.strictEqual(Statistics.logChoose(5, 0), 0);
+            assert.strictEqual(Statistics.logChoose(5, 5), 0);
+            assert.strictEqual(Statistics.logChoose(0, 0), 0);
+        });
+
+        it('should calculate log combinations correctly', function() {
+            assert.ok(Math.abs(Statistics.logChoose(5, 2) - Math.log(10)) < 1e-10);
+            assert.ok(Math.abs(Statistics.logChoose(10, 5) - Math.log(252)) < 1e-10);
+        });
+
+        it('should satisfy symmetry logChoose(n, k) === logChoose(n, n - k)', function() {
+            assert.ok(Math.abs(Statistics.logChoose(12, 4) - Statistics.logChoose(12, 8)) < 1e-10);
+        });
+    });
+
     describe('regularizedIncompleteBeta Function', function() {
         it('should return NaN when x < 0', function() {
             assert.ok(isNaN(Statistics.regularizedIncompleteBeta(-0.1, 2, 2)));
@@ -150,7 +172,56 @@ describe('Statistics Engine Tests', function() {
             assert.ok(Math.abs(Statistics.fQuantile(0.99, 1, 1) - 4052.18) < 1);
         });
     });
-});
+
+    describe('logRateCI Function', function() {
+        it('should calculate incidence rate, standard error, and 95% CI by default', function() {
+            var res = Statistics.logRateCI(10, 1000);
+            assert.strictEqual(res.rate, 0.01);
+            assert.ok(Math.abs(res.se - 0.00316227766) < 1e-7);
+            assert.ok(Math.abs(res.lower - 0.005380547) < 1e-6);
+            assert.ok(Math.abs(res.upper - 0.018585471) < 1e-6);
+            assert.ok(res.lower < res.rate && res.rate < res.upper);
+        });
+
+        it('should obey geometric mean property sqrt(lower * upper) === rate', function() {
+            var res = Statistics.logRateCI(25, 500);
+            assert.ok(Math.abs(Math.sqrt(res.lower * res.upper) - res.rate) < 1e-8);
+        });
+
+        it('should produce wider intervals for smaller alpha values', function() {
+            var ci90 = Statistics.logRateCI(25, 500, 0.10);
+            var ci95 = Statistics.logRateCI(25, 500, 0.05);
+            var ci99 = Statistics.logRateCI(25, 500, 0.01);
+
+            assert.ok(ci99.lower < ci95.lower && ci95.lower < ci90.lower);
+            assert.ok(ci90.upper < ci95.upper && ci95.upper < ci99.upper);
+        });
+    });
+
+    describe('chiSquaredQuantile Distribution Function', function() {
+        it('should return 0 when p <= 0', function() {
+            assert.strictEqual(Statistics.chiSquaredQuantile(0, 1), 0);
+            assert.strictEqual(Statistics.chiSquaredQuantile(-0.1, 5), 0);
+        });
+
+        it('should return Infinity when p >= 1', function() {
+            assert.strictEqual(Statistics.chiSquaredQuantile(1, 1), Infinity);
+            assert.strictEqual(Statistics.chiSquaredQuantile(1.5, 5), Infinity);
+        });
+
+        it('should calculate specific known values for chiSquaredQuantile correctly', function() {
+            // df=1, p=0.95 -> 3.8415
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.95, 1) - 3.8414588) < 1e-4);
+            // df=2, p=0.5 -> 2 * ln(2) approx 1.3863
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.5, 2) - 1.38629436) < 1e-4);
+            // df=2, p=0.95 -> -2 * ln(0.05) approx 5.9915
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.95, 2) - 5.9914645) < 1e-4);
+            // df=5, p=0.95 -> 11.0705
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.95, 5) - 11.0704977) < 1e-4);
+            // df=10, p=0.99 -> 23.2093
+            assert.ok(Math.abs(Statistics.chiSquaredQuantile(0.99, 10) - 23.2092512) < 1e-4);
+        });
+    });
 
     describe('tQuantile Distribution Function', function() {
         it('should return -Infinity when p <= 0', function() {
@@ -188,3 +259,48 @@ describe('Statistics Engine Tests', function() {
             assert.ok(Math.abs(Statistics.tQuantile(0.025, 10) - (-2.2281)) < 1e-3);
         });
     });
+
+    describe('poissonExactCI Confidence Interval Function', function() {
+
+        it('should default alpha to 0.05 when alpha parameter is omitted', function() {
+            const resultDefault = Statistics.poissonExactCI(5);
+            const resultExplicit = Statistics.poissonExactCI(5, 0.05);
+            assert.strictEqual(resultDefault.lower, resultExplicit.lower);
+            assert.strictEqual(resultDefault.upper, resultExplicit.upper);
+        });
+
+        it('should handle k = 0 events correctly (lower bound must be 0)', function() {
+            const result = Statistics.poissonExactCI(0, 0.05);
+            assert.strictEqual(result.lower, 0);
+            // Upper bound for k=0, alpha=0.05 is -ln(0.025) ≈ 3.688879
+            assert.ok(Math.abs(result.upper - 3.688879) < 1e-4);
+        });
+
+        it('should calculate exact Poisson confidence bounds for positive counts (k > 0)', function() {
+            // k = 5, alpha = 0.05 -> [1.623486, 11.668332]
+            const result5 = Statistics.poissonExactCI(5, 0.05);
+            assert.ok(Math.abs(result5.lower - 1.623486) < 1e-4);
+            assert.ok(Math.abs(result5.upper - 11.668332) < 1e-4);
+
+            // k = 10, alpha = 0.05 -> [4.795389, 18.390356]
+            const result10 = Statistics.poissonExactCI(10, 0.05);
+            assert.ok(Math.abs(result10.lower - 4.795389) < 1e-4);
+            assert.ok(Math.abs(result10.upper - 18.390356) < 1e-4);
+        });
+
+        it('should handle custom alpha values (e.g. 0.01 for 99% CI)', function() {
+            // k = 0, alpha = 0.01 -> upper bound = -ln(0.005) ≈ 5.298317
+            const result0_99 = Statistics.poissonExactCI(0, 0.01);
+            assert.strictEqual(result0_99.lower, 0);
+            assert.ok(Math.abs(result0_99.upper - 5.298317) < 1e-4);
+
+            // 99% CI should be wider than 95% CI for the same k
+            const result5_95 = Statistics.poissonExactCI(5, 0.05);
+            const result5_99 = Statistics.poissonExactCI(5, 0.01);
+            assert.ok(result5_99.lower < result5_95.lower);
+            assert.ok(result5_99.upper > result5_95.upper);
+        });
+
+    });
+
+});
