@@ -94,6 +94,28 @@ describe('Statistics Engine Tests', function() {
 
     });
 
+    describe('logChoose Function', function() {
+        it('should return -Infinity when k < 0 or k > n', function() {
+            assert.strictEqual(Statistics.logChoose(5, -1), -Infinity);
+            assert.strictEqual(Statistics.logChoose(5, 6), -Infinity);
+        });
+
+        it('should return 0 when k === 0 or k === n', function() {
+            assert.strictEqual(Statistics.logChoose(5, 0), 0);
+            assert.strictEqual(Statistics.logChoose(5, 5), 0);
+            assert.strictEqual(Statistics.logChoose(0, 0), 0);
+        });
+
+        it('should calculate log combinations correctly', function() {
+            assert.ok(Math.abs(Statistics.logChoose(5, 2) - Math.log(10)) < 1e-10);
+            assert.ok(Math.abs(Statistics.logChoose(10, 5) - Math.log(252)) < 1e-10);
+        });
+
+        it('should satisfy symmetry logChoose(n, k) === logChoose(n, n - k)', function() {
+            assert.ok(Math.abs(Statistics.logChoose(12, 4) - Statistics.logChoose(12, 8)) < 1e-10);
+        });
+    });
+
     describe('regularizedIncompleteBeta Function', function() {
         it('should return NaN when x < 0', function() {
             assert.ok(isNaN(Statistics.regularizedIncompleteBeta(-0.1, 2, 2)));
