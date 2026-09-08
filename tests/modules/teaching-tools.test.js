@@ -115,6 +115,49 @@ describe('Concept Flashcards', () => {
         const content = document.getElementById('tt-content').innerHTML;
         expect(content).toContain('Unshuffle');
     });
+
+    it('should shuffle flashcards using window.crypto.getRandomValues if available', () => {
+        const originalCrypto = window.crypto;
+        const getRandomValuesMock = jest.fn((typedArray) => {
+            for (let i = 0; i < typedArray.length; i++) {
+                typedArray[i] = 12345;
+            }
+            return typedArray;
+        });
+        Object.defineProperty(window, 'crypto', {
+            value: { getRandomValues: getRandomValuesMock },
+            configurable: true,
+            writable: true
+        });
+
+        window.TeachingTools.shuffleFlashcards();
+        expect(getRandomValuesMock).toHaveBeenCalled();
+
+        Object.defineProperty(window, 'crypto', {
+            value: originalCrypto,
+            configurable: true,
+            writable: true
+        });
+    });
+
+    it('should fallback gracefully if crypto is not available', () => {
+        const originalCrypto = window.crypto;
+        Object.defineProperty(window, 'crypto', {
+            value: undefined,
+            configurable: true,
+            writable: true
+        });
+
+        window.TeachingTools.shuffleFlashcards();
+        const content = document.getElementById('tt-content').innerHTML;
+        expect(content).toContain('Unshuffle');
+
+        Object.defineProperty(window, 'crypto', {
+            value: originalCrypto,
+            configurable: true,
+            writable: true
+        });
+    });
 });
 
 describe('Study Design Decision Tree', () => {

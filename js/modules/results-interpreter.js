@@ -1199,9 +1199,9 @@
         }
         // Build tab-separated text for pasting into spreadsheets
         var text = '';
-        var rows = table.querySelectorAll('tr');
+        var rows = table.rows;
         for (var i = 0; i < rows.length; i++) {
-            var cells = rows[i].querySelectorAll('th, td');
+            var cells = rows[i].cells;
             var rowText = [];
             for (var j = 0; j < cells.length - 1; j++) { // Skip the visual column
                 rowText.push(cells[j].textContent.trim());
@@ -2241,9 +2241,9 @@
             return;
         }
         var text = '';
-        var rows = table.querySelectorAll('tr');
+        var rows = table.rows;
         for (var i = 0; i < rows.length; i++) {
-            var cells = rows[i].querySelectorAll('th, td');
+            var cells = rows[i].cells;
             var rowText = [];
             for (var j = 0; j < cells.length - 1; j++) { // Skip plot column
                 rowText.push(cells[j].textContent.trim());
