@@ -1028,9 +1028,9 @@
         // Letter jump bar
         html += '<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-bottom:1rem">';
         sortedLetters.forEach(function(l) {
-            html += '<a href="javascript:void(0)" onclick="window.QuickReference.jumpToLetter(\'' + l + '\')" '
-                + 'style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:4px;background:var(--bg-secondary);color:var(--text-primary);font-weight:600;font-size:0.8rem;text-decoration:none">'
-                + l + '</a>';
+            html += '<button type="button" onclick="window.QuickReference.jumpToLetter(\'' + l + '\')" '
+                + 'style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:4px;background:var(--bg-secondary);color:var(--text-primary);font-weight:600;font-size:0.8rem;border:none;cursor:pointer;padding:0">'
+                + l + '</button>';
         });
         html += '</div>';
 

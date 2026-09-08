@@ -2266,7 +2266,8 @@ const Statistics = (() => {
         tPDF, tCDF, tQuantile,
         chiSquaredPDF, chiSquaredCDF, chiSquaredQuantile,
         fCDF, fQuantile,
-        logChoose, binomialPMF, binomialCDF,
+        logChoose,
+        binomialPMF, binomialCDF,
         poissonPMF, poissonCDF, poissonQuantile,
         hypergeometricPMF,
 
