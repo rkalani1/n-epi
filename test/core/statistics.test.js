@@ -324,6 +324,13 @@ describe('Statistics Module', () => {
     });
 
     describe('chiSquaredQuantile', () => {
+        test('handles probability boundary conditions', () => {
+            expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(-0.1, 5)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(1, 1)).toBe(Infinity);
+            expect(Statistics.chiSquaredQuantile(1.1, 5)).toBe(Infinity);
+        });
+
         test('returns 0 for p <= 0', () => {
             expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
             expect(Statistics.chiSquaredQuantile(-0.1, 5)).toBe(0);
@@ -356,6 +363,18 @@ describe('Statistics Module', () => {
             const val = Statistics.chiSquaredQuantile(0.0001, 1);
             expect(val).toBeGreaterThan(0);
             expect(Statistics.chiSquaredCDF(val, 1)).toBeCloseTo(0.0001, 6);
+        });
+
+        test('acts as inverse of chiSquaredCDF', () => {
+            const probabilities = [0.05, 0.25, 0.50, 0.75, 0.95, 0.99];
+            const dfs = [1, 2, 5, 10, 30];
+
+            probabilities.forEach((p) => {
+                dfs.forEach((df) => {
+                    const q = Statistics.chiSquaredQuantile(p, df);
+                    expect(Statistics.chiSquaredCDF(q, df)).toBeCloseTo(p, 5);
+                });
+            });
         });
 
         test('inverts chiSquaredCDF accurately across various probabilities and df', () => {

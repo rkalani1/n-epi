@@ -78,6 +78,39 @@ describe('Statistics.binomialPMF', () => {
     });
 });
 
+describe('Statistics.chiSquaredQuantile', () => {
+    let Statistics;
+
+    beforeEach(() => {
+        Statistics = window.Statistics;
+    });
+
+    test('should return 0 when p <= 0', () => {
+        expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
+        expect(Statistics.chiSquaredQuantile(-0.5, 5)).toBe(0);
+    });
+
+    test('should return Infinity when p >= 1', () => {
+        expect(Statistics.chiSquaredQuantile(1, 1)).toBe(Infinity);
+        expect(Statistics.chiSquaredQuantile(1.5, 5)).toBe(Infinity);
+    });
+
+    test('should return accurate quantile values for standard probabilities', () => {
+        expect(Statistics.chiSquaredQuantile(0.95, 1)).toBeCloseTo(3.8414588, 5);
+        expect(Statistics.chiSquaredQuantile(0.95, 2)).toBeCloseTo(5.9914645, 5);
+        expect(Statistics.chiSquaredQuantile(0.95, 5)).toBeCloseTo(11.0704977, 5);
+        expect(Statistics.chiSquaredQuantile(0.95, 10)).toBeCloseTo(18.3070381, 5);
+    });
+
+    test('should invert chiSquaredCDF accurately', () => {
+        const probabilities = [0.1, 0.5, 0.9, 0.99];
+        probabilities.forEach(p => {
+            const quantile = Statistics.chiSquaredQuantile(p, 4);
+            expect(Statistics.chiSquaredCDF(quantile, 4)).toBeCloseTo(p, 5);
+        });
+    });
+});
+
 describe('Statistics.poissonQuantile', () => {
     let Statistics;
 
