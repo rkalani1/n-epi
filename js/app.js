@@ -314,14 +314,155 @@ const App = (() => {
     // All rendered content comes from trusted internal constants.
     // ============================================================
 
-    // DOMPurify's default config strips ALL inline event handlers (on*),
-    // which would render every module inert since the UI is wired with inline
-    // onclick/onchange/oninput on trusted, app-generated markup. Allow exactly
-    // those three handler attributes (the only ones the app emits) so the
-    // interface works, while DOMPurify still removes <script>, javascript: URLs,
-    // and dangerous handlers like onerror. User-supplied strings are escaped at
-    // their interpolation points (see trial-database.js / biobank-cleaning.js).
-    const TRUSTED_HTML_CONFIG = { ADD_ATTR: ['onclick', 'onchange', 'oninput'] };
+    // Strict allowed prefixes for inline event handlers.
+    // DOMPurify default configuration strips all inline event attributes (on*).
+    // Instead of globally allowing all onclick/onchange/oninput values, we use
+    // a DOMPurify hook to strictly validate every event attribute against known
+    // application namespaces and call patterns before allowing it.
+    const ALLOWED_EVENT_PREFIXES = [
+        'App.',
+        'Export.',
+        'BiobankCleaning.',
+        'BiostatRef.',
+        'CausalInference.',
+        'CritAppraisal.',
+        'DiagAccuracyModule.',
+        'EffectSizeModule.',
+        'EpiCalcModule.',
+        'EpiConcepts.',
+        'HypothesisBuilder.',
+        'MLPrediction.',
+        'MetaAnalysisModule.',
+        'MethodsGen.',
+        'NNTModule.',
+        'PowerModule.',
+        'ProjectPlanner.',
+        'RGenerator.',
+        'RegressionHelper.',
+        'ReportingGuide.',
+        'ResultsInterp.',
+        'SampleSizeModule.',
+        'StudyDesignGuide.',
+        'SurvivalModule.',
+        'TrialDB.',
+        'window.QuickReference.',
+        'window.RCodeLibrary.',
+        'window.TeachingTools.',
+        'window.print()',
+        'document.getElementById(',
+        'event.stopPropagation()',
+        'event.stopPropagation();',
+        'this.classList.',
+        'this.nextElementSibling.',
+        'this.parentElement.',
+        'this.querySelector('
+    ];
+
+    const FORBIDDEN_KEYWORDS = /\b(?:eval|Function|setTimeout|setInterval|fetch|XMLHttpRequest|alert|prompt|confirm|document\.cookie|document\.location|window\.location|location|top|parent|opener|import|importScripts|Worker|WebSocket|Proxy|Reflect)\b/i;
+
+    function isAllowedEventHandler(val) {
+        if (!val || typeof val !== 'string') return false;
+        const str = val.trim().replace(/&quot;/g, '"');
+        // Disallow newlines, comments, or script injections
+        if (/[\r\n]|\/\/|\/\*/.test(str)) return false;
+
+        // Helper to split statements outside string literals
+        const statements = [];
+        let current = [];
+        let inSingle = false;
+        let inDouble = false;
+        let escape = false;
+
+        for (let i = 0; i < str.length; i++) {
+            const ch = str[i];
+            if (escape) {
+                current.push(ch);
+                escape = false;
+                continue;
+            }
+            if (ch === '\\') {
+                current.push(ch);
+                escape = true;
+                continue;
+            }
+            if (ch === "'" && !inDouble) {
+                inSingle = !inSingle;
+                current.push(ch);
+                continue;
+            }
+            if (ch === '"' && !inSingle) {
+                inDouble = !inDouble;
+                current.push(ch);
+                continue;
+            }
+            if (ch === ';' && !inSingle && !inDouble) {
+                const stmt = current.join('').trim();
+                if (stmt) statements.push(stmt);
+                current = [];
+                continue;
+            }
+            current.push(ch);
+        }
+        const lastStmt = current.join('').trim();
+        if (lastStmt) statements.push(lastStmt);
+
+        if (statements.length === 0) return false;
+
+        for (let j = 0; j < statements.length; j++) {
+            const stmt = statements[j];
+
+            // Reject forbidden sink keywords anywhere in statement
+            if (FORBIDDEN_KEYWORDS.test(stmt)) return false;
+
+            // Iteratively strip string contents
+            let cleanStmt = stmt;
+            let prevStr = null;
+            while (prevStr !== cleanStmt) {
+                prevStr = cleanStmt;
+                cleanStmt = cleanStmt.replace(/"[^"]*"|'[^']*'/g, '""');
+            }
+
+            // Iteratively strip balanced object/array literals and function arguments
+            let prevLit = null;
+            while (prevLit !== cleanStmt) {
+                prevLit = cleanStmt;
+                cleanStmt = cleanStmt.replace(/\{[^{}]*\}/g, '{}');
+                cleanStmt = cleanStmt.replace(/\[[^\[\]]*\]/g, '[]');
+                cleanStmt = cleanStmt.replace(/\([^\(\)]*\)/g, '()');
+            }
+
+            // Check for operators that chain execution outside strings/objects/parameters: comma, &&, ||, ternary ?
+            if (/[;,x&|?]/.test(cleanStmt.replace(/&&/g, 'x').replace(/\|\|/g, 'x'))) {
+                if (/[,&|?]/.test(cleanStmt)) return false;
+            }
+
+            let matched = false;
+            for (let k = 0; k < ALLOWED_EVENT_PREFIXES.length; k++) {
+                if (stmt.startsWith(ALLOWED_EVENT_PREFIXES[k])) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) return false;
+        }
+
+        return true;
+    }
+
+    let domPurifyHookInstalled = false;
+    function ensureDOMPurifyHook() {
+        if (domPurifyHookInstalled || typeof DOMPurify === 'undefined' || !DOMPurify.addHook) return;
+        DOMPurify.addHook('uponSanitizeAttribute', function (node, data) {
+            if (data.attrName === 'onclick' || data.attrName === 'onchange' || data.attrName === 'oninput') {
+                if (isAllowedEventHandler(data.attrValue)) {
+                    data.forceKeepAttr = true;
+                } else {
+                    data.keepAttr = false;
+                }
+            }
+        });
+        domPurifyHookInstalled = true;
+    }
 
     let a11yIdCounter = 0;
 
@@ -364,7 +505,8 @@ const App = (() => {
 
     function setTrustedHTML(element, trustedContent) {
         if (typeof DOMPurify !== 'undefined') {
-            element.innerHTML = DOMPurify.sanitize(trustedContent, TRUSTED_HTML_CONFIG);
+            ensureDOMPurifyHook();
+            element.innerHTML = DOMPurify.sanitize(trustedContent, { ADD_ATTR: ['onclick', 'onchange', 'oninput'] });
         } else {
             element.textContent = trustedContent;
         }
@@ -939,26 +1081,8 @@ const App = (() => {
     // WELCOME / DASHBOARD PAGE
     // ============================================================
 
-    function renderDashboard(container) {
-        let allMods = getAllModules();
-        let recentVisits = getRecentModules();
-        let favs = getFavorites();
-
-        // Count total modules
-        let totalModules = allMods.length;
-        let popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
-        let continueIds = [];
-        recentVisits.forEach(function (visit) {
-            if (continueIds.length < 6 && !continueIds.includes(visit.id)) continueIds.push(visit.id);
-        });
-        popularIds.forEach(function (moduleId) {
-            if (continueIds.length < 6 && !continueIds.includes(moduleId)) continueIds.push(moduleId);
-        });
-
-        let html = '<div class="dashboard">';
-
-        // Hero section
-        html += '<div class="dashboard-hero">'
+    function renderDashboardHeroHTML() {
+        return '<div class="dashboard-hero">'
             + '<h1 class="dashboard-hero-title">n-epi</h1>'
             + '<button class="dashboard-search-btn" onclick="App.openCommandPalette()">'
             + '<span style="opacity:0.5;margin-right:8px;">&#128269;</span>'
@@ -966,9 +1090,9 @@ const App = (() => {
             + '<kbd class="kbd-hint">' + PALETTE_KEY_HTML + '</kbd>'
             + '</button>'
             + '</div>';
+    }
 
-        // Quick stats — trial count computed from the live database (unique names,
-        // matching the trial-database module's render-time dedupe)
+    function renderDashboardStatsHTML(totalModules) {
         var totalTrials = (typeof TrialDatabase !== 'undefined' && TrialDatabase.trials)
             ? (function () {
                 var names = {};
@@ -976,7 +1100,7 @@ const App = (() => {
                 return Object.keys(names).length;
             })()
             : 0;
-        html += '<div class="dashboard-stats">'
+        return '<div class="dashboard-stats">'
             + '<div class="dashboard-stat">'
             + '<div class="dashboard-stat-value">' + totalModules + '</div>'
             + '<div class="dashboard-stat-label">Modules</div>'
@@ -994,30 +1118,41 @@ const App = (() => {
             + '<div class="dashboard-stat-label">Categories</div>'
             + '</div>'
             + '</div>';
+    }
 
-        // Favorites section (if any)
-        if (favs.length > 0) {
-            html += '<div class="dashboard-section">'
-                + '<h2 class="dashboard-section-title">&#9733; Your Favorites</h2>'
-                + '<div class="dashboard-module-grid">';
-            favs.forEach(function (favId) {
-                let mod = null;
-                for (let i = 0; i < allMods.length; i++) {
-                    if (allMods[i].id === favId) { mod = allMods[i]; break; }
-                }
-                if (mod) {
-                    html += '<div class="dashboard-module-card" onclick="App.navigate(\'' + mod.id + '\')">'
-                        + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
-                        + '<div class="dashboard-module-label">' + mod.label + '</div>'
-                        + '<div class="dashboard-module-desc">' + mod.description + '</div>'
-                        + '</div>';
-                }
-            });
-            html += '</div></div>';
-        }
+    function renderDashboardFavoritesHTML(favs, allMods) {
+        if (favs.length === 0) return '';
+        let html = '<div class="dashboard-section">'
+            + '<h2 class="dashboard-section-title">&#9733; Your Favorites</h2>'
+            + '<div class="dashboard-module-grid">';
+        favs.forEach(function (favId) {
+            let mod = null;
+            for (let i = 0; i < allMods.length; i++) {
+                if (allMods[i].id === favId) { mod = allMods[i]; break; }
+            }
+            if (mod) {
+                html += '<div class="dashboard-module-card" onclick="App.navigate(\'' + mod.id + '\')">'
+                    + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
+                    + '<div class="dashboard-module-label">' + mod.label + '</div>'
+                    + '<div class="dashboard-module-desc">' + mod.description + '</div>'
+                    + '</div>';
+            }
+        });
+        html += '</div></div>';
+        return html;
+    }
 
-        // One recent-first, deduplicated launch row.
-        html += '<div class="dashboard-section dashboard-continue-section">'
+    function renderDashboardContinueHTML(recentVisits, allMods, totalModules) {
+        let popularIds = ['sample-size', 'epidemiology-calcs', 'trial-database', 'meta-analysis', 'nnt-calculator'];
+        let continueIds = [];
+        recentVisits.forEach(function (visit) {
+            if (continueIds.length < 6 && !continueIds.includes(visit.id)) continueIds.push(visit.id);
+        });
+        popularIds.forEach(function (moduleId) {
+            if (continueIds.length < 6 && !continueIds.includes(moduleId)) continueIds.push(moduleId);
+        });
+
+        let html = '<div class="dashboard-section dashboard-continue-section">'
             + '<div class="dashboard-section-heading">'
             + '<h2 class="dashboard-section-title">&#8594; Continue or start</h2>'
             + '<button type="button" class="dashboard-browse-all" onclick="App.openCommandPalette()">Browse all ' + totalModules + '</button>'
@@ -1034,44 +1169,46 @@ const App = (() => {
             }
         });
         html += '</div></div>';
+        return html;
+    }
 
-        // Recent Calculations
+    function renderDashboardRecentCalcsHTML(allMods) {
         let calcHistory = getCalcHistory();
-        if (calcHistory.length > 0) {
-            html += '<div class="dashboard-section">'
-                + '<h2 class="dashboard-section-title">&#128202; Recent Calculations</h2>'
-                + '<div class="dashboard-recent-calcs">';
-            let calcCount = Math.min(calcHistory.length, 5);
-            for (let ci = 0; ci < calcCount; ci++) {
-                let entry = calcHistory[ci];
-                // Resolve module ID to friendly name and navigation ID
-                let resolvedId = findModuleIdByName(entry.module) || entry.module;
-                let resolvedLabel = entry.module;
-                for (let mi = 0; mi < allMods.length; mi++) {
-                    if (allMods[mi].id === entry.module || allMods[mi].id === resolvedId) {
-                        resolvedLabel = allMods[mi].label;
-                        resolvedId = allMods[mi].id;
-                        break;
-                    }
+        if (calcHistory.length === 0) return '';
+        let html = '<div class="dashboard-section">'
+            + '<h2 class="dashboard-section-title">&#128202; Recent Calculations</h2>'
+            + '<div class="dashboard-recent-calcs">';
+        let calcCount = Math.min(calcHistory.length, 5);
+        for (let ci = 0; ci < calcCount; ci++) {
+            let entry = calcHistory[ci];
+            let resolvedId = findModuleIdByName(entry.module) || entry.module;
+            let resolvedLabel = entry.module;
+            for (let mi = 0; mi < allMods.length; mi++) {
+                if (allMods[mi].id === entry.module || allMods[mi].id === resolvedId) {
+                    resolvedLabel = allMods[mi].label;
+                    resolvedId = allMods[mi].id;
+                    break;
                 }
-                let clickAttr = resolvedId ? ' onclick="App.navigate(\'' + resolvedId + '\')" style="cursor:pointer;"' : '';
-                html += '<div class="dashboard-calc-entry card"' + clickAttr + '>'
-                    + '<div style="display:flex;justify-content:space-between;align-items:center;">'
-                    + '<div>'
-                    + '<div style="font-weight:600;font-size:0.9rem;">' + resolvedLabel + '</div>'
-                    + '<div style="font-size:0.75rem;color:var(--text-tertiary);">' + (entry.result || '').substring(0, 60) + '</div>'
-                    + '</div>'
-                    + '<div style="text-align:right;">'
-                    + '<div style="font-size:0.7rem;color:var(--text-tertiary);">' + formatRelativeTime(entry.timestamp) + '</div>'
-                    + '</div>'
-                    + '</div>'
-                    + '</div>';
             }
-            html += '</div></div>';
+            let clickAttr = resolvedId ? ' onclick="App.navigate(\'' + resolvedId + '\')" style="cursor:pointer;"' : '';
+            html += '<div class="dashboard-calc-entry card"' + clickAttr + '>'
+                + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+                + '<div>'
+                + '<div style="font-weight:600;font-size:0.9rem;">' + resolvedLabel + '</div>'
+                + '<div style="font-size:0.75rem;color:var(--text-tertiary);">' + (entry.result || '').substring(0, 60) + '</div>'
+                + '</div>'
+                + '<div style="text-align:right;">'
+                + '<div style="font-size:0.7rem;color:var(--text-tertiary);">' + formatRelativeTime(entry.timestamp) + '</div>'
+                + '</div>'
+                + '</div>'
+                + '</div>';
         }
+        html += '</div></div>';
+        return html;
+    }
 
-        // All categories
-        html += '<div class="dashboard-section">'
+    function renderDashboardCategoriesHTML() {
+        let html = '<div class="dashboard-section">'
             + '<h2 class="dashboard-section-title">&#128218; All Categories</h2>'
             + '<div class="dashboard-categories">';
         NAV.forEach(function (group, gIdx) {
@@ -1082,9 +1219,11 @@ const App = (() => {
                 + '</div>';
         });
         html += '</div></div>';
+        return html;
+    }
 
-        // What's new
-        html += '<div class="dashboard-section">'
+    function renderDashboardWhatsNewHTML(totalModules) {
+        return '<div class="dashboard-section">'
             + '<h2 class="dashboard-section-title">&#127881; What\'s New in v2.1</h2>'
             + '<div class="dashboard-whats-new card">'
             + '<ul class="dashboard-changelog">'
@@ -1098,8 +1237,23 @@ const App = (() => {
             + '</ul>'
             + '</div>'
             + '</div>';
+    }
 
-        html += '</div>';
+    function renderDashboard(container) {
+        let allMods = getAllModules();
+        let recentVisits = getRecentModules();
+        let favs = getFavorites();
+        let totalModules = allMods.length;
+
+        let html = '<div class="dashboard">'
+            + renderDashboardHeroHTML()
+            + renderDashboardStatsHTML(totalModules)
+            + renderDashboardFavoritesHTML(favs, allMods)
+            + renderDashboardContinueHTML(recentVisits, allMods, totalModules)
+            + renderDashboardRecentCalcsHTML(allMods)
+            + renderDashboardCategoriesHTML()
+            + renderDashboardWhatsNewHTML(totalModules)
+            + '</div>';
 
         setTrustedHTML(container, html);
     }

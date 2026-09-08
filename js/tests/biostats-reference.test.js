@@ -4,12 +4,15 @@ global.TextDecoder = TextDecoder;
 const { JSDOM } = require("jsdom");
 
 
+let registeredModules = {};
+
 // Mock the App and Export objects and other globals
 global.App = {
-    createModuleLayout: function(title, subtitle) { return "<html>...</html>"; },
+    createModuleLayout: function(title, subtitle) { return '<div class="module-layout"><h1>' + title + '</h1><p>' + subtitle + '</p></div>'; },
     tooltip: function(text) { return '<span class="tooltip" title="' + text + '">?</span>'; },
     setTrustedHTML: function(el, html) { el.innerHTML = html; },
-    registerModule: function(id, moduleObj) {}
+    autoSaveInputs: function(container, id) {},
+    registerModule: function(id, moduleObj) { registeredModules[id] = moduleObj; }
 };
 
 global.Export = {
@@ -163,6 +166,29 @@ function testFindTestEmpty() {
     console.log("✅ testFindTestEmpty passed!");
 }
 
+function testRenderModule() {
+    setupDOM('<div id="module-container"></div>');
+    const container = document.getElementById('module-container');
+    const module = registeredModules['biostats-reference'];
+    assert(module && typeof module.render === 'function', "Module biostats-reference should be registered with a render function");
+
+    module.render(container);
+
+    const html = container.innerHTML;
+    assert(html.includes("Biostatistics Reference"), "HTML should contain module layout title");
+    assert(html.includes("Learn &amp; Reference"), "HTML should contain Learn section");
+    assert(html.includes("Statistical Test Selector"), "HTML should contain Test Selector card");
+    assert(html.includes("Probability Distributions Gallery"), "HTML should contain Distributions Gallery card");
+    assert(html.includes("Central Limit Theorem Demonstrator"), "HTML should contain CLT card");
+    assert(html.includes("Hypothesis Testing Decision Flowchart"), "HTML should contain Flowchart card");
+    assert(html.includes("Confidence Interval Methods"), "HTML should contain CI Methods card");
+    assert(html.includes("Effect Size Interpretation Guide"), "HTML should contain Effect Size card");
+    assert(html.includes("Multiple Testing &amp; P-value Reference"), "HTML should contain Multiple Testing card");
+    assert(html.includes("Bayesian vs Frequentist Comparison"), "HTML should contain Bayesian Comparison card");
+
+    console.log("✅ testRenderModule passed!");
+}
+
 // Run all tests
 describe("BiostatRef Tests", () => {
     test("testAdjustPvalsValid", () => {
@@ -185,6 +211,9 @@ describe("BiostatRef Tests", () => {
     });
     test("testFindTestEmpty", () => {
         testFindTestEmpty();
+    });
+    test("testRenderModule", () => {
+        testRenderModule();
     });
 });
 
