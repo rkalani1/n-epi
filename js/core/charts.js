@@ -1805,10 +1805,13 @@ var Charts = (() => {
         // Background (No title needed for DAG)
         drawChartBackgroundAndTitle(ctx, width, height, theme, null, null);
 
+        // Pre-compute node lookup map to optimize O(N*E) linear search to O(N + E)
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
         // Draw edges (arrows)
         edges.forEach(edge => {
-            const from = nodes.find(n => n.id === edge.from);
-            const to = nodes.find(n => n.id === edge.to);
+            const from = nodeMap.get(edge.from);
+            const to = nodeMap.get(edge.to);
             if (!from || !to) return;
 
             const dx = to.x - from.x;

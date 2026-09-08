@@ -1073,10 +1073,17 @@
         var answered = 0;
         var screeningFailed = false;
 
+        var checkedInputs = document.querySelectorAll('input[name^="ca-casp-q-"]:checked');
+        var checkedMap = {};
+        for (var c = 0; c < checkedInputs.length; c++) {
+            var inp = checkedInputs[c];
+            checkedMap[inp.name] = inp;
+        }
+
         checklist.sections.forEach(function(section) {
             section.items.forEach(function(item) {
                 totalItems++;
-                var sel = document.querySelector('input[name="ca-casp-q-' + item.id + '"]:checked');
+                var sel = checkedMap['ca-casp-q-' + item.id];
                 if (sel) {
                     answered++;
                     if (sel.value === 'Yes') yesCount++;

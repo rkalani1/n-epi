@@ -35,14 +35,6 @@
         return v;
     }
 
-    function clearValidation(id) {
-        var el = document.getElementById(id);
-        if (el) el.style.borderColor = '';
-        var msgId = id + '-err';
-        var existing = document.getElementById(msgId);
-        if (existing) existing.remove();
-    }
-
     /* ============================================================
      * Render
      * ============================================================ */
