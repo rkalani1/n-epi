@@ -774,6 +774,18 @@ describe('Additional Statistics Coverage', () => {
     });
 
     describe('sampleSizeCluster', () => {
+        test('calculates design effect, adjusted sample size, cluster count, and total N', () => {
+            // deff = 1 + (21 - 1) * 0.05 = 2.0
+            // nAdjusted = ceil(100 * 2.0) = 200
+            // nClusters = ceil(200 / 21) = 10
+            // totalN = 10 * 21 = 210
+            const result = Statistics.sampleSizeCluster(100, 0.05, 21);
+            expect(result.deff).toBeCloseTo(2.0, 5);
+            expect(result.nAdjusted).toBe(200);
+            expect(result.nClusters).toBe(10);
+            expect(result.totalN).toBe(210);
+        });
+
         test('computes cluster-randomized sample size correctly for standard inputs', () => {
             const nIndividual = 100;
             const icc = 0.1;
@@ -790,11 +802,19 @@ describe('Additional Statistics Coverage', () => {
             expect(result.totalN).toBe(190);
         });
 
-        test('handles icc = 0 (no cluster effect, deff = 1)', () => {
+        test('handles zero ICC (no clustering effect)', () => {
             const result = Statistics.sampleSizeCluster(100, 0, 20);
             expect(result.deff).toBe(1);
             expect(result.nAdjusted).toBe(100);
             expect(result.nClusters).toBe(5);
+            expect(result.totalN).toBe(100);
+        });
+
+        test('handles cluster size of 1 (individual randomization)', () => {
+            const result = Statistics.sampleSizeCluster(100, 0.05, 1);
+            expect(result.deff).toBe(1);
+            expect(result.nAdjusted).toBe(100);
+            expect(result.nClusters).toBe(100);
             expect(result.totalN).toBe(100);
         });
 
@@ -806,17 +826,25 @@ describe('Additional Statistics Coverage', () => {
             expect(result.totalN).toBe(100);
         });
 
-        test('correctly rounds up nAdjusted and nClusters when fractional', () => {
+        test('correctly rounds up for fractional clusters and adjusted sample sizes', () => {
             // nIndividual = 101, icc = 0.02, clusterSize = 15
             // deff = 1 + 14 * 0.02 = 1.28
-            // nAdjusted = Math.ceil(101 * 1.28) = Math.ceil(129.28) = 130
-            // nClusters = Math.ceil(130 / 15) = Math.ceil(8.6667) = 9
+            // nAdjusted = ceil(101 * 1.28) = ceil(129.28) = 130
+            // nClusters = ceil(130 / 15) = ceil(8.6667) = 9
             // totalN = 9 * 15 = 135
             const result = Statistics.sampleSizeCluster(101, 0.02, 15);
             expect(result.deff).toBeCloseTo(1.28, 5);
             expect(result.nAdjusted).toBe(130);
             expect(result.nClusters).toBe(9);
             expect(result.totalN).toBe(135);
+        });
+
+        test('handles high ICC values', () => {
+            const result = Statistics.sampleSizeCluster(200, 0.25, 5);
+            expect(result.deff).toBeCloseTo(2.0, 5);
+            expect(result.nAdjusted).toBe(400);
+            expect(result.nClusters).toBe(80);
+            expect(result.totalN).toBe(400);
         });
     });
 
