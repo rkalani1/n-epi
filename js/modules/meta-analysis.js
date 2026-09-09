@@ -365,8 +365,22 @@
     }
 
     function parseTSV(text) {
-        let lines = text.trim().split('\n');
-        if (lines.length < 1) return;
+        if (!text || typeof text !== 'string') {
+            studyData = [];
+            exampleTag = null;
+            renderDataTable();
+            Export.showToast('Parsed 0 studies from clipboard');
+            return;
+        }
+
+        let lines = text.trim().split(/\r?\n/).filter(function(line) { return line.trim().length > 0; });
+        if (lines.length < 1) {
+            studyData = [];
+            exampleTag = null;
+            renderDataTable();
+            Export.showToast('Parsed 0 studies from clipboard');
+            return;
+        }
 
         // Detect whether first line is a header
         let startIdx = 0;
@@ -1609,6 +1623,7 @@
     });
 
     window.MetaAnalysisModule = {
+        parseTSV: parseTSV,
         switchTab: switchTab,
         switchInputMode: switchInputMode,
         changeMeasure: changeMeasure,
