@@ -1472,10 +1472,7 @@
     }
 
     function spaces(n) {
-        if (n < 0) n = 0;
-        let s = '';
-        for (let i = 0; i < n; i++) s += ' ';
-        return s;
+        return ' '.repeat(Math.max(0, n));
     }
 
     function copyPRISMA() {
