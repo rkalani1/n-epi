@@ -200,13 +200,26 @@ describe('Statistics Engine Tests', function() {
 
     describe('chiSquaredQuantile Distribution Function', function() {
         it('should return 0 when p <= 0', function() {
-            assert.strictEqual(Statistics.chiSquaredQuantile(0, 1), 0);
-            assert.strictEqual(Statistics.chiSquaredQuantile(-0.1, 5), 0);
+            [1, 2, 5, 10, 50, 100].forEach(function(df) {
+                assert.strictEqual(Statistics.chiSquaredQuantile(0, df), 0);
+                assert.strictEqual(Statistics.chiSquaredQuantile(-0.1, df), 0);
+                assert.strictEqual(Statistics.chiSquaredQuantile(-10, df), 0);
+            });
         });
 
         it('should return Infinity when p >= 1', function() {
-            assert.strictEqual(Statistics.chiSquaredQuantile(1, 1), Infinity);
-            assert.strictEqual(Statistics.chiSquaredQuantile(1.5, 5), Infinity);
+            [1, 2, 5, 10, 50, 100].forEach(function(df) {
+                assert.strictEqual(Statistics.chiSquaredQuantile(1, df), Infinity);
+                assert.strictEqual(Statistics.chiSquaredQuantile(1.5, df), Infinity);
+                assert.strictEqual(Statistics.chiSquaredQuantile(10, df), Infinity);
+            });
+        });
+
+        it('should not produce NaN for degenerate cases p=0 and p=1', function() {
+            assert.strictEqual(isNaN(Statistics.chiSquaredQuantile(0, 5)), false);
+            assert.strictEqual(isNaN(Statistics.chiSquaredQuantile(1, 5)), false);
+            assert.strictEqual(Statistics.chiSquaredQuantile(0, 5), 0);
+            assert.strictEqual(Statistics.chiSquaredQuantile(1, 5), Infinity);
         });
 
         it('should calculate specific known values for chiSquaredQuantile correctly', function() {
