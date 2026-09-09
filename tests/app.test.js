@@ -53,6 +53,89 @@ describe('App Module', () => {
         delete global.Export;
     });
 
+    describe('Recent Modules System', () => {
+        describe('getRecentModules()', () => {
+            it('should return empty array when localStorage is empty', () => {
+                const result = App.getRecentModules();
+                expect(result).toEqual([]);
+            });
+
+            it('should return parsed data when valid JSON is in localStorage', () => {
+                const testVisits = [
+                    { id: 'sample-size', timestamp: 1000 },
+                    { id: 'power-analysis', timestamp: 2000 }
+                ];
+                localStorage.setItem('neuroepi_recent_modules', JSON.stringify(testVisits));
+
+                const result = App.getRecentModules();
+                expect(result).toEqual(testVisits);
+            });
+
+            it('should return empty array when localStorage contains invalid JSON', () => {
+                localStorage.setItem('neuroepi_recent_modules', 'invalid JSON {{{');
+
+                const result = App.getRecentModules();
+                expect(result).toEqual([]);
+            });
+
+            it('should return empty array when localStorage.getItem throws an error', () => {
+                const getItemSpy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+                    throw new Error('Storage access error');
+                });
+
+                const result = App.getRecentModules();
+                expect(result).toEqual([]);
+                getItemSpy.mockRestore();
+            });
+        });
+
+        describe('trackModuleVisit / navigate tracking', () => {
+            it('should track module visits in localStorage on navigation', () => {
+                App.registerModule('sample-size', { render: jest.fn() });
+                App.navigate('sample-size');
+
+                const recent = App.getRecentModules();
+                expect(recent.length).toBe(1);
+                expect(recent[0].id).toBe('sample-size');
+                expect(recent[0].timestamp).toBeDefined();
+            });
+
+            it('should not track visit when navigating to home', () => {
+                App.navigate('home');
+
+                const recent = App.getRecentModules();
+                expect(recent).toEqual([]);
+            });
+
+            it('should move re-visited modules to the front and cap maximum visits at 10', () => {
+                for (let i = 1; i <= 12; i++) {
+                    const modId = 'module-' + i;
+                    App.registerModule(modId, { render: jest.fn() });
+                    App.navigate(modId);
+                }
+
+                let recent = App.getRecentModules();
+                expect(recent.length).toBe(10);
+                expect(recent[0].id).toBe('module-12');
+
+                // Re-visit module-5
+                App.navigate('module-5');
+                recent = App.getRecentModules();
+                expect(recent.length).toBe(10);
+                expect(recent[0].id).toBe('module-5');
+            });
+
+            it('should render dashboard gracefully when recent_modules in localStorage contains invalid JSON', () => {
+                localStorage.setItem('neuroepi_recent_modules', '{bad json');
+
+                expect(() => App.navigate('home')).not.toThrow();
+
+                const content = document.getElementById('module-content');
+                expect(content.querySelector('.dashboard')).not.toBeNull();
+            });
+        });
+    });
+
     describe('Favorites System', () => {
         describe('getFavorites()', () => {
             it('should return empty array when localStorage is empty', () => {
