@@ -362,6 +362,11 @@ describe('App Module', () => {
     });
 
     describe('Calculation History', () => {
+        it('returns empty array when localStorage is empty', () => {
+            const history = App.getHistory();
+            expect(history).toEqual([]);
+        });
+
         it('adds calculations to history and retrieves them merged with Export history', () => {
             App.addToHistory('Sample Size', 'Two Proportions', 'N = 100');
 
@@ -381,6 +386,121 @@ describe('App Module', () => {
             const history = App.getHistory();
             expect(history.length).toBe(1);
             expect(history[0].module).toBe('sample-size');
+        });
+
+        it('normalizes Export history entries with different property structures', () => {
+            const now = Date.now();
+            const mockExportHistory = [
+                { moduleId: 'sample-size', result: 'n=50', timestamp: now - 100 },
+                { module: 'epidemiology-calcs', result: { rr: 1.5, p: 0.04 }, timestamp: now - 200 },
+                { result: 'No module info', timestamp: now - 300 },
+                { moduleId: 'power-analysis', result: 'x'.repeat(150), timestamp: now - 400 },
+                { moduleId: 'effect-size', result: 'd=0.5' } // missing timestamp fallback to Date.now()
+            ];
+            localStorage.setItem('neuroepi_history', JSON.stringify(mockExportHistory));
+
+            const history = App.getHistory();
+            expect(history.length).toBe(5);
+
+            // Item with moduleId
+            const item1 = history.find(h => h.calc === 'sample-size' && h.timestamp === now - 100);
+            expect(item1).toBeDefined();
+            expect(item1.module).toBe('sample-size');
+            expect(item1.result).toBe('n=50');
+
+            // Item with module (no moduleId) and non-string result
+            const item2 = history.find(h => h.module === 'epidemiology-calcs');
+            expect(item2).toBeDefined();
+            expect(item2.calc).toBe('epidemiology-calcs');
+            expect(item2.result).toBe(JSON.stringify({ rr: 1.5, p: 0.04 }));
+
+            // Item with missing moduleId and module -> defaults to 'Unknown' and ''
+            const item3 = history.find(h => h.result === 'No module info');
+            expect(item3).toBeDefined();
+            expect(item3.module).toBe('Unknown');
+            expect(item3.calc).toBe('');
+
+            // Item with result string truncation (>100 chars for non-string, string left intact)
+            const item4 = history.find(h => h.calc === 'power-analysis');
+            expect(item4).toBeDefined();
+            expect(item4.result).toBe('x'.repeat(150));
+
+            // Item with missing timestamp defaults to a recent timestamp (Date.now())
+            const item5 = history.find(h => h.calc === 'effect-size');
+            expect(item5).toBeDefined();
+            expect(item5.timestamp).toBeGreaterThanOrEqual(now);
+        });
+
+        it('truncates non-string e.result to 100 characters when stringifying', () => {
+            const longObj = { data: 'a'.repeat(200) };
+            const mockExportHistory = [
+                { moduleId: 'test-mod', result: longObj, timestamp: 1000 }
+            ];
+            localStorage.setItem('neuroepi_history', JSON.stringify(mockExportHistory));
+
+            const history = App.getHistory();
+            expect(history.length).toBe(1);
+            expect(history[0].result.length).toBe(100);
+            expect(history[0].result).toBe(JSON.stringify(longObj).substring(0, 100));
+        });
+
+        it('sorts merged entries from both Export and App history by timestamp descending', () => {
+            const now = Date.now();
+            const exportData = [
+                { moduleId: 'mod-export-old', result: 'r1', timestamp: now - 3000 },
+                { moduleId: 'mod-export-new', result: 'r3', timestamp: now - 1000 }
+            ];
+            const appData = [
+                { module: 'mod-app-mid', calc: 'c2', result: 'r2', timestamp: now - 2000 },
+                { module: 'mod-app-newest', calc: 'c4', result: 'r4', timestamp: now - 500 }
+            ];
+
+            localStorage.setItem('neuroepi_history', JSON.stringify(exportData));
+            localStorage.setItem('ne-calc-history', JSON.stringify(appData));
+
+            const history = App.getHistory();
+            expect(history.length).toBe(4);
+            expect(history[0].module).toBe('mod-app-newest');
+            expect(history[1].module).toBe('mod-export-new');
+            expect(history[2].module).toBe('mod-app-mid');
+            expect(history[3].module).toBe('mod-export-old');
+        });
+
+        it('truncates merged history to CALC_HISTORY_MAX (20 entries)', () => {
+            const now = Date.now();
+            const appData = [];
+            for (let i = 0; i < 25; i++) {
+                appData.push({
+                    module: 'mod-' + i,
+                    calc: 'calc-' + i,
+                    result: 'res-' + i,
+                    timestamp: now - i * 100
+                });
+            }
+            localStorage.setItem('ne-calc-history', JSON.stringify(appData));
+
+            const history = App.getHistory();
+            expect(history.length).toBe(20);
+            expect(history[0].module).toBe('mod-0');
+            expect(history[19].module).toBe('mod-19');
+        });
+
+        it('returns empty array when localStorage contains invalid / corrupted JSON', () => {
+            localStorage.setItem('neuroepi_history', 'invalid json {{{');
+            expect(App.getHistory()).toEqual([]);
+
+            localStorage.clear();
+            localStorage.setItem('ne-calc-history', 'corrupted json {{{');
+            expect(App.getHistory()).toEqual([]);
+        });
+
+        it('returns empty array when localStorage contains non-array JSON values', () => {
+            localStorage.setItem('neuroepi_history', JSON.stringify({ not: 'an array' }));
+            expect(App.getHistory()).toEqual([]);
+
+            localStorage.clear();
+            localStorage.setItem('ne-calc-history', JSON.stringify('just a string'));
+            expect(App.getHistory()).toEqual([]);
         });
 
         it('handles localStorage errors gracefully in addToHistory and getHistory', () => {
