@@ -99,4 +99,110 @@ describe('Meta-Analysis Module', () => {
         const pubBiasOutputEl = document.getElementById('ma-pubbias-results');
         expect(pubBiasOutputEl.innerHTML).toContain('Trim-and-Fill Analysis');
     });
+
+    describe('parseTSV edge cases', () => {
+        test('should clear table data and toast when parsing empty string or whitespace', () => {
+            // First load example data
+            window.MetaAnalysisModule.loadExample();
+
+            // Parse empty TSV
+            window.MetaAnalysisModule.parseTSV('');
+
+            expect(window.Export.showToast).toHaveBeenCalledWith('Parsed 0 studies from clipboard');
+
+            // Verify table has no data rows (only table structure without rows or empty tbody)
+            const tableContainer = document.getElementById('ma-data-table');
+            const rows = tableContainer.querySelectorAll('tbody tr');
+            expect(rows.length).toBe(0);
+        });
+
+        test('should clear table data when parsing whitespace-only string', () => {
+            window.MetaAnalysisModule.loadExample();
+
+            window.MetaAnalysisModule.parseTSV('   \r\n   \n   ');
+
+            expect(window.Export.showToast).toHaveBeenCalledWith('Parsed 0 studies from clipboard');
+            const tableContainer = document.getElementById('ma-data-table');
+            const rows = tableContainer.querySelectorAll('tbody tr');
+            expect(rows.length).toBe(0);
+        });
+
+        test('should handle non-string or null inputs gracefully', () => {
+            window.MetaAnalysisModule.loadExample();
+
+            window.MetaAnalysisModule.parseTSV(null);
+
+            expect(window.Export.showToast).toHaveBeenCalledWith('Parsed 0 studies from clipboard');
+            const tableContainer = document.getElementById('ma-data-table');
+            const rows = tableContainer.querySelectorAll('tbody tr');
+            expect(rows.length).toBe(0);
+        });
+
+        test('should parse valid TSV data with header row correctly in effect mode', () => {
+            const tsvData = 'Study\tEffect\tSE\tCI_Lower\tCI_Upper\tSubgroup\n' +
+                'Study A\t0.5\t0.2\t0.1\t0.9\tEurope\n' +
+                'Study B\t0.8\t0.3\t0.2\t1.4\tNorth America';
+
+            window.MetaAnalysisModule.parseTSV(tsvData);
+
+            expect(window.Export.showToast).toHaveBeenCalledWith('Parsed 2 studies from clipboard');
+            const tableContainer = document.getElementById('ma-data-table');
+            const rows = tableContainer.querySelectorAll('tbody tr');
+            expect(rows.length).toBe(2);
+        });
+
+        test('should parse valid TSV data in binary mode correctly', () => {
+            window.MetaAnalysisModule.switchInputMode('binary');
+            const tsvData = 'Study\te1\tn1\te2\tn2\tSubgroup\n' +
+                'Trial 1\t10\t100\t20\t100\tGroup A\n' +
+                'Trial 2\t15\t150\t25\t150\tGroup B';
+
+            window.MetaAnalysisModule.parseTSV(tsvData);
+
+            expect(window.Export.showToast).toHaveBeenCalledWith('Parsed 2 studies from clipboard');
+            const tableContainer = document.getElementById('ma-data-table');
+            const rows = tableContainer.querySelectorAll('tbody tr');
+            expect(rows.length).toBe(2);
+        });
+
+        test('should handle clipboard read success and failure in pasteClipboard', async () => {
+            const originalClipboard = navigator.clipboard;
+
+            // Mock clipboard success
+            let resolvePromise;
+            const mockReadTextSuccess = jest.fn(() => new Promise((resolve) => { resolvePromise = resolve; }));
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { readText: mockReadTextSuccess },
+                configurable: true
+            });
+
+            window.MetaAnalysisModule.pasteClipboard();
+            resolvePromise('Study 1\t0.5\t0.2\nStudy 2\t0.8\t0.3');
+            await Promise.resolve();
+
+            expect(mockReadTextSuccess).toHaveBeenCalled();
+            expect(window.Export.showToast).toHaveBeenCalledWith('Parsed 2 studies from clipboard');
+
+            // Mock clipboard rejection
+            let rejectPromise;
+            const mockReadTextReject = jest.fn(() => new Promise((_, reject) => { rejectPromise = reject; }));
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { readText: mockReadTextReject },
+                configurable: true
+            });
+
+            window.MetaAnalysisModule.pasteClipboard();
+            rejectPromise(new Error('Permission denied'));
+            await Promise.resolve();
+            await Promise.resolve();
+
+            expect(window.Export.showToast).toHaveBeenCalledWith('Unable to read clipboard. Paste data directly into the table.', 'error');
+
+            // Restore
+            Object.defineProperty(navigator, 'clipboard', {
+                value: originalClipboard,
+                configurable: true
+            });
+        });
+    });
 });
