@@ -193,6 +193,38 @@ describe('Statistics Module', () => {
         });
     });
 
+    describe('tCDF', () => {
+        test('handles NaN inputs and invalid df values', () => {
+            expect(Statistics.tCDF(NaN, 10)).toBeNaN();
+            expect(Statistics.tCDF(1, NaN)).toBeNaN();
+            expect(Statistics.tCDF(NaN, NaN)).toBeNaN();
+            expect(Statistics.tCDF(1, 0)).toBeNaN();
+            expect(Statistics.tCDF(1, -1)).toBeNaN();
+        });
+
+        test('returns 0.5 when t = 0', () => {
+            expect(Statistics.tCDF(0, 1)).toBe(0.5);
+            expect(Statistics.tCDF(0, 10)).toBe(0.5);
+        });
+
+        test('handles infinity inputs for t and df correctly', () => {
+            expect(Statistics.tCDF(Infinity, 10)).toBe(1);
+            expect(Statistics.tCDF(-Infinity, 10)).toBe(0);
+            expect(Statistics.tCDF(1.96, Infinity)).toBeCloseTo(Statistics.normalCDF(1.96), 6);
+            expect(Statistics.tCDF(-1.96, Infinity)).toBeCloseTo(Statistics.normalCDF(-1.96), 6);
+            expect(Statistics.tCDF(0, Infinity)).toBeCloseTo(0.5, 6);
+        });
+
+        test('calculates correct probabilities matching t-distribution tables', () => {
+            expect(Statistics.tCDF(1, 1)).toBeCloseTo(0.75, 6);
+            expect(Statistics.tCDF(-1, 1)).toBeCloseTo(0.25, 6);
+            expect(Statistics.tCDF(2.2281, 10)).toBeCloseTo(0.975, 3);
+            expect(Statistics.tCDF(-2.2281, 10)).toBeCloseTo(0.025, 3);
+            expect(Statistics.tCDF(2.0150, 5)).toBeCloseTo(0.95, 3);
+            expect(Statistics.tCDF(4.3027, 2)).toBeCloseTo(0.975, 3);
+        });
+    });
+
     describe('tQuantile', () => {
         test('matches standard t-distribution quantile table values', () => {
             // df = 1
