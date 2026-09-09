@@ -1093,9 +1093,9 @@ const App = (() => {
     }
 
     function renderDashboardStatsHTML(totalModules) {
-        var totalTrials = (typeof TrialDatabase !== 'undefined' && TrialDatabase.trials)
+        const totalTrials = (typeof TrialDatabase !== 'undefined' && TrialDatabase.trials)
             ? (function () {
-                var names = {};
+                const names = {};
                 TrialDatabase.trials.forEach(function (t) { names[t.name] = true; });
                 return Object.keys(names).length;
             })()
