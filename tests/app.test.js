@@ -305,40 +305,120 @@ describe('App Module', () => {
     });
 
     describe('Calculation History', () => {
-        it('adds calculations to history and retrieves them merged with Export history', () => {
-            App.addToHistory('Sample Size', 'Two Proportions', 'N = 100');
+        describe('addToHistory()', () => {
+            it('adds new calculation entry to localStorage under ne-calc-history with timestamp', () => {
+                const now = 1600000000000;
+                const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(now);
 
-            const history = App.getHistory();
-            expect(history.length).toBeGreaterThan(0);
-            expect(history[0].module).toBe('Sample Size');
-            expect(history[0].calc).toBe('Two Proportions');
-            expect(history[0].result).toBe('N = 100');
-        });
+                App.addToHistory('Sample Size', 'Two Proportions', 'N = 100');
 
-        it('merges with Export history (neuroepi_history) correctly', () => {
-            const mockExportHistory = [
-                { moduleId: 'sample-size', result: 'n=50', timestamp: 1000 }
-            ];
-            localStorage.setItem('neuroepi_history', JSON.stringify(mockExportHistory));
+                const storedData = localStorage.getItem('ne-calc-history');
+                expect(storedData).not.toBeNull();
 
-            const history = App.getHistory();
-            expect(history.length).toBe(1);
-            expect(history[0].module).toBe('sample-size');
-        });
+                const parsed = JSON.parse(storedData);
+                expect(parsed).toHaveLength(1);
+                expect(parsed[0]).toEqual({
+                    module: 'Sample Size',
+                    calc: 'Two Proportions',
+                    result: 'N = 100',
+                    timestamp: now
+                });
 
-        it('handles localStorage errors gracefully in addToHistory and getHistory', () => {
-            const spy1 = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-                throw new Error('Access error');
-            });
-            const spy2 = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-                throw new Error('Write error');
+                dateSpy.mockRestore();
             });
 
-            expect(() => App.addToHistory('Mod', 'Calc', 'Res')).not.toThrow();
-            expect(App.getHistory()).toEqual([]);
+            it('unshifts entries so newest entry is first in history', () => {
+                App.addToHistory('Module A', 'Calc A', 'Result A');
+                App.addToHistory('Module B', 'Calc B', 'Result B');
 
-            spy1.mockRestore();
-            spy2.mockRestore();
+                const storedData = localStorage.getItem('ne-calc-history');
+                const parsed = JSON.parse(storedData);
+
+                expect(parsed).toHaveLength(2);
+                expect(parsed[0].module).toBe('Module B');
+                expect(parsed[0].calc).toBe('Calc B');
+                expect(parsed[1].module).toBe('Module A');
+                expect(parsed[1].calc).toBe('Calc A');
+            });
+
+            it('caps the history length at CALC_HISTORY_MAX (20 items)', () => {
+                for (let i = 1; i <= 25; i++) {
+                    App.addToHistory(`Module ${i}`, `Calc ${i}`, `Result ${i}`);
+                }
+
+                const storedData = localStorage.getItem('ne-calc-history');
+                const parsed = JSON.parse(storedData);
+
+                expect(parsed).toHaveLength(20);
+                // Newest entry should be Module 25
+                expect(parsed[0].module).toBe('Module 25');
+                // Oldest entry retained should be Module 6
+                expect(parsed[19].module).toBe('Module 6');
+            });
+
+            it('handles empty, null, or undefined parameters gracefully', () => {
+                App.addToHistory(undefined, null, '');
+
+                const storedData = localStorage.getItem('ne-calc-history');
+                const parsed = JSON.parse(storedData);
+
+                expect(parsed).toHaveLength(1);
+                expect(parsed[0].module).toBeUndefined();
+                expect(parsed[0].calc).toBeNull();
+                expect(parsed[0].result).toBe('');
+                expect(typeof parsed[0].timestamp).toBe('number');
+            });
+
+            it('catches and ignores localStorage.setItem errors (e.g. QuotaExceededError)', () => {
+                const setItemSpy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+                    throw new Error('QuotaExceededError');
+                });
+
+                expect(() => {
+                    App.addToHistory('Module X', 'Calc X', 'Result X');
+                }).not.toThrow();
+
+                expect(setItemSpy).toHaveBeenCalled();
+                setItemSpy.mockRestore();
+            });
+        });
+
+        describe('getHistory()', () => {
+            it('adds calculations to history and retrieves them merged with Export history', () => {
+                App.addToHistory('Sample Size', 'Two Proportions', 'N = 100');
+
+                const history = App.getHistory();
+                expect(history.length).toBeGreaterThan(0);
+                expect(history[0].module).toBe('Sample Size');
+                expect(history[0].calc).toBe('Two Proportions');
+                expect(history[0].result).toBe('N = 100');
+            });
+
+            it('merges with Export history (neuroepi_history) correctly', () => {
+                const mockExportHistory = [
+                    { moduleId: 'sample-size', result: 'n=50', timestamp: 1000 }
+                ];
+                localStorage.setItem('neuroepi_history', JSON.stringify(mockExportHistory));
+
+                const history = App.getHistory();
+                expect(history.length).toBe(1);
+                expect(history[0].module).toBe('sample-size');
+            });
+
+            it('handles localStorage errors gracefully in addToHistory and getHistory', () => {
+                const spy1 = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+                    throw new Error('Access error');
+                });
+                const spy2 = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+                    throw new Error('Write error');
+                });
+
+                expect(() => App.addToHistory('Mod', 'Calc', 'Res')).not.toThrow();
+                expect(App.getHistory()).toEqual([]);
+
+                spy1.mockRestore();
+                spy2.mockRestore();
+            });
         });
     });
 
