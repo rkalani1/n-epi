@@ -37,4 +37,18 @@ describe('biobank redaction helpers', () => {
     test('escapeHTML neutralises angle brackets and quotes', () => {
         expect(B._escapeHTML('<img onerror=x>')).toBe('&lt;img onerror=x&gt;');
     });
+
+    test('hasConditionData correctly checks condition values', () => {
+        expect(B._hasConditionData('0')).toBe(false);
+        expect(B._hasConditionData('no')).toBe(false);
+        expect(B._hasConditionData('false')).toBe(false);
+        expect(B._hasConditionData('na')).toBe(false);
+        expect(B._hasConditionData('')).toBe(false);
+        expect(B._hasConditionData(null)).toBe(false);
+
+        expect(B._hasConditionData('yes')).toBe(true);
+        expect(B._hasConditionData('1')).toBe(true);
+        expect(B._hasConditionData('true')).toBe(true);
+        expect(B._hasConditionData('positive')).toBe(true);
+    });
 });
