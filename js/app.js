@@ -1551,7 +1551,8 @@ const App = (() => {
         closeShortcutsModal: closeShortcutsModal,
         shareModule: shareModule,
         addToHistory: addToHistory,
-        getHistory: getCalcHistory
+        getHistory: getCalcHistory,
+        getRecentModules: getRecentModules
     };
 })();
 
