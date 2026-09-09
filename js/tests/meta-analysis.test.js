@@ -99,4 +99,11 @@ describe('Meta-Analysis Module', () => {
         const pubBiasOutputEl = document.getElementById('ma-pubbias-results');
         expect(pubBiasOutputEl.innerHTML).toContain('Trim-and-Fill Analysis');
     });
+
+    test('should generate PRISMA flow diagram correctly', () => {
+        window.MetaAnalysisModule.generatePRISMA();
+        const prismaOutputEl = document.getElementById('ma-prisma-output');
+        expect(prismaOutputEl).not.toBeNull();
+        expect(prismaOutputEl.textContent).toContain('PRISMA Flow Diagram');
+    });
 });
