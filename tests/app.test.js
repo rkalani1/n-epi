@@ -260,6 +260,63 @@ describe('App Module', () => {
             expect(document.querySelector('.dashboard')).not.toBeNull();
         });
 
+        it('tracks module visits when navigating to valid modules', () => {
+            App.registerModule('sample-size', { render: jest.fn() });
+            App.navigate('sample-size');
+
+            const stored = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            expect(stored.length).toBe(1);
+            expect(stored[0].id).toBe('sample-size');
+        });
+
+        it('does not track module visits when navigating to home', () => {
+            App.navigate('home');
+            const stored = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            expect(stored.length).toBe(0);
+        });
+
+        it('deduplicates and limits recent visits to 10 entries', () => {
+            for (let i = 1; i <= 12; i++) {
+                const modId = `mod-${i}`;
+                App.registerModule(modId, { render: jest.fn() });
+                App.navigate(modId);
+            }
+
+            let stored = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            expect(stored.length).toBe(10);
+            expect(stored[0].id).toBe('mod-12');
+
+            // Re-visit mod-5
+            App.navigate('mod-5');
+            stored = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            expect(stored.length).toBe(10);
+            expect(stored[0].id).toBe('mod-5');
+        });
+
+        it('handles errors gracefully when localStorage throws in trackModuleVisit / getRecentModules', () => {
+            App.registerModule('sample-size', { render: jest.fn() });
+
+            const setItemSpy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+                throw new Error('QuotaExceededError');
+            });
+            const getItemSpy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+                throw new Error('SecurityError');
+            });
+
+            expect(() => App.navigate('sample-size')).not.toThrow();
+
+            setItemSpy.mockRestore();
+            getItemSpy.mockRestore();
+        });
+
+        it('handles corrupted JSON in localStorage when tracking module visits', () => {
+            localStorage.setItem('neuroepi_recent_modules', 'invalid json {{{');
+            App.registerModule('sample-size', { render: jest.fn() });
+
+            expect(() => App.navigate('sample-size')).not.toThrow();
+            expect(localStorage.getItem('neuroepi_recent_modules')).toBe('invalid json {{{');
+        });
+
         it('handles hashchange route event', () => {
             App.registerModule('sample-size', { render: jest.fn() });
             window.location.hash = '#sample-size';
