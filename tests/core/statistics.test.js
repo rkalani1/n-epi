@@ -85,14 +85,25 @@ describe('Statistics.chiSquaredQuantile', () => {
         Statistics = window.Statistics;
     });
 
-    test('should return 0 when p <= 0', () => {
-        expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
-        expect(Statistics.chiSquaredQuantile(-0.5, 5)).toBe(0);
+    test('should return 0 when p <= 0 across various df', () => {
+        [1, 2, 5, 10, 50, 100].forEach(df => {
+            expect(Statistics.chiSquaredQuantile(0, df)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(-0.5, df)).toBe(0);
+        });
     });
 
-    test('should return Infinity when p >= 1', () => {
-        expect(Statistics.chiSquaredQuantile(1, 1)).toBe(Infinity);
-        expect(Statistics.chiSquaredQuantile(1.5, 5)).toBe(Infinity);
+    test('should return Infinity when p >= 1 across various df', () => {
+        [1, 2, 5, 10, 50, 100].forEach(df => {
+            expect(Statistics.chiSquaredQuantile(1, df)).toBe(Infinity);
+            expect(Statistics.chiSquaredQuantile(1.5, df)).toBe(Infinity);
+        });
+    });
+
+    test('should return 0 and Infinity for degenerate p=0 and p=1 without producing NaN', () => {
+        expect(Number.isNaN(Statistics.chiSquaredQuantile(0, 5))).toBe(false);
+        expect(Number.isNaN(Statistics.chiSquaredQuantile(1, 5))).toBe(false);
+        expect(Statistics.chiSquaredQuantile(0, 5)).toBe(0);
+        expect(Statistics.chiSquaredQuantile(1, 5)).toBe(Infinity);
     });
 
     test('should return accurate quantile values for standard probabilities', () => {

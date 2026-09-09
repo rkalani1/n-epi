@@ -331,14 +331,27 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredQuantile(1.1, 5)).toBe(Infinity);
         });
 
-        test('returns 0 for p <= 0', () => {
-            expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
-            expect(Statistics.chiSquaredQuantile(-0.1, 5)).toBe(0);
+        test('returns 0 for p <= 0 across various degrees of freedom', () => {
+            [1, 2, 5, 10, 50, 100].forEach(df => {
+                expect(Statistics.chiSquaredQuantile(0, df)).toBe(0);
+                expect(Statistics.chiSquaredQuantile(-0.1, df)).toBe(0);
+                expect(Statistics.chiSquaredQuantile(-10, df)).toBe(0);
+            });
         });
 
-        test('returns Infinity for p >= 1', () => {
-            expect(Statistics.chiSquaredQuantile(1, 1)).toBe(Infinity);
-            expect(Statistics.chiSquaredQuantile(1.5, 5)).toBe(Infinity);
+        test('returns Infinity for p >= 1 across various degrees of freedom', () => {
+            [1, 2, 5, 10, 50, 100].forEach(df => {
+                expect(Statistics.chiSquaredQuantile(1, df)).toBe(Infinity);
+                expect(Statistics.chiSquaredQuantile(1.1, df)).toBe(Infinity);
+                expect(Statistics.chiSquaredQuantile(10, df)).toBe(Infinity);
+            });
+        });
+
+        test('ensures degenerate cases (p=0, p=1) return exact non-NaN values', () => {
+            expect(Number.isNaN(Statistics.chiSquaredQuantile(0, 5))).toBe(false);
+            expect(Number.isNaN(Statistics.chiSquaredQuantile(1, 5))).toBe(false);
+            expect(Statistics.chiSquaredQuantile(0, 5)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(1, 5)).toBe(Infinity);
         });
 
         test('matches known chi-squared quantile table values', () => {
