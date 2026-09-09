@@ -506,7 +506,7 @@ const App = (() => {
     function setTrustedHTML(element, trustedContent) {
         if (typeof DOMPurify !== 'undefined') {
             ensureDOMPurifyHook();
-            element.innerHTML = DOMPurify.sanitize(trustedContent, { ADD_ATTR: ['onclick', 'onchange', 'oninput'] });
+            element.innerHTML = DOMPurify.sanitize(trustedContent);
         } else {
             element.textContent = trustedContent;
         }
