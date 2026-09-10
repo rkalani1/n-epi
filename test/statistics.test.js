@@ -118,13 +118,21 @@ describe('Statistics Engine Tests', function() {
 
     describe('regularizedIncompleteBeta Function', function() {
         it('should return NaN when x < 0', function() {
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(-0.0001, 2, 2)));
             assert.ok(isNaN(Statistics.regularizedIncompleteBeta(-0.1, 2, 2)));
             assert.ok(isNaN(Statistics.regularizedIncompleteBeta(-1, 2, 2)));
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(-Infinity, 2, 2)));
         });
 
         it('should return NaN when x > 1', function() {
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(1.0001, 2, 2)));
             assert.ok(isNaN(Statistics.regularizedIncompleteBeta(1.1, 2, 2)));
             assert.ok(isNaN(Statistics.regularizedIncompleteBeta(2, 2, 2)));
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(Infinity, 2, 2)));
+        });
+
+        it('should return NaN when x is NaN', function() {
+            assert.ok(isNaN(Statistics.regularizedIncompleteBeta(NaN, 2, 2)));
         });
 
         it('should return 0 when x === 0', function() {
@@ -140,6 +148,12 @@ describe('Statistics Engine Tests', function() {
             assert.ok(Math.abs(Statistics.regularizedIncompleteBeta(0.5, 2, 2) - 0.5) < 1e-7);
             assert.ok(Math.abs(Statistics.regularizedIncompleteBeta(0.2, 2, 2) - 0.104) < 1e-7);
             assert.ok(Math.abs(Statistics.regularizedIncompleteBeta(0.8, 2, 2) - 0.896) < 1e-7);
+        });
+
+        it('should satisfy symmetry relation I_x(a, b) + I_(1-x)(b, a) === 1', function() {
+            const val1 = Statistics.regularizedIncompleteBeta(0.35, 2.5, 4.2);
+            const val2 = Statistics.regularizedIncompleteBeta(0.65, 4.2, 2.5);
+            assert.ok(Math.abs((val1 + val2) - 1.0) < 1e-7);
         });
     });
 
@@ -200,13 +214,26 @@ describe('Statistics Engine Tests', function() {
 
     describe('chiSquaredQuantile Distribution Function', function() {
         it('should return 0 when p <= 0', function() {
-            assert.strictEqual(Statistics.chiSquaredQuantile(0, 1), 0);
-            assert.strictEqual(Statistics.chiSquaredQuantile(-0.1, 5), 0);
+            [1, 2, 5, 10, 50, 100].forEach(function(df) {
+                assert.strictEqual(Statistics.chiSquaredQuantile(0, df), 0);
+                assert.strictEqual(Statistics.chiSquaredQuantile(-0.1, df), 0);
+                assert.strictEqual(Statistics.chiSquaredQuantile(-10, df), 0);
+            });
         });
 
         it('should return Infinity when p >= 1', function() {
-            assert.strictEqual(Statistics.chiSquaredQuantile(1, 1), Infinity);
-            assert.strictEqual(Statistics.chiSquaredQuantile(1.5, 5), Infinity);
+            [1, 2, 5, 10, 50, 100].forEach(function(df) {
+                assert.strictEqual(Statistics.chiSquaredQuantile(1, df), Infinity);
+                assert.strictEqual(Statistics.chiSquaredQuantile(1.5, df), Infinity);
+                assert.strictEqual(Statistics.chiSquaredQuantile(10, df), Infinity);
+            });
+        });
+
+        it('should not produce NaN for degenerate cases p=0 and p=1', function() {
+            assert.strictEqual(isNaN(Statistics.chiSquaredQuantile(0, 5)), false);
+            assert.strictEqual(isNaN(Statistics.chiSquaredQuantile(1, 5)), false);
+            assert.strictEqual(Statistics.chiSquaredQuantile(0, 5), 0);
+            assert.strictEqual(Statistics.chiSquaredQuantile(1, 5), Infinity);
         });
 
         it('should calculate specific known values for chiSquaredQuantile correctly', function() {

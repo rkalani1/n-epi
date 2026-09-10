@@ -193,6 +193,38 @@ describe('Statistics Module', () => {
         });
     });
 
+    describe('tCDF', () => {
+        test('handles NaN inputs and invalid df values', () => {
+            expect(Statistics.tCDF(NaN, 10)).toBeNaN();
+            expect(Statistics.tCDF(1, NaN)).toBeNaN();
+            expect(Statistics.tCDF(NaN, NaN)).toBeNaN();
+            expect(Statistics.tCDF(1, 0)).toBeNaN();
+            expect(Statistics.tCDF(1, -1)).toBeNaN();
+        });
+
+        test('returns 0.5 when t = 0', () => {
+            expect(Statistics.tCDF(0, 1)).toBe(0.5);
+            expect(Statistics.tCDF(0, 10)).toBe(0.5);
+        });
+
+        test('handles infinity inputs for t and df correctly', () => {
+            expect(Statistics.tCDF(Infinity, 10)).toBe(1);
+            expect(Statistics.tCDF(-Infinity, 10)).toBe(0);
+            expect(Statistics.tCDF(1.96, Infinity)).toBeCloseTo(Statistics.normalCDF(1.96), 6);
+            expect(Statistics.tCDF(-1.96, Infinity)).toBeCloseTo(Statistics.normalCDF(-1.96), 6);
+            expect(Statistics.tCDF(0, Infinity)).toBeCloseTo(0.5, 6);
+        });
+
+        test('calculates correct probabilities matching t-distribution tables', () => {
+            expect(Statistics.tCDF(1, 1)).toBeCloseTo(0.75, 6);
+            expect(Statistics.tCDF(-1, 1)).toBeCloseTo(0.25, 6);
+            expect(Statistics.tCDF(2.2281, 10)).toBeCloseTo(0.975, 3);
+            expect(Statistics.tCDF(-2.2281, 10)).toBeCloseTo(0.025, 3);
+            expect(Statistics.tCDF(2.0150, 5)).toBeCloseTo(0.95, 3);
+            expect(Statistics.tCDF(4.3027, 2)).toBeCloseTo(0.975, 3);
+        });
+    });
+
     describe('tQuantile', () => {
         test('matches standard t-distribution quantile table values', () => {
             // df = 1
@@ -331,14 +363,27 @@ describe('Statistics Module', () => {
             expect(Statistics.chiSquaredQuantile(1.1, 5)).toBe(Infinity);
         });
 
-        test('returns 0 for p <= 0', () => {
-            expect(Statistics.chiSquaredQuantile(0, 1)).toBe(0);
-            expect(Statistics.chiSquaredQuantile(-0.1, 5)).toBe(0);
+        test('returns 0 for p <= 0 across various degrees of freedom', () => {
+            [1, 2, 5, 10, 50, 100].forEach(df => {
+                expect(Statistics.chiSquaredQuantile(0, df)).toBe(0);
+                expect(Statistics.chiSquaredQuantile(-0.1, df)).toBe(0);
+                expect(Statistics.chiSquaredQuantile(-10, df)).toBe(0);
+            });
         });
 
-        test('returns Infinity for p >= 1', () => {
-            expect(Statistics.chiSquaredQuantile(1, 1)).toBe(Infinity);
-            expect(Statistics.chiSquaredQuantile(1.5, 5)).toBe(Infinity);
+        test('returns Infinity for p >= 1 across various degrees of freedom', () => {
+            [1, 2, 5, 10, 50, 100].forEach(df => {
+                expect(Statistics.chiSquaredQuantile(1, df)).toBe(Infinity);
+                expect(Statistics.chiSquaredQuantile(1.1, df)).toBe(Infinity);
+                expect(Statistics.chiSquaredQuantile(10, df)).toBe(Infinity);
+            });
+        });
+
+        test('ensures degenerate cases (p=0, p=1) return exact non-NaN values', () => {
+            expect(Number.isNaN(Statistics.chiSquaredQuantile(0, 5))).toBe(false);
+            expect(Number.isNaN(Statistics.chiSquaredQuantile(1, 5))).toBe(false);
+            expect(Statistics.chiSquaredQuantile(0, 5)).toBe(0);
+            expect(Statistics.chiSquaredQuantile(1, 5)).toBe(Infinity);
         });
 
         test('matches known chi-squared quantile table values', () => {
@@ -1330,6 +1375,68 @@ describe('Additional Statistics Coverage', () => {
             expect(Statistics.binomialCDF(5, 10, 0)).toBe(1);
             expect(Statistics.binomialCDF(9, 10, 1)).toBe(0);
             expect(Statistics.binomialCDF(10, 10, 1)).toBe(1);
+        });
+    });
+
+    describe('regularizedIncompleteBeta', () => {
+        test('returns NaN when x < 0', () => {
+            expect(Statistics.regularizedIncompleteBeta(-0.0001, 2, 2)).toBeNaN();
+            expect(Statistics.regularizedIncompleteBeta(-0.1, 2, 2)).toBeNaN();
+            expect(Statistics.regularizedIncompleteBeta(-1, 2, 2)).toBeNaN();
+            expect(Statistics.regularizedIncompleteBeta(-10, 2, 2)).toBeNaN();
+            expect(Statistics.regularizedIncompleteBeta(-Infinity, 2, 2)).toBeNaN();
+        });
+
+        test('returns NaN when x > 1', () => {
+            expect(Statistics.regularizedIncompleteBeta(1.0001, 2, 2)).toBeNaN();
+            expect(Statistics.regularizedIncompleteBeta(1.1, 2, 2)).toBeNaN();
+            expect(Statistics.regularizedIncompleteBeta(2, 2, 2)).toBeNaN();
+            expect(Statistics.regularizedIncompleteBeta(10, 2, 2)).toBeNaN();
+            expect(Statistics.regularizedIncompleteBeta(Infinity, 2, 2)).toBeNaN();
+        });
+
+        test('returns NaN when x is NaN', () => {
+            expect(Statistics.regularizedIncompleteBeta(NaN, 2, 2)).toBeNaN();
+        });
+
+        test('returns 0 when x === 0', () => {
+            expect(Statistics.regularizedIncompleteBeta(0, 1, 1)).toBe(0);
+            expect(Statistics.regularizedIncompleteBeta(0, 2, 5)).toBe(0);
+            expect(Statistics.regularizedIncompleteBeta(0, 0.5, 0.5)).toBe(0);
+        });
+
+        test('returns 1 when x === 1', () => {
+            expect(Statistics.regularizedIncompleteBeta(1, 1, 1)).toBe(1);
+            expect(Statistics.regularizedIncompleteBeta(1, 2, 5)).toBe(1);
+            expect(Statistics.regularizedIncompleteBeta(1, 0.5, 0.5)).toBe(1);
+        });
+
+        test('computes uniform distribution CDF for a=1, b=1: I_x(1, 1) = x', () => {
+            expect(Statistics.regularizedIncompleteBeta(0.25, 1, 1)).toBeCloseTo(0.25, 8);
+            expect(Statistics.regularizedIncompleteBeta(0.5, 1, 1)).toBeCloseTo(0.5, 8);
+            expect(Statistics.regularizedIncompleteBeta(0.75, 1, 1)).toBeCloseTo(0.75, 8);
+        });
+
+        test('computes exact polynomial values for a=2, b=2: I_x(2,2) = 3x^2 - 2x^3', () => {
+            expect(Statistics.regularizedIncompleteBeta(0.2, 2, 2)).toBeCloseTo(0.104, 8);
+            expect(Statistics.regularizedIncompleteBeta(0.5, 2, 2)).toBeCloseTo(0.5, 8);
+            expect(Statistics.regularizedIncompleteBeta(0.8, 2, 2)).toBeCloseTo(0.896, 8);
+        });
+
+        test('satisfies symmetry relation: I_x(a, b) + I_(1-x)(b, a) = 1', () => {
+            const a = 2.5, b = 4.2;
+            const x = 0.35;
+            const ix = Statistics.regularizedIncompleteBeta(x, a, b);
+            const i1x = Statistics.regularizedIncompleteBeta(1 - x, b, a);
+            expect(ix + i1x).toBeCloseTo(1.0, 8);
+        });
+
+        test('correctly triggers symmetry transformation when x > (a + 1) / (a + b + 2)', () => {
+            // For a=1, b=3: (a+1)/(a+b+2) = 2/6 = 1/3 ~ 0.3333
+            // x = 0.6 > 0.3333 triggers symmetry
+            const val = Statistics.regularizedIncompleteBeta(0.6, 1, 3);
+            const expected = 1 - Statistics.regularizedIncompleteBeta(0.4, 3, 1);
+            expect(val).toBeCloseTo(expected, 8);
         });
     });
 });

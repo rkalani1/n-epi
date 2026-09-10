@@ -506,7 +506,7 @@ const App = (() => {
     function setTrustedHTML(element, trustedContent) {
         if (typeof DOMPurify !== 'undefined') {
             ensureDOMPurifyHook();
-            element.innerHTML = DOMPurify.sanitize(trustedContent, { ADD_ATTR: ['onclick', 'onchange', 'oninput'] });
+            element.innerHTML = DOMPurify.sanitize(trustedContent);
         } else {
             element.textContent = trustedContent;
         }
@@ -1093,9 +1093,9 @@ const App = (() => {
     }
 
     function renderDashboardStatsHTML(totalModules) {
-        var totalTrials = (typeof TrialDatabase !== 'undefined' && TrialDatabase.trials)
+        const totalTrials = (typeof TrialDatabase !== 'undefined' && TrialDatabase.trials)
             ? (function () {
-                var names = {};
+                const names = {};
                 TrialDatabase.trials.forEach(function (t) { names[t.name] = true; });
                 return Object.keys(names).length;
             })()
@@ -1551,7 +1551,8 @@ const App = (() => {
         closeShortcutsModal: closeShortcutsModal,
         shareModule: shareModule,
         addToHistory: addToHistory,
-        getHistory: getCalcHistory
+        getHistory: getCalcHistory,
+        getRecentModules: getRecentModules
     };
 })();
 

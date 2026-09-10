@@ -53,6 +53,89 @@ describe('App Module', () => {
         delete global.Export;
     });
 
+    describe('Recent Modules System', () => {
+        describe('getRecentModules()', () => {
+            it('should return empty array when localStorage is empty', () => {
+                const result = App.getRecentModules();
+                expect(result).toEqual([]);
+            });
+
+            it('should return parsed data when valid JSON is in localStorage', () => {
+                const testVisits = [
+                    { id: 'sample-size', timestamp: 1000 },
+                    { id: 'power-analysis', timestamp: 2000 }
+                ];
+                localStorage.setItem('neuroepi_recent_modules', JSON.stringify(testVisits));
+
+                const result = App.getRecentModules();
+                expect(result).toEqual(testVisits);
+            });
+
+            it('should return empty array when localStorage contains invalid JSON', () => {
+                localStorage.setItem('neuroepi_recent_modules', 'invalid JSON {{{');
+
+                const result = App.getRecentModules();
+                expect(result).toEqual([]);
+            });
+
+            it('should return empty array when localStorage.getItem throws an error', () => {
+                const getItemSpy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+                    throw new Error('Storage access error');
+                });
+
+                const result = App.getRecentModules();
+                expect(result).toEqual([]);
+                getItemSpy.mockRestore();
+            });
+        });
+
+        describe('trackModuleVisit / navigate tracking', () => {
+            it('should track module visits in localStorage on navigation', () => {
+                App.registerModule('sample-size', { render: jest.fn() });
+                App.navigate('sample-size');
+
+                const recent = App.getRecentModules();
+                expect(recent.length).toBe(1);
+                expect(recent[0].id).toBe('sample-size');
+                expect(recent[0].timestamp).toBeDefined();
+            });
+
+            it('should not track visit when navigating to home', () => {
+                App.navigate('home');
+
+                const recent = App.getRecentModules();
+                expect(recent).toEqual([]);
+            });
+
+            it('should move re-visited modules to the front and cap maximum visits at 10', () => {
+                for (let i = 1; i <= 12; i++) {
+                    const modId = 'module-' + i;
+                    App.registerModule(modId, { render: jest.fn() });
+                    App.navigate(modId);
+                }
+
+                let recent = App.getRecentModules();
+                expect(recent.length).toBe(10);
+                expect(recent[0].id).toBe('module-12');
+
+                // Re-visit module-5
+                App.navigate('module-5');
+                recent = App.getRecentModules();
+                expect(recent.length).toBe(10);
+                expect(recent[0].id).toBe('module-5');
+            });
+
+            it('should render dashboard gracefully when recent_modules in localStorage contains invalid JSON', () => {
+                localStorage.setItem('neuroepi_recent_modules', '{bad json');
+
+                expect(() => App.navigate('home')).not.toThrow();
+
+                const content = document.getElementById('module-content');
+                expect(content.querySelector('.dashboard')).not.toBeNull();
+            });
+        });
+    });
+
     describe('Favorites System', () => {
         describe('getFavorites()', () => {
             it('should return empty array when localStorage is empty', () => {
@@ -260,6 +343,63 @@ describe('App Module', () => {
             expect(document.querySelector('.dashboard')).not.toBeNull();
         });
 
+        it('tracks module visits when navigating to valid modules', () => {
+            App.registerModule('sample-size', { render: jest.fn() });
+            App.navigate('sample-size');
+
+            const stored = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            expect(stored.length).toBe(1);
+            expect(stored[0].id).toBe('sample-size');
+        });
+
+        it('does not track module visits when navigating to home', () => {
+            App.navigate('home');
+            const stored = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            expect(stored.length).toBe(0);
+        });
+
+        it('deduplicates and limits recent visits to 10 entries', () => {
+            for (let i = 1; i <= 12; i++) {
+                const modId = `mod-${i}`;
+                App.registerModule(modId, { render: jest.fn() });
+                App.navigate(modId);
+            }
+
+            let stored = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            expect(stored.length).toBe(10);
+            expect(stored[0].id).toBe('mod-12');
+
+            // Re-visit mod-5
+            App.navigate('mod-5');
+            stored = JSON.parse(localStorage.getItem('neuroepi_recent_modules') || '[]');
+            expect(stored.length).toBe(10);
+            expect(stored[0].id).toBe('mod-5');
+        });
+
+        it('handles errors gracefully when localStorage throws in trackModuleVisit / getRecentModules', () => {
+            App.registerModule('sample-size', { render: jest.fn() });
+
+            const setItemSpy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+                throw new Error('QuotaExceededError');
+            });
+            const getItemSpy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+                throw new Error('SecurityError');
+            });
+
+            expect(() => App.navigate('sample-size')).not.toThrow();
+
+            setItemSpy.mockRestore();
+            getItemSpy.mockRestore();
+        });
+
+        it('handles corrupted JSON in localStorage when tracking module visits', () => {
+            localStorage.setItem('neuroepi_recent_modules', 'invalid json {{{');
+            App.registerModule('sample-size', { render: jest.fn() });
+
+            expect(() => App.navigate('sample-size')).not.toThrow();
+            expect(localStorage.getItem('neuroepi_recent_modules')).toBe('invalid json {{{');
+        });
+
         it('handles hashchange route event', () => {
             App.registerModule('sample-size', { render: jest.fn() });
             window.location.hash = '#sample-size';
@@ -383,42 +523,160 @@ describe('App Module', () => {
             });
         });
 
-        describe('getHistory()', () => {
-            it('adds calculations to history and retrieves them merged with Export history', () => {
-                App.addToHistory('Sample Size', 'Two Proportions', 'N = 100');
+        it('returns empty array when localStorage is empty', () => {
+            const history = App.getHistory();
+            expect(history).toEqual([]);
+        });
 
-                const history = App.getHistory();
-                expect(history.length).toBeGreaterThan(0);
-                expect(history[0].module).toBe('Sample Size');
-                expect(history[0].calc).toBe('Two Proportions');
-                expect(history[0].result).toBe('N = 100');
-            });
+        it('adds calculations to history and retrieves them merged with Export history', () => {
+            App.addToHistory('Sample Size', 'Two Proportions', 'N = 100');
 
-            it('merges with Export history (neuroepi_history) correctly', () => {
-                const mockExportHistory = [
-                    { moduleId: 'sample-size', result: 'n=50', timestamp: 1000 }
-                ];
-                localStorage.setItem('neuroepi_history', JSON.stringify(mockExportHistory));
+            const history = App.getHistory();
+            expect(history.length).toBeGreaterThan(0);
+            expect(history[0].module).toBe('Sample Size');
+            expect(history[0].calc).toBe('Two Proportions');
+            expect(history[0].result).toBe('N = 100');
+        });
 
-                const history = App.getHistory();
-                expect(history.length).toBe(1);
-                expect(history[0].module).toBe('sample-size');
-            });
+        it('merges with Export history (neuroepi_history) correctly', () => {
+            const mockExportHistory = [
+                { moduleId: 'sample-size', result: 'n=50', timestamp: 1000 }
+            ];
+            localStorage.setItem('neuroepi_history', JSON.stringify(mockExportHistory));
 
-            it('handles localStorage errors gracefully in addToHistory and getHistory', () => {
-                const spy1 = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-                    throw new Error('Access error');
+            const history = App.getHistory();
+            expect(history.length).toBe(1);
+            expect(history[0].module).toBe('sample-size');
+        });
+
+        it('normalizes Export history entries with different property structures', () => {
+            const now = Date.now();
+            const mockExportHistory = [
+                { moduleId: 'sample-size', result: 'n=50', timestamp: now - 100 },
+                { module: 'epidemiology-calcs', result: { rr: 1.5, p: 0.04 }, timestamp: now - 200 },
+                { result: 'No module info', timestamp: now - 300 },
+                { moduleId: 'power-analysis', result: 'x'.repeat(150), timestamp: now - 400 },
+                { moduleId: 'effect-size', result: 'd=0.5' } // missing timestamp fallback to Date.now()
+            ];
+            localStorage.setItem('neuroepi_history', JSON.stringify(mockExportHistory));
+
+            const history = App.getHistory();
+            expect(history.length).toBe(5);
+
+            // Item with moduleId
+            const item1 = history.find(h => h.calc === 'sample-size' && h.timestamp === now - 100);
+            expect(item1).toBeDefined();
+            expect(item1.module).toBe('sample-size');
+            expect(item1.result).toBe('n=50');
+
+            // Item with module (no moduleId) and non-string result
+            const item2 = history.find(h => h.module === 'epidemiology-calcs');
+            expect(item2).toBeDefined();
+            expect(item2.calc).toBe('epidemiology-calcs');
+            expect(item2.result).toBe(JSON.stringify({ rr: 1.5, p: 0.04 }));
+
+            // Item with missing moduleId and module -> defaults to 'Unknown' and ''
+            const item3 = history.find(h => h.result === 'No module info');
+            expect(item3).toBeDefined();
+            expect(item3.module).toBe('Unknown');
+            expect(item3.calc).toBe('');
+
+            // Item with result string truncation (>100 chars for non-string, string left intact)
+            const item4 = history.find(h => h.calc === 'power-analysis');
+            expect(item4).toBeDefined();
+            expect(item4.result).toBe('x'.repeat(150));
+
+            // Item with missing timestamp defaults to a recent timestamp (Date.now())
+            const item5 = history.find(h => h.calc === 'effect-size');
+            expect(item5).toBeDefined();
+            expect(item5.timestamp).toBeGreaterThanOrEqual(now);
+        });
+
+        it('truncates non-string e.result to 100 characters when stringifying', () => {
+            const longObj = { data: 'a'.repeat(200) };
+            const mockExportHistory = [
+                { moduleId: 'test-mod', result: longObj, timestamp: 1000 }
+            ];
+            localStorage.setItem('neuroepi_history', JSON.stringify(mockExportHistory));
+
+            const history = App.getHistory();
+            expect(history.length).toBe(1);
+            expect(history[0].result.length).toBe(100);
+            expect(history[0].result).toBe(JSON.stringify(longObj).substring(0, 100));
+        });
+
+        it('sorts merged entries from both Export and App history by timestamp descending', () => {
+            const now = Date.now();
+            const exportData = [
+                { moduleId: 'mod-export-old', result: 'r1', timestamp: now - 3000 },
+                { moduleId: 'mod-export-new', result: 'r3', timestamp: now - 1000 }
+            ];
+            const appData = [
+                { module: 'mod-app-mid', calc: 'c2', result: 'r2', timestamp: now - 2000 },
+                { module: 'mod-app-newest', calc: 'c4', result: 'r4', timestamp: now - 500 }
+            ];
+
+            localStorage.setItem('neuroepi_history', JSON.stringify(exportData));
+            localStorage.setItem('ne-calc-history', JSON.stringify(appData));
+
+            const history = App.getHistory();
+            expect(history.length).toBe(4);
+            expect(history[0].module).toBe('mod-app-newest');
+            expect(history[1].module).toBe('mod-export-new');
+            expect(history[2].module).toBe('mod-app-mid');
+            expect(history[3].module).toBe('mod-export-old');
+        });
+
+        it('truncates merged history to CALC_HISTORY_MAX (20 entries)', () => {
+            const now = Date.now();
+            const appData = [];
+            for (let i = 0; i < 25; i++) {
+                appData.push({
+                    module: 'mod-' + i,
+                    calc: 'calc-' + i,
+                    result: 'res-' + i,
+                    timestamp: now - i * 100
                 });
-                const spy2 = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-                    throw new Error('Write error');
-                });
+            }
+            localStorage.setItem('ne-calc-history', JSON.stringify(appData));
 
-                expect(() => App.addToHistory('Mod', 'Calc', 'Res')).not.toThrow();
-                expect(App.getHistory()).toEqual([]);
+            const history = App.getHistory();
+            expect(history.length).toBe(20);
+            expect(history[0].module).toBe('mod-0');
+            expect(history[19].module).toBe('mod-19');
+        });
 
-                spy1.mockRestore();
-                spy2.mockRestore();
+        it('returns empty array when localStorage contains invalid / corrupted JSON', () => {
+            localStorage.setItem('neuroepi_history', 'invalid json {{{');
+            expect(App.getHistory()).toEqual([]);
+
+            localStorage.clear();
+            localStorage.setItem('ne-calc-history', 'corrupted json {{{');
+            expect(App.getHistory()).toEqual([]);
+        });
+
+        it('returns empty array when localStorage contains non-array JSON values', () => {
+            localStorage.setItem('neuroepi_history', JSON.stringify({ not: 'an array' }));
+            expect(App.getHistory()).toEqual([]);
+
+            localStorage.clear();
+            localStorage.setItem('ne-calc-history', JSON.stringify('just a string'));
+            expect(App.getHistory()).toEqual([]);
+        });
+
+        it('handles localStorage errors gracefully in addToHistory and getHistory', () => {
+            const spy1 = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+                throw new Error('Access error');
             });
+            const spy2 = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+                throw new Error('Write error');
+            });
+
+            expect(() => App.addToHistory('Mod', 'Calc', 'Res')).not.toThrow();
+            expect(App.getHistory()).toEqual([]);
+
+            spy1.mockRestore();
+            spy2.mockRestore();
         });
     });
 

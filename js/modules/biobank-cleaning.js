@@ -42,10 +42,11 @@
         return isSensitiveColumn(columnName) ? '[redacted]' : '[value]';
     }
 
+    const NEGATIVE_VALUES = new Set(['0', 'no', 'false', 'na', '']);
+
     function hasConditionData(val) {
         if (!val) return false;
-        const negativeValues = ['0', 'no', 'false', 'na', ''];
-        return !negativeValues.includes(val.toLowerCase().trim());
+        return !NEGATIVE_VALUES.has(val.toLowerCase().trim());
     }
 
     function isMissingValue(val) {
@@ -495,6 +496,7 @@
         // Exported for testing
         _isSensitiveColumn: isSensitiveColumn,
         _looksLikePHIValue: looksLikePHIValue,
-        _escapeHTML: escapeHTML
+        _escapeHTML: escapeHTML,
+        _hasConditionData: hasConditionData
     };
 })();
