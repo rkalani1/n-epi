@@ -7,6 +7,7 @@
     <meta name="description"
         content="n-epi — Comprehensive epidemiology, biostatistics, and clinical research platform for study design, data analysis, grant writing, and critical appraisal.">
     <title>n-epi — epidemiology &amp; biostatistics tools</title>
+    <meta name="color-scheme" content="dark light">
     <meta name="theme-color" content="#06090f">
     <link rel="canonical" href="https://rkalani1.github.io/n-epi/">
     <meta property="og:type" content="website">
@@ -37,11 +38,14 @@
                 aria-label="Open module menu" aria-expanded="false" aria-controls="sidebar">&#9776;</button>
             <span class="mobile-header-title" role="button" tabindex="0" aria-label="n-epi home" onclick="App.navigate('home')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('home');}">n-epi</span>
             <button class="mobile-header-search" onclick="App.openCommandPalette()"
-                aria-label="Search">&#128269;</button>
+                aria-label="Search modules"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
         </div>
 
         <!-- Main content -->
         <main class="main-content">
+            <noscript>
+                <p class="noscript-notice">n-epi runs entirely in your browser and needs JavaScript enabled to load its calculators and reference modules.</p>
+            </noscript>
             <div id="module-content"></div>
             <footer class="site-footer">
                 <p>This is a synthetic public demo site for educational and reference purposes only. Not for clinical decision-making or real patient care.</p>
@@ -53,7 +57,7 @@
         </main>
 
         <!-- Mobile bottom nav -->
-        <nav id="mobile-nav" class="mobile-nav"></nav>
+        <nav id="mobile-nav" class="mobile-nav" aria-label="Quick navigation"></nav>
     </div>
 
     <!-- Core libraries -->

@@ -24,6 +24,26 @@ const App = (() => {
     const PALETTE_KEY_HTML = IS_APPLE ? '&#8984;K' : 'Ctrl+K';
     const PALETTE_KEY_TEXT = IS_APPLE ? 'Cmd+K' : 'Ctrl+K';
 
+    // Monochrome inline icons (currentColor) so shell glyphs render identically
+    // on every platform instead of falling back to colour emoji.
+    const ICON_SEARCH = '<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+    const ICON_LINK = '<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+
+    // Theme-color values mirrored to <meta name="theme-color"> so the browser
+    // chrome (mobile address bar, PWA title bar) matches the active theme.
+    const THEME_COLORS = { dark: '#06090f', light: '#f8fafc' };
+
+    // NAV group titles are stored upper-case for the sidebar eyebrows; render
+    // them in title case where they appear as prose (breadcrumb, dashboard).
+    function formatGroupTitle(title) {
+        return String(title || '')
+            .toLowerCase()
+            .replace(/(^|[\s\-\/&(])([a-z])/g, function (match, boundary, letter) {
+                return boundary + letter.toUpperCase();
+            })
+            .replace(/\bMl\b/g, 'ML');
+    }
+
     // Navigation structure — all data is hardcoded/trusted
     const NAV = [
         {
@@ -562,7 +582,7 @@ const App = (() => {
             + '<span class="sidebar-logo-version">v2.1</span></span>'
             + '</button>'
             + '<button class="sidebar-cmd-k-btn" onclick="App.openCommandPalette()" title="Search modules (' + PALETTE_KEY_TEXT + ')">'
-            + '<span style="opacity:0.6;">Search all ' + getAllModules().length + ' modules</span>'
+            + '<span class="sidebar-cmd-k-label">' + ICON_SEARCH + '<span>Search all ' + getAllModules().length + ' modules</span></span>'
             + '<kbd class="kbd-hint">' + PALETTE_KEY_HTML + '</kbd>'
             + '</button>'
             + '</div>'
@@ -606,8 +626,8 @@ const App = (() => {
             + '<button class="theme-toggle" onclick="App.showShortcutsModal()" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">'
             + '<span>?</span>'
             + '</button>'
-            + '<button class="theme-toggle" onclick="App.toggleTheme()" title="Toggle theme" aria-label="Toggle light/dark theme">'
-            + '<span id="theme-icon">&#9790;</span>'
+            + '<button class="theme-toggle" onclick="App.toggleTheme()" title="' + themeToggleLabel(getCurrentTheme()) + '" aria-label="' + themeToggleLabel(getCurrentTheme()) + '">'
+            + '<span id="theme-icon" aria-hidden="true">' + themeIconGlyph(getCurrentTheme()) + '</span>'
             + '</button></div></div>';
 
         setTrustedHTML(sidebar, html);
@@ -661,7 +681,7 @@ const App = (() => {
 
         setTrustedHTML(dialog,
             '<div class="cmd-palette-input-wrap">'
-            + '<span class="cmd-palette-search-icon">&#128269;</span>'
+            + '<span class="cmd-palette-search-icon">' + ICON_SEARCH + '</span>'
             + '<input type="text" id="cmd-palette-input" class="cmd-palette-input" placeholder="Search modules..." autocomplete="off"'
             + ' role="combobox" aria-label="Search modules" aria-autocomplete="list" aria-expanded="false"'
             + ' aria-controls="cmd-palette-results" aria-activedescendant="" />'
@@ -906,7 +926,7 @@ const App = (() => {
             + '<div class="shortcuts-divider"></div>'
             + '<div class="shortcut-section-title">Navigation Groups</div>'
             + NAV.map(function (g, i) {
-                return '<div class="shortcut-row"><kbd>' + (i + 1) + '</kbd><span>' + g.title + '</span></div>';
+                return '<div class="shortcut-row"><kbd>' + (i + 1) + '</kbd><span>' + formatGroupTitle(g.title) + '</span></div>';
             }).join('')
             + '</div>';
     }
@@ -1031,7 +1051,7 @@ const App = (() => {
         return '<nav class="breadcrumb" aria-label="Breadcrumb">'
             + '<span class="breadcrumb-item breadcrumb-link" onclick="App.navigate(\'home\')" title="Home">&#8962;</span>'
             + '<span class="breadcrumb-sep">&#8250;</span>'
-            + '<span class="breadcrumb-item breadcrumb-link" onclick="App.navigate(\'' + catFirstId + '\')" title="' + category + '">' + category + '</span>'
+            + '<span class="breadcrumb-item breadcrumb-link" onclick="App.navigate(\'' + catFirstId + '\')" title="' + formatGroupTitle(category) + '">' + formatGroupTitle(category) + '</span>'
             + '<span class="breadcrumb-sep">&#8250;</span>'
             + '<span class="breadcrumb-item breadcrumb-current">' + mod.label + '</span>'
             + '</nav>';
@@ -1051,7 +1071,7 @@ const App = (() => {
             + '<div class="module-footer-right">'
             + '<a href="https://github.com/rkalani1/n-epi/issues/new?title=Issue+with+' + moduleId + '" target="_blank" rel="noopener" class="module-footer-link">Report Issue</a>'
             + '<button class="btn btn-ghost btn-xs module-footer-share" onclick="App.shareModule(\'' + moduleId + '\')" title="Copy link">'
-            + '<span style="margin-right:4px;">&#128279;</span>Share'
+            + ICON_LINK + '<span>Share</span>'
             + '</button>'
             + '</div>'
             + '</div>';
@@ -1083,10 +1103,12 @@ const App = (() => {
 
     function renderDashboardHeroHTML() {
         return '<div class="dashboard-hero">'
+            + '<div class="dashboard-hero-copy">'
             + '<h1 class="dashboard-hero-title">n-epi</h1>'
+            + '<p class="dashboard-hero-sub">Epidemiology &amp; biostatistics tools for study design, analysis, and critical appraisal &mdash; free, offline-capable, and built for clinical researchers.</p>'
+            + '</div>'
             + '<button class="dashboard-search-btn" onclick="App.openCommandPalette()">'
-            + '<span style="opacity:0.5;margin-right:8px;">&#128269;</span>'
-            + '<span>Search modules...</span>'
+            + '<span class="dashboard-search-btn-label">' + ICON_SEARCH + '<span>Search modules...</span></span>'
             + '<kbd class="kbd-hint">' + PALETTE_KEY_HTML + '</kbd>'
             + '</button>'
             + '</div>';
@@ -1123,7 +1145,7 @@ const App = (() => {
     function renderDashboardFavoritesHTML(favs, allMods) {
         if (favs.length === 0) return '';
         let html = '<div class="dashboard-section">'
-            + '<h2 class="dashboard-section-title">&#9733; Your Favorites</h2>'
+            + '<h2 class="dashboard-section-title">Your Favorites</h2>'
             + '<div class="dashboard-module-grid">';
         favs.forEach(function (favId) {
             let mod = null;
@@ -1131,11 +1153,11 @@ const App = (() => {
                 if (allMods[i].id === favId) { mod = allMods[i]; break; }
             }
             if (mod) {
-                html += '<div class="dashboard-module-card" onclick="App.navigate(\'' + mod.id + '\')">'
-                    + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
-                    + '<div class="dashboard-module-label">' + mod.label + '</div>'
-                    + '<div class="dashboard-module-desc">' + mod.description + '</div>'
-                    + '</div>';
+                html += '<button type="button" class="dashboard-module-card" onclick="App.navigate(\'' + mod.id + '\')">'
+                    + '<span class="dashboard-module-icon" aria-hidden="true">' + mod.icon + '</span>'
+                    + '<span class="dashboard-module-label">' + mod.label + '</span>'
+                    + '<span class="dashboard-module-desc">' + mod.description + '</span>'
+                    + '</button>';
             }
         });
         html += '</div></div>';
@@ -1154,7 +1176,7 @@ const App = (() => {
 
         let html = '<div class="dashboard-section dashboard-continue-section">'
             + '<div class="dashboard-section-heading">'
-            + '<h2 class="dashboard-section-title">&#8594; Continue or start</h2>'
+            + '<h2 class="dashboard-section-title">Continue or start</h2>'
             + '<button type="button" class="dashboard-browse-all" onclick="App.openCommandPalette()">Browse all ' + totalModules + '</button>'
             + '</div>'
             + '<div class="dashboard-module-grid">';
@@ -1162,9 +1184,9 @@ const App = (() => {
             let mod = allMods.find(function (candidate) { return candidate.id === moduleId; });
             if (mod) {
                 html += '<button type="button" class="dashboard-module-card" data-continue-module="' + mod.id + '" onclick="App.navigate(\'' + mod.id + '\')">'
-                    + '<span class="dashboard-module-icon">' + mod.icon + '</span>'
-                    + '<div class="dashboard-module-label">' + mod.label + '</div>'
-                    + '<div class="dashboard-module-desc">' + mod.description + '</div>'
+                    + '<span class="dashboard-module-icon" aria-hidden="true">' + mod.icon + '</span>'
+                    + '<span class="dashboard-module-label">' + mod.label + '</span>'
+                    + '<span class="dashboard-module-desc">' + mod.description + '</span>'
                     + '</button>';
             }
         });
@@ -1176,7 +1198,7 @@ const App = (() => {
         let calcHistory = getCalcHistory();
         if (calcHistory.length === 0) return '';
         let html = '<div class="dashboard-section">'
-            + '<h2 class="dashboard-section-title">&#128202; Recent Calculations</h2>'
+            + '<h2 class="dashboard-section-title">Recent Calculations</h2>'
             + '<div class="dashboard-recent-calcs">';
         let calcCount = Math.min(calcHistory.length, 5);
         for (let ci = 0; ci < calcCount; ci++) {
@@ -1209,12 +1231,12 @@ const App = (() => {
 
     function renderDashboardCategoriesHTML() {
         let html = '<div class="dashboard-section">'
-            + '<h2 class="dashboard-section-title">&#128218; All Categories</h2>'
+            + '<h2 class="dashboard-section-title">All Categories</h2>'
             + '<div class="dashboard-categories">';
         NAV.forEach(function (group, gIdx) {
             html += '<div class="dashboard-category-card" onclick="App.navigate(\'' + group.items[0].id + '\')">'
                 + '<div class="dashboard-category-num">' + (gIdx + 1) + '</div>'
-                + '<div class="dashboard-category-title">' + group.title + '</div>'
+                + '<div class="dashboard-category-title">' + formatGroupTitle(group.title) + '</div>'
                 + '<div class="dashboard-category-count">' + group.items.length + ' module' + (group.items.length > 1 ? 's' : '') + '</div>'
                 + '</div>';
         });
@@ -1224,7 +1246,7 @@ const App = (() => {
 
     function renderDashboardWhatsNewHTML(totalModules) {
         return '<div class="dashboard-section">'
-            + '<h2 class="dashboard-section-title">&#127881; What\'s New in v2.1</h2>'
+            + '<h2 class="dashboard-section-title">What\'s New in v2.1</h2>'
             + '<div class="dashboard-whats-new card">'
             + '<ul class="dashboard-changelog">'
             + '<li><strong>R Script Generation</strong> &mdash; calculators across the suite generate ready-to-run R scripts with one click</li>'
@@ -1262,20 +1284,39 @@ const App = (() => {
     // THEME
     // ============================================================
 
+    function getCurrentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    }
+
+    function themeIconGlyph(theme) {
+        return theme === 'light' ? '\u2600' : '\u263E';
+    }
+
+    function themeToggleLabel(theme) {
+        return theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
+    }
+
+    function syncThemeColorMeta(theme) {
+        let meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', THEME_COLORS[theme] || THEME_COLORS.dark);
+    }
+
     function initTheme() {
-        let saved = localStorage.getItem('neuroepi_theme');
+        let saved = null;
+        try { saved = localStorage.getItem('neuroepi_theme'); } catch (e) { /* storage unavailable */ }
         if (saved === 'light') {
             document.documentElement.setAttribute('data-theme', 'light');
-            updateThemeIcon('light');
         }
+        updateThemeIcon(getCurrentTheme());
+        syncThemeColorMeta(getCurrentTheme());
     }
 
     function toggleTheme() {
-        let current = document.documentElement.getAttribute('data-theme');
-        let next = current === 'light' ? 'dark' : 'light';
+        let next = getCurrentTheme() === 'light' ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('neuroepi_theme', next);
+        try { localStorage.setItem('neuroepi_theme', next); } catch (e) { /* storage unavailable */ }
         updateThemeIcon(next);
+        syncThemeColorMeta(next);
         if (currentModule && modules[currentModule] && modules[currentModule].onThemeChange) {
             modules[currentModule].onThemeChange();
         }
@@ -1283,7 +1324,13 @@ const App = (() => {
 
     function updateThemeIcon(theme) {
         let icon = document.getElementById('theme-icon');
-        if (icon) icon.textContent = theme === 'light' ? '\u2600' : '\u263E';
+        if (!icon) return;
+        icon.textContent = themeIconGlyph(theme);
+        let button = icon.closest('.theme-toggle');
+        if (button) {
+            button.setAttribute('aria-label', themeToggleLabel(theme));
+            button.setAttribute('title', themeToggleLabel(theme));
+        }
     }
 
     // ============================================================
