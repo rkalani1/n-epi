@@ -175,7 +175,7 @@
                 + '<td><input type="number" class="form-input form-input--small" id="pa-sc' + i + '-p1" step="0.01" value="0.28" style="width:70px"></td>'
                 + '<td><input type="number" class="form-input form-input--small" id="pa-sc' + i + '-p2" step="0.01" value="' + +(0.28 - 0.02 * i).toFixed(2) + '" style="width:70px"></td>'
                 + '<td><input type="number" class="form-input form-input--small" id="pa-sc' + i + '-n" step="10" value="' + (200 + i * 100) + '" style="width:80px"></td>'
-                + '<td><select class="form-select" id="pa-sc' + i + '-alpha" style="width:70px"><option value="0.05" selected>0.05</option><option value="0.01">0.01</option></select></td>'
+                + '<td><select class="form-select" id="pa-sc' + i + '-alpha" style="width:88px"><option value="0.05" selected>0.05</option><option value="0.01">0.01</option></select></td>'
                 + '<td style="font-family:var(--font-mono);color:var(--accent);font-weight:600" id="pa-sc' + i + '-power">--</td>'
                 + '</tr>';
         }

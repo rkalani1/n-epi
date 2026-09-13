@@ -767,7 +767,7 @@
     function buildTabBtn(panelId, label, active) {
         var style = 'padding:0.5rem 1rem;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-weight:600;font-size:0.85rem;transition:background 0.15s,color 0.15s;';
         if (active) {
-            style += 'background:var(--primary);color:#fff;';
+            style += 'background:var(--primary);color:var(--accent-contrast);';
         } else {
             style += 'background:transparent;color:var(--text-secondary);';
         }
@@ -1105,7 +1105,7 @@
             var isActive = b.getAttribute('data-panel') === panelId;
             b.classList.toggle('active', isActive);
             b.style.background = isActive ? 'var(--primary)' : 'transparent';
-            b.style.color = isActive ? '#fff' : 'var(--text-secondary)';
+            b.style.color = isActive ? 'var(--accent-contrast)' : 'var(--text-secondary)';
         });
     }
 
