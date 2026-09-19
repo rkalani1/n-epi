@@ -175,7 +175,7 @@
                 + '<td><input type="number" class="form-input form-input--small" id="pa-sc' + i + '-p1" step="0.01" value="0.28" style="width:70px"></td>'
                 + '<td><input type="number" class="form-input form-input--small" id="pa-sc' + i + '-p2" step="0.01" value="' + +(0.28 - 0.02 * i).toFixed(2) + '" style="width:70px"></td>'
                 + '<td><input type="number" class="form-input form-input--small" id="pa-sc' + i + '-n" step="10" value="' + (200 + i * 100) + '" style="width:80px"></td>'
-                + '<td><select class="form-select" id="pa-sc' + i + '-alpha" style="width:70px"><option value="0.05" selected>0.05</option><option value="0.01">0.01</option></select></td>'
+                + '<td><select class="form-select" id="pa-sc' + i + '-alpha" style="width:88px"><option value="0.05" selected>0.05</option><option value="0.01">0.01</option></select></td>'
                 + '<td style="font-family:var(--font-mono);color:var(--accent);font-weight:600" id="pa-sc' + i + '-power">--</td>'
                 + '</tr>';
         }
@@ -203,7 +203,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Formulas</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>Two Proportions:</strong> Power = \u03A6(|p\u2081 \u2212 p\u2082|\u00B7\u221A(n / (p\u0304q\u0304\u00B72)) \u2212 z<sub>\u03B1/2</sub>)</div>'
             + '<div><strong>Two Means:</strong> Power = \u03A6(\u03B4\u00B7\u221An / (\u03C3\u221A2) \u2212 z<sub>\u03B1/2</sub>)</div>'
             + '<div><strong>Survival (HR):</strong> Power = \u03A6(\u221AD\u00B7|ln(HR)|/2 \u2212 z<sub>\u03B1/2</sub>)</div>'

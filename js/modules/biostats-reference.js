@@ -513,8 +513,6 @@
             var bin = Math.min(Math.floor((means[m] - min) / binWidth), bins - 1);
             counts[bin]++;
         }
-        var maxCount = Math.max.apply(null, counts);
-
         var html = '<div class="result-panel mt-2">';
         html += '<div class="card-title">CLT Simulation Results</div>';
         html += '<div class="form-row form-row--4">';
@@ -524,17 +522,8 @@
         html += '<div class="result-value">' + reps + '<div class="result-label">Samples Drawn</div></div>';
         html += '</div>';
 
-        // Text histogram
-        html += '<div style="font-family:monospace;font-size:0.78rem;line-height:1.3;margin-top:12px;background:var(--bg-primary);border:1px solid var(--border);padding:12px;border-radius:8px;overflow-x:auto;">';
-        html += '<div style="margin-bottom:6px;font-weight:600;">Distribution of ' + reps + ' sample means (n=' + n + '):</div>';
-        for (var b = 0; b < bins; b++) {
-            var barLen = Math.round((counts[b] / maxCount) * 40);
-            var label = (min + b * binWidth).toFixed(2);
-            var bar = '';
-            for (var bl = 0; bl < barLen; bl++) bar += '#';
-            html += label + ' | ' + bar + ' (' + counts[b] + ')\n';
-        }
-        html += '</div>';
+        // Histogram of the sample means, drawn on a canvas below
+        html += '<div class="chart-container mt-2"><canvas id="br-clt-canvas" data-chart-title="Distribution of sample means"></canvas></div>';
 
         html += '<div class="result-detail mt-1" style="font-size:0.88rem;">';
         if (n >= 30) {
@@ -549,6 +538,50 @@
 
         html += '</div>';
         App.setTrustedHTML(document.getElementById('br-clt-results'), html);
+
+        lastCLT = { counts: counts, min: min, binWidth: binWidth, n: n, reps: reps };
+        drawCLTChart();
+    }
+
+    var lastCLT = null;
+    var lastDist = null;
+
+    function drawCLTChart() {
+        var canvas = document.getElementById('br-clt-canvas');
+        if (!canvas || !lastCLT || typeof Charts === 'undefined') return;
+        var cats = [], vals = [];
+        for (var b = 0; b < lastCLT.counts.length; b++) {
+            // Label every other bin midpoint so the axis stays legible.
+            cats.push(b % 2 === 0 ? (lastCLT.min + (b + 0.5) * lastCLT.binWidth).toFixed(2) : '');
+            vals.push(lastCLT.counts[b]);
+        }
+        Charts.BarChart(canvas, {
+            categories: cats,
+            series: [{ label: 'Sample means', values: vals }],
+            title: 'Distribution of ' + lastCLT.reps + ' sample means (n = ' + lastCLT.n + ')',
+            xLabel: 'Sample mean (bin midpoint)', yLabel: 'Frequency',
+            width: 720, height: 320
+        });
+    }
+
+    function drawDistChart() {
+        var canvas = document.getElementById('br-dist-canvas');
+        if (!canvas || !lastDist || typeof Charts === 'undefined') return;
+        if (lastDist.discrete) {
+            Charts.BarChart(canvas, {
+                categories: lastDist.points.map(function (pt) { return String(pt.x); }),
+                series: [{ label: 'P(X = x)', values: lastDist.points.map(function (pt) { return pt.y; }) }],
+                title: lastDist.title, xLabel: 'x', yLabel: 'Probability',
+                width: 720, height: 320
+            });
+        } else {
+            Charts.LineChart(canvas, {
+                data: [{ label: 'Density', points: lastDist.points }],
+                title: lastDist.title, xLabel: 'x', yLabel: 'Density',
+                yMin: 0, showLegend: false, showPoints: false,
+                width: 720, height: 320
+            });
+        }
     }
 
     function generateFromDist(type) {
@@ -636,7 +669,7 @@
         if (distType === 'normal') {
             if (isNaN(p1)) p1 = 0;
             if (isNaN(p2) || p2 <= 0) p2 = 1;
-            paramLabels = 'mu = ' + p1 + ', sigma = ' + p2;
+            paramLabels = '\u03BC = ' + p1 + ', \u03C3 = ' + p2;
             info = '<strong>Normal distribution</strong> with mean = ' + p1 + ' and SD = ' + p2 + '. '
                 + 'Bell-shaped, symmetric. 68% of values within 1 SD, 95% within 2 SD, 99.7% within 3 SD. '
                 + 'Mean = ' + p1 + ', Variance = ' + (p2 * p2).toFixed(2) + '.';
@@ -654,13 +687,13 @@
         } else if (distType === 'f') {
             if (isNaN(p1) || p1 < 1) p1 = 5;
             if (isNaN(p2) || p2 < 1) p2 = 20;
-            paramLabels = 'd1 = ' + p1 + ', d2 = ' + p2;
+            paramLabels = 'd<sub>1</sub> = ' + p1 + ', d<sub>2</sub> = ' + p2;
             info = '<strong>F distribution</strong> with d1 = ' + p1 + ' and d2 = ' + p2 + ' degrees of freedom. '
                 + 'Right-skewed. Used for comparing variances and ANOVA F-tests. '
                 + 'Mean = ' + (p2 > 2 ? (p2 / (p2 - 2)).toFixed(3) : 'undefined') + '.';
         } else if (distType === 'poisson') {
-            if (isNaN(p1) || p1 < 0) p1 = 5;
-            paramLabels = 'lambda = ' + p1;
+            if (isNaN(p1) || p1 <= 0) p1 = 5;
+            paramLabels = '\u03BB = ' + p1;
             info = '<strong>Poisson distribution</strong> with rate lambda = ' + p1 + '. '
                 + 'Discrete distribution for counts. Mean = Variance = ' + p1 + '. '
                 + 'Approaches normal when lambda is large (>= 20).';
@@ -674,24 +707,39 @@
                 + 'Approaches normal when np >= 5 and n(1-p) >= 5.';
         }
 
+        var usesP2 = distType === 'normal' || distType === 'f' || distType === 'binomial';
+        var p1El = document.getElementById('br_dist_p1');
+        var p2El = document.getElementById('br_dist_p2');
+        if (p1El && String(p1El.value) !== String(p1)) p1El.value = p1;
+        if (usesP2 && p2El && String(p2El.value) !== String(p2)) p2El.value = p2;
+
         var infoEl = document.getElementById('br-dist-info');
         if (infoEl) {
             App.setTrustedHTML(infoEl, '<div style="background:var(--bg-tertiary);border-radius:8px;padding:12px;font-size:0.88rem;line-height:1.6;">'
                 + '<strong>Parameters:</strong> ' + paramLabels + '<br>' + info + '</div>');
         }
 
-        // Generate text-based visualization
+        // Plot the density / probability mass function on a canvas
         var visualEl = document.getElementById('br-dist-visual');
         if (visualEl) {
-            var vizHtml = generateDistViz(distType, p1, p2);
-            App.setTrustedHTML(visualEl, vizHtml);
+            lastDist = generateDistViz(distType, p1, p2);
+            App.setTrustedHTML(visualEl, '<div class="chart-container"><canvas id="br-dist-canvas" data-chart-title="' + lastDist.title + '"></canvas></div>');
+            drawDistChart();
         }
     }
 
     function generateDistViz(distType, p1, p2) {
         var points = [];
-        var nPoints = 40;
+        var nPoints = 120;
         var xMin, xMax;
+        var titles = {
+            normal: 'Normal(\u03BC = ' + p1 + ', \u03C3 = ' + p2 + ')',
+            t: 't(df = ' + p1 + ')',
+            chi2: '\u03C7\u00B2(k = ' + p1 + ')',
+            f: 'F(d\u2081 = ' + p1 + ', d\u2082 = ' + p2 + ')',
+            poisson: 'Poisson(\u03BB = ' + p1 + ')',
+            binomial: 'Binomial(n = ' + Math.round(p1) + ', p = ' + p2 + ')'
+        };
 
         if (distType === 'normal') {
             xMin = p1 - 4 * p2;
@@ -749,30 +797,22 @@
                 var nn = Math.round(p1);
                 var pp = p2;
                 if (x <= nn) {
-                    y = Math.exp(logCombination(nn, x) + x * Math.log(pp) + (nn - x) * Math.log(1 - pp));
+                    // p = 0 or 1 is degenerate (all mass at 0 or n); the log form
+                    // would give 0 * log(0) = NaN there.
+                    if (pp <= 0) y = x === 0 ? 1 : 0;
+                    else if (pp >= 1) y = x === nn ? 1 : 0;
+                    else y = Math.exp(logCombination(nn, x) + x * Math.log(pp) + (nn - x) * Math.log(1 - pp));
                 }
             }
 
             points.push({ x: x, y: isFinite(y) ? y : 0 });
         }
 
-        // Build text-based bar chart
-        var maxY = 0;
-        for (var j = 0; j < points.length; j++) {
-            if (points[j].y > maxY) maxY = points[j].y;
-        }
-
-        var html = '<div style="font-family:monospace;font-size:0.78rem;line-height:1.2;background:var(--bg-primary);border:1px solid var(--border);padding:12px;border-radius:8px;overflow-x:auto;">';
-        for (var k = 0; k < points.length; k++) {
-            var barLen = maxY > 0 ? Math.round((points[k].y / maxY) * 35) : 0;
-            var bar = '';
-            for (var bl = 0; bl < barLen; bl++) bar += '#';
-            var xLabel = points[k].x.toFixed(1);
-            if (xLabel.length < 6) xLabel = ('      ' + xLabel).slice(-6);
-            html += xLabel + ' | ' + bar + '\n';
-        }
-        html += '</div>';
-        return html;
+        return {
+            points: points,
+            discrete: distType === 'poisson' || distType === 'binomial',
+            title: titles[distType] || 'Distribution'
+        };
     }
 
     function approxGamma(n) {
@@ -917,7 +957,7 @@
             html += '<strong>When to use:</strong><div>' + t.when + '</div>';
             html += '<strong>Assumptions:</strong><div>' + t.assumptions + '</div>';
             html += '<strong>Effect measure:</strong><div>' + t.effect + '</div>';
-            html += '<strong>Formula:</strong><div style="font-family:monospace;font-size:0.82rem">' + t.formula + '</div>';
+            html += '<strong>Formula:</strong><div class="formula-block formula-block--compact">' + t.formula + '</div>';
             html += '<strong>Interpretation:</strong><div style="font-style:italic">' + t.interpretation + '</div>';
             html += '</div>';
 
@@ -1151,7 +1191,7 @@
        REGISTER
        ================================================================ */
 
-    App.registerModule(MODULE_ID, { render: render });
+    App.registerModule(MODULE_ID, { render: render, onThemeChange: function () { drawDistChart(); drawCLTChart(); } });
 
     window.BiostatRef = {
         findTest: findTest,

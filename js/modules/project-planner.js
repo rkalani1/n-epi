@@ -1060,7 +1060,7 @@
             }
         }
 
-        var html = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem">';
+        var html = '<div class="table-scroll-wrap"><table style="width:100%;border-collapse:collapse;font-size:0.85rem">';
         html += '<thead><tr style="border-bottom:2px solid var(--border)">'
             + '<th style="text-align:left;padding:0.5rem;cursor:pointer" onclick="ProjectPlanner.sortMilestones(\'name\')">Milestone &#x25B4;&#x25BE;</th>'
             + '<th style="text-align:left;padding:0.5rem;cursor:pointer" onclick="ProjectPlanner.sortMilestones(\'date\')">Target Date &#x25B4;&#x25BE;</th>'
@@ -1073,7 +1073,7 @@
                 + '<td style="padding:0.5rem">' + m.name + '</td>'
                 + '<td style="padding:0.5rem;font-family:var(--font-mono)">' + (m.date || '--') + '</td>'
                 + '<td style="padding:0.5rem">'
-                + '<select class="form-select" style="font-size:0.8rem;padding:0.2rem 0.4rem" onchange="ProjectPlanner.updateMilestoneStatus(' + m.id + ', this.value)">'
+                + '<select class="form-select" style="font-size:0.8rem;min-width:120px;padding-top:0.2rem;padding-bottom:0.2rem;padding-left:0.4rem" onchange="ProjectPlanner.updateMilestoneStatus(' + m.id + ', this.value)">'
                 + '<option value="not-started"' + (m.status === 'not-started' ? ' selected' : '') + '>Not Started</option>'
                 + '<option value="in-progress"' + (m.status === 'in-progress' ? ' selected' : '') + '>In Progress</option>'
                 + '<option value="complete"' + (m.status === 'complete' ? ' selected' : '') + '>Complete</option>'
@@ -1083,7 +1083,7 @@
                 + '</td></tr>';
         });
 
-        html += '</tbody></table>';
+        html += '</tbody></table></div>';
         html += '<div style="font-size:0.78rem;color:var(--text-tertiary);margin-top:0.5rem">'
             + complete + ' of ' + milestones.length + ' milestones complete (' + pct + '%)</div>';
 

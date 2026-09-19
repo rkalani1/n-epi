@@ -197,7 +197,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Formulas</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>Sensitivity:</strong> TP / (TP + FN)</div>'
             + '<div><strong>Specificity:</strong> TN / (TN + FP)</div>'
             + '<div><strong>PPV:</strong> TP / (TP + FP)</div>'

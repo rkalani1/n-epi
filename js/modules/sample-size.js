@@ -497,7 +497,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Formulas</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>Two Proportions:</strong> N/group = (z<sub>\u03B1/2</sub> + z<sub>\u03B2</sub>)\u00B2 \u00D7 2p\u0304q\u0304 / (p\u2081 \u2212 p\u2082)\u00B2</div>'
             + '<div><strong>Two Means:</strong> N/group = (z<sub>\u03B1/2</sub> + z<sub>\u03B2</sub>)\u00B2 \u00D7 2\u03C3\u00B2 / \u03B4\u00B2</div>'
             + '<div><strong>Time-to-Event:</strong> Events = 4(z<sub>\u03B1/2</sub> + z<sub>\u03B2</sub>)\u00B2 / (ln HR)\u00B2</div>'

@@ -97,6 +97,28 @@ var Charts = (() => {
         return { min: niceMin, max: niceMax, tickSpacing: tickSpacing, ticks: ticks };
     }
 
+    // Axis range + ticks for a continuous axis. Bounds the caller fixed
+    // (xMin/yMin/...) are respected exactly; free bounds expand to the nearest
+    // nice value so ticks land on round numbers (0, 500, 1000) instead of
+    // arbitrary fractions of the data range (590.8, 1141.6).
+    function axisScale(lo, hi, loFixed, hiFixed, maxTicks) {
+        if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 1; }
+        if (hi <= lo) hi = lo + 1;
+        var s = niceScale(lo, hi, maxTicks);
+        var min = loFixed ? lo : s.min;
+        var max = hiFixed ? hi : s.max;
+        var ticks = s.ticks.filter(function (t) { return t >= min - 1e-9 && t <= max + 1e-9; });
+        if (ticks.length < 2) ticks = [min, max];
+        return { min: min, max: max, ticks: ticks, tickSpacing: s.tickSpacing };
+    }
+
+    // Tick labels carry exactly the precision the spacing needs (1, 2, 5 steps).
+    function formatTick(v, spacing) {
+        var decimals = spacing >= 1 ? 0 : Math.min(6, -Math.floor(Math.log10(spacing)));
+        var out = Number(v).toFixed(decimals);
+        return out === '-0' ? '0' : out;
+    }
+
     // ============================================================
     // UTILITY: Optional drop shadow
     // ============================================================
@@ -195,6 +217,7 @@ var Charts = (() => {
             xMin, xMax, yMin, yMax,
             width = 700, height = 400,
             showGrid = true, showLegend = true,
+            showPoints = true,
             xTicks, yTicks
         } = options;
 
@@ -215,8 +238,14 @@ var Charts = (() => {
             if (s.ciLower) s.ciLower.forEach(p => allY.push(p.y));
             if (s.ciUpper) s.ciUpper.forEach(p => allY.push(p.y));
         });
-        const xR = [xMin !== undefined ? xMin : Math.min(...allX), xMax !== undefined ? xMax : Math.max(...allX)];
-        const yR = [yMin !== undefined ? yMin : Math.min(...allY), yMax !== undefined ? yMax : Math.max(...allY)];
+        const xAxis = axisScale(
+            xMin !== undefined ? xMin : Math.min(...allX), xMax !== undefined ? xMax : Math.max(...allX),
+            xMin !== undefined, xMax !== undefined, (xTicks || 5) + 1);
+        const yAxis = axisScale(
+            yMin !== undefined ? yMin : Math.min(...allY), yMax !== undefined ? yMax : Math.max(...allY),
+            yMin !== undefined, yMax !== undefined, (yTicks || 5) + 1);
+        const xR = [xAxis.min, xAxis.max];
+        const yR = [yAxis.min, yAxis.max];
         const xRange = xR[1] - xR[0] || 1;
         const yRange = yR[1] - yR[0] || 1;
 
@@ -230,25 +259,21 @@ var Charts = (() => {
         if (showGrid) {
             ctx.strokeStyle = theme.grid;
             ctx.lineWidth = 1;
-            const nYTicks = yTicks || 5;
-            for (let i = 0; i <= nYTicks; i++) {
-                const yVal = yR[0] + (yRange * i) / nYTicks;
+            ctx.font = '11px system-ui, -apple-system, sans-serif';
+            yAxis.ticks.forEach(yVal => {
                 const y = sy(yVal);
                 ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
                 ctx.fillStyle = theme.textSecondary;
-                ctx.font = '11px system-ui, -apple-system, sans-serif';
                 ctx.textAlign = 'right';
-                ctx.fillText(Statistics.round(yVal, 2), pad.left - 8, y + 4);
-            }
-            const nXTicks = xTicks || 5;
-            for (let i = 0; i <= nXTicks; i++) {
-                const xVal = xR[0] + (xRange * i) / nXTicks;
+                ctx.fillText(formatTick(yVal, yAxis.tickSpacing), pad.left - 8, y + 4);
+            });
+            xAxis.ticks.forEach(xVal => {
                 const x = sx(xVal);
                 ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + plotH); ctx.stroke();
                 ctx.fillStyle = theme.textSecondary;
                 ctx.textAlign = 'center';
-                ctx.fillText(Statistics.round(xVal, 1), x, pad.top + plotH + 18);
-            }
+                ctx.fillText(formatTick(xVal, xAxis.tickSpacing), x, pad.top + plotH + 18);
+            });
         }
 
         // Axes
@@ -301,13 +326,15 @@ var Charts = (() => {
             });
             ctx.stroke();
 
-            // Points
-            pts.forEach(p => {
-                ctx.beginPath();
-                ctx.arc(sx(p.x), sy(p.y), 3, 0, 2 * Math.PI);
-                ctx.fillStyle = color;
-                ctx.fill();
-            });
+            // Points (omit for dense curves such as densities)
+            if (showPoints) {
+                pts.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(sx(p.x), sy(p.y), 3, 0, 2 * Math.PI);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                });
+            }
         });
 
         // Legend
@@ -1004,14 +1031,14 @@ var Charts = (() => {
                 ctx.fillStyle = theme.textSecondary;
                 ctx.font = '11px system-ui';
                 ctx.textAlign = 'center';
-                ctx.fillText(tv % 1 === 0 ? tv.toString() : tv.toFixed(1), gx, pad.top + plotH + 16);
+                ctx.fillText(formatTick(tv, valScale.tickSpacing), gx, pad.top + plotH + 16);
             } else {
                 var gy = sVal(tv);
                 ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(pad.left + plotW, gy); ctx.stroke();
                 ctx.fillStyle = theme.textSecondary;
                 ctx.font = '11px system-ui';
                 ctx.textAlign = 'right';
-                ctx.fillText(tv % 1 === 0 ? tv.toString() : tv.toFixed(1), pad.left - 8, gy + 4);
+                ctx.fillText(formatTick(tv, valScale.tickSpacing), pad.left - 8, gy + 4);
             }
         });
 

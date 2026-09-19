@@ -145,7 +145,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Formulas</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>Cohen\'s d:</strong> d = (M\u2081 \u2212 M\u2082) / SD<sub>pooled</sub></div>'
             + '<div><strong>Hedge\'s g:</strong> g = d \u00D7 (1 \u2212 3/(4(n\u2081+n\u2082)\u22129))</div>'
             + '<div><strong>OR \u2192 d:</strong> d = ln(OR) / 1.81 (Chinn 2000)</div>'

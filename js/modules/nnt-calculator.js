@@ -103,7 +103,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Formulas</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>ARR:</strong> CER \u2212 EER (absolute risk reduction)</div>'
             + '<div><strong>RR:</strong> EER / CER</div>'
             + '<div><strong>RRR:</strong> (CER \u2212 EER) / CER = 1 \u2212 RR</div>'

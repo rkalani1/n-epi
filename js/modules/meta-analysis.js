@@ -170,7 +170,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Formulas</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>Fixed-Effect (IV):</strong> \u03B8\u0302 = \u03A3(w\u1D62\u03B8\u1D62) / \u03A3w\u1D62, w\u1D62 = 1/v\u1D62</div>'
             + '<div><strong>DerSimonian-Laird \u03C4\u00B2:</strong> \u03C4\u00B2 = max(0, (Q \u2212 (k\u22121)) / (S\u2081 \u2212 S\u2082/S\u2081))</div>'
             + '<div><strong>Cochran Q:</strong> Q = \u03A3 w\u1D62(\u03B8\u1D62 \u2212 \u03B8\u0302)\u00B2</div>'
