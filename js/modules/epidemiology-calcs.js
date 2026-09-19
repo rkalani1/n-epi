@@ -323,7 +323,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Measures</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>Incidence Rate:</strong> Events / Person-time at risk</div>'
             + '<div><strong>Prevalence:</strong> Cases / Total population at a point in time</div>'
             + '<div><strong>OR (case-control):</strong> (a \u00D7 d) / (b \u00D7 c)</div>'
@@ -336,7 +336,7 @@
             + '</div>';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Screening Metrics</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>PPV:</strong> (Sens \u00D7 Prev) / (Sens \u00D7 Prev + (1 \u2212 Spec) \u00D7 (1 \u2212 Prev))</div>'
             + '<div><strong>NPV:</strong> (Spec \u00D7 (1 \u2212 Prev)) / ((1 \u2212 Sens) \u00D7 Prev + Spec \u00D7 (1 \u2212 Prev))</div>'
             + '</div>';

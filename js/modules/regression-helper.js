@@ -177,7 +177,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Formulas</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>Linear:</strong> Y = \u03B2\u2080 + \u03B2\u2081X\u2081 + \u2026 + \u03B5</div>'
             + '<div><strong>Logistic:</strong> logit(P) = \u03B2\u2080 + \u03B2\u2081X\u2081 + \u2026, OR = exp(\u03B2)</div>'
             + '<div><strong>Poisson:</strong> log(\u03BC) = \u03B2\u2080 + \u03B2\u2081X\u2081 + \u2026, IRR = exp(\u03B2)</div>'

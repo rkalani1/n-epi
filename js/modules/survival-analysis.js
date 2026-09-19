@@ -126,7 +126,7 @@
         html += '<div class="learn-body hidden" style="font-size:0.9rem;line-height:1.7;">';
 
         html += '<div class="card-subtitle" style="font-weight:600;">Key Formulas</div>';
-        html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;font-family:var(--font-mono);margin-bottom:12px;">'
+        html += '<div class="formula-block">'
             + '<div><strong>Kaplan-Meier:</strong> S(t) = \u220F (1 \u2212 d\u1D62/n\u1D62) for each event time</div>'
             + '<div><strong>Greenwood SE:</strong> SE[S(t)] = S(t) \u00D7 \u221A(\u03A3 d\u1D62/(n\u1D62(n\u1D62\u2212d\u1D62)))</div>'
             + '<div><strong>Log-Rank Test:</strong> \u03C7\u00B2 = (O\u2212E)\u00B2/V (Mantel-Cox, hypergeometric variance), df = 1</div>'

@@ -119,7 +119,7 @@
         // Incidence Rate
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Incidence Rate (Person-Time)</div>';
-        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> IR = New cases / Person-time at risk</div>';
+        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> <span class="formula">IR = New cases / Person-time at risk</span></div>';
         html += '<div class="form-row form-row--3">';
         html += '<div class="form-group"><label class="form-label">New Cases</label><input type="number" class="form-input" id="df-ir-cases" min="0" step="1" value="50"></div>';
         html += '<div class="form-group"><label class="form-label">Person-Time at Risk</label><input type="number" class="form-input" id="df-ir-pt" min="0.01" step="0.01" value="10000"></div>';
@@ -131,7 +131,7 @@
         // Cumulative Incidence
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Cumulative Incidence (Risk)</div>';
-        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> CI = New cases / Population at risk at start</div>';
+        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> <span class="formula">CI = New cases / Population at risk at start</span></div>';
         html += '<div class="form-row form-row--2">';
         html += '<div class="form-group"><label class="form-label">New Cases</label><input type="number" class="form-input" id="df-ci-cases" min="0" step="1" value="50"></div>';
         html += '<div class="form-group"><label class="form-label">Population at Risk</label><input type="number" class="form-input" id="df-ci-pop" min="1" step="1" value="5000"></div>';
@@ -142,7 +142,7 @@
         // Point Prevalence
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Point Prevalence</div>';
-        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> PP = Existing cases / Total population</div>';
+        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> <span class="formula">PP = Existing cases / Total population</span></div>';
         html += '<div class="form-row form-row--2">';
         html += '<div class="form-group"><label class="form-label">Existing Cases</label><input type="number" class="form-input" id="df-pp-cases" min="0" step="1" value="200"></div>';
         html += '<div class="form-group"><label class="form-label">Total Population</label><input type="number" class="form-input" id="df-pp-pop" min="1" step="1" value="10000"></div>';
@@ -153,7 +153,7 @@
         // Mortality Rate
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Mortality Rate</div>';
-        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> MR = Deaths / Population</div>';
+        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> <span class="formula">MR = Deaths / Population</span></div>';
         html += '<div class="form-row form-row--3">';
         html += '<div class="form-group"><label class="form-label">Deaths</label><input type="number" class="form-input" id="df-mr-deaths" min="0" step="1" value="150"></div>';
         html += '<div class="form-group"><label class="form-label">Population</label><input type="number" class="form-input" id="df-mr-pop" min="1" step="1" value="100000"></div>';
@@ -165,7 +165,7 @@
         // Case Fatality Rate
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Case Fatality Rate (CFR)</div>';
-        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> CFR = Deaths from disease / Total cases</div>';
+        html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><strong>Formula:</strong> <span class="formula">CFR = Deaths from disease / Total cases</span></div>';
         html += '<div class="form-row form-row--2">';
         html += '<div class="form-group"><label class="form-label">Deaths from Disease</label><input type="number" class="form-input" id="df-cfr-deaths" min="0" step="1" value="5"></div>';
         html += '<div class="form-group"><label class="form-label">Total Cases</label><input type="number" class="form-input" id="df-cfr-cases" min="1" step="1" value="50"></div>';
@@ -177,7 +177,7 @@
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Period Prevalence</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
-            + '<strong>Formula:</strong> PP = (Existing cases at start + New cases during period) / Average population during period</div>';
+            + '<strong>Formula:</strong> <span class="formula">PP = (Existing cases at start + New cases during period) / Average population during period</span></div>';
         html += '<div class="form-row form-row--3">';
         html += '<div class="form-group"><label class="form-label">Existing Cases at Start</label>'
             + '<input type="number" class="form-input" id="df-perp-existing" min="0" step="1" value="200"></div>';
@@ -193,7 +193,7 @@
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Attack Rate (Outbreak Context)</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
-            + '<strong>Formula:</strong> AR = Number of new cases during outbreak / Population at risk at start. '
+            + '<strong>Formula:</strong> <span class="formula">AR = Number of new cases during outbreak / Population at risk at start</span>. '
             + 'Also called <em>cumulative incidence</em> in outbreak settings. Can calculate food-specific attack rates to identify the source.</div>';
         html += '<div class="form-row form-row--3">';
         html += '<div class="form-group"><label class="form-label">Cases (ate food)</label>'
@@ -218,7 +218,7 @@
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Proportionate Mortality (%)</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
-            + '<strong>Formula:</strong> Proportionate mortality = Deaths from specific cause / Total deaths x 100. '
+            + '<strong>Formula:</strong> <span class="formula">Proportionate mortality = Deaths from specific cause / Total deaths &times; 100</span>. '
             + 'Note: this does not measure risk; it reflects the relative importance of a cause of death. '
             + '(The proportionate mortality <em>ratio</em>, PMR, further divides this proportion by the corresponding proportion in a comparison population.)</div>';
         html += '<div class="form-row form-row--2">';
@@ -599,7 +599,7 @@
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Direct Standardization</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
             + '<strong>Method:</strong> Apply age-specific rates from your study population to a standard population. '
-            + '<strong>Formula:</strong> DSR = Sum(age-specific rate x standard population in age group) / Total standard population</div>';
+            + '<strong>Formula:</strong> <span class="formula">DSR = &Sigma;(age-specific rate &times; standard population in age group) / Total standard population</span></div>';
 
         html += '<p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 8px 0">Enter data for up to 5 age groups. Leave unused rows blank.</p>';
 
@@ -622,7 +622,7 @@
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Indirect Standardization (SMR)</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
             + '<strong>Method:</strong> Apply standard population rates to your study population structure. '
-            + '<strong>Formula:</strong> SMR = Observed deaths / Expected deaths. Expected = Sum(standard rate x study population in age group)</div>';
+            + '<strong>Formula:</strong> <span class="formula">SMR = Observed deaths / Expected deaths</span>, where <span class="formula">Expected = &Sigma;(standard rate &times; study population in age group)</span></div>';
 
         html += '<div class="form-row form-row--2">'
             + '<div class="form-group"><label class="form-label">Total Observed Deaths</label>'
@@ -1052,7 +1052,7 @@
         html += '<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">';
         html += '<div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Years of Life Lost (PYLL method)</div>';
         html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">'
-            + '<strong>Formula:</strong> PYLL = Number of deaths &times; (Reference age &minus; average age at death). '
+            + '<strong>Formula:</strong> <span class="formula">PYLL = Number of deaths &times; (Reference age &minus; average age at death)</span>. '
             + 'GBD-style YLL instead multiplies deaths by the standard <em>remaining</em> life expectancy at the age of death '
             + '(see the DALY/YLL tab in Epi Calculators).</div>';
 

@@ -360,8 +360,8 @@
             html += '<div class="table-scroll-wrap"><table class="data-table" style="font-size:0.8rem">';
             if (trial.journal) {
                 html += '<tr><td style="width:130px;font-weight:500">Journal</td><td>' + escapeHTML(trial.journal);
-                if (trial.pmid) html += ' <a href="https://pubmed.ncbi.nlm.nih.gov/' + escapeHTML(trial.pmid) + '/" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--accent)">[PubMed]</a>';
-                if (trial.doi) html += ' <a href="https://doi.org/' + escapeHTML(trial.doi) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--accent)">[DOI]</a>';
+                if (trial.pmid) html += ' <a href="https://pubmed.ncbi.nlm.nih.gov/' + escapeHTML(trial.pmid) + '/" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="cite-link">PubMed</a>';
+                if (trial.doi) html += ' <a href="https://doi.org/' + escapeHTML(trial.doi) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="cite-link">DOI</a>';
                 html += '</td></tr>';
             }
             if (trial.design) html += '<tr><td style="font-weight:500">Design</td><td>' + escapeHTML(trial.design) + '</td></tr>';
