@@ -2933,3 +2933,117 @@ body.sidebar-open {
 .site-footer a + a {
     margin-left: 15px;
 }
+
+/* Screen finish: shared surfaces and interaction states. Keep layout, type
+   metrics, scientific notation, semantic status colours and print unchanged. */
+@media screen {
+    :root {
+        --bg-base: #09121d;
+        --bg-surface: #101e2e;
+        --bg-elevated: #16283a;
+        --bg-hover: #1c3346;
+        --text-primary: #f2f7fc;
+        --text-secondary: #b9c9d8;
+        --text-tertiary: #9fb2c5;
+        --accent: #72e4cf;
+        --accent-hover: #a1f2e2;
+        --accent-muted: rgba(114, 228, 207, 0.10);
+        --border: rgba(165, 194, 218, 0.16);
+        --border-strong: rgba(165, 194, 218, 0.29);
+        --highlight: rgba(226, 244, 255, 0.07);
+        --shadow: 0 2px 4px rgba(0, 8, 20, 0.12), 0 12px 28px -20px rgba(0, 8, 20, 0.65);
+        --shadow-lg: 0 8px 28px -12px rgba(0, 8, 20, 0.55);
+        --radius-lg: 16px;
+        --radius-xl: 20px;
+        --surface-sheen: rgba(191, 221, 244, 0.035);
+        --canvas-glow: rgba(56, 153, 168, 0.13);
+        --canvas-blue: rgba(91, 126, 204, 0.09);
+        --field-bg: #0d1a28;
+    }
+
+    [data-theme="light"] {
+        --bg-base: #edf3f8;
+        --bg-surface: #ffffff;
+        --bg-elevated: #f2f6fa;
+        --bg-hover: #e7f0f5;
+        --text-primary: #152c40;
+        --text-secondary: #455f73;
+        --text-tertiary: #536e83;
+        --accent: #096e66;
+        --accent-hover: #07584f;
+        --accent-muted: rgba(9, 110, 102, 0.07);
+        --border: rgba(56, 91, 119, 0.15);
+        --border-strong: rgba(56, 91, 119, 0.30);
+        --highlight: rgba(255, 255, 255, 0.95);
+        --shadow: 0 2px 4px rgba(24, 54, 77, 0.025), 0 12px 28px -20px rgba(24, 54, 77, 0.27);
+        --shadow-lg: 0 12px 30px -14px rgba(24, 54, 77, 0.26);
+        --surface-sheen: rgba(255, 255, 255, 0.65);
+        --canvas-glow: rgba(84, 176, 174, 0.11);
+        --canvas-blue: rgba(93, 146, 205, 0.10);
+        --field-bg: #fcfdff;
+    }
+
+    body {
+        background-image:
+            radial-gradient(ellipse 1000px 620px at 35% -180px, var(--canvas-glow), transparent 78%),
+            radial-gradient(ellipse 740px 560px at 100% 0, var(--canvas-blue), transparent 80%);
+        background-size: auto;
+        background-repeat: no-repeat;
+    }
+
+    .sidebar { border-right-color: var(--border-strong); }
+    .sidebar-header, .sidebar-footer, .mobile-header, .mobile-nav {
+        background: linear-gradient(120deg, var(--surface-sheen), transparent), var(--bg-surface);
+    }
+    .sidebar-link.active {
+        background: linear-gradient(90deg, var(--accent-muted), transparent);
+        box-shadow: inset 0 1px var(--highlight), inset 0 -1px var(--highlight);
+    }
+    .sidebar-logo-icon, .dashboard-module-icon, .dashboard-category-num {
+        box-shadow: inset 0 0 0 1px var(--border-strong), 0 3px 8px -4px var(--scroll-shadow);
+    }
+
+    .card, .dashboard-module-card, .dashboard-category-card, .trial-card {
+        background-image: linear-gradient(145deg, var(--surface-sheen), transparent 65%);
+        box-shadow: var(--shadow), inset 0 1px var(--highlight);
+    }
+    .dashboard-module-card:hover, .dashboard-category-card:hover {
+        box-shadow: var(--shadow-lg), inset 0 1px var(--highlight);
+    }
+    .dashboard-module-desc { color: var(--text-secondary); }
+    .dashboard-stats {
+        background: linear-gradient(110deg, var(--accent-muted), transparent 80%), var(--bg-surface);
+        border-color: var(--border-strong);
+        box-shadow: var(--shadow), inset 0 1px var(--highlight);
+    }
+    .dashboard-hero { border-bottom-color: var(--border-strong); }
+    .dashboard-search-btn, .sidebar-cmd-k-btn {
+        color: var(--text-secondary);
+        background: var(--field-bg);
+        box-shadow: inset 0 1px 3px rgba(0, 8, 20, 0.05);
+    }
+
+    .form-input, .form-select {
+        background-color: var(--field-bg);
+        box-shadow: inset 0 1px 3px rgba(0, 8, 20, 0.05);
+    }
+    .btn-primary {
+        box-shadow: 0 4px 12px -7px var(--accent), inset 0 1px rgba(255, 255, 255, 0.18);
+    }
+    .tab.active {
+        background: linear-gradient(0deg, var(--accent-muted), transparent);
+        box-shadow: inset 0 -1px var(--accent);
+    }
+    .result-panel {
+        background-image: linear-gradient(110deg, var(--accent-muted), transparent);
+        box-shadow: var(--shadow), inset 0 1px var(--highlight);
+    }
+    .data-table th {
+        color: var(--text-primary);
+        background: var(--bg-elevated);
+        border-bottom-color: var(--border-strong);
+    }
+    .cmd-palette-dialog, .shortcuts-modal-dialog {
+        box-shadow: 0 24px 80px -20px var(--scroll-shadow), inset 0 1px var(--highlight);
+    }
+}
